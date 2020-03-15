@@ -207,7 +207,9 @@ public:
 			visualization_msgs::MarkerArray& polygons,
 			visualization_msgs::MarkerArray& tracked_traj);
 
-	static void CreateCircleMarker(const PlannerHNS::WayPoint& _center, const double& radius, const int& start_id, visualization_msgs::Marker& circle_points);
+	static void CreateCircleMarker(const PlannerHNS::WayPoint& _center, const double& radius, const double& r, const double& g, const double& b, const int& start_id, const std::string& name_space,visualization_msgs::Marker& circle_points);
+
+	static void TrajectoryToMarkersWithCircles(const std::vector<PlannerHNS::WayPoint>& path, const double& r_path, const double& g_path, const double& b_path, const double& r_circle, const double& g_circle, const double& b_circle, const double& radius, visualization_msgs::MarkerArray& markerArray);
 
 	static void InitPredMarkers(const int& nMarkers, visualization_msgs::MarkerArray& paths);
 
@@ -225,9 +227,9 @@ public:
 
 	static void ConvertCollisionPointsMarkers(const std::vector<PlannerHNS::WayPoint>& col_pointss, visualization_msgs::MarkerArray& collision_markers, visualization_msgs::MarkerArray& collision_markers_d);
 
-	static void InitPredParticlesMarkers(const int& nMarkers, visualization_msgs::MarkerArray& paths);
+	static void InitPredParticlesMarkers(const int& nMarkers, visualization_msgs::MarkerArray& paths, bool bOld = false);
 
-	static void ConvertParticles(std::vector<PlannerHNS::WayPoint>& points, visualization_msgs::MarkerArray& part_mkrs, visualization_msgs::MarkerArray& part_markers_d);
+	static void ConvertParticles(std::vector<PlannerHNS::WayPoint>& points, visualization_msgs::MarkerArray& part_mkrs, visualization_msgs::MarkerArray& part_markers_d, bool bOld = false);
 
 	static void ConvertFromPlannerHToAutowarePathFormat(const std::vector<PlannerHNS::WayPoint>& path, const int& iStart,
 				autoware_msgs::Lane & trajectory);
@@ -276,6 +278,7 @@ public:
 	static std::string GetBehaviorNameFromCode(const PlannerHNS::STATE_TYPE& behState);
 
 	static void VisualizeBehaviorState(const PlannerHNS::WayPoint& currState, const PlannerHNS::BehaviorState& beh, const bool& bGreenLight, const int& avoidDirection, visualization_msgs::Marker& behaviorMarker, std::string ns,double size_factor = 1);
+	static void VisualizeIntentionState(const PlannerHNS::WayPoint& currState, const PlannerHNS::BEH_STATE_TYPE& beh, visualization_msgs::Marker& behaviorMarker, std::string ns,double size_factor = 1);
 
 	static void UpdateRoadMap(const AutowareRoadNetwork& src_map, PlannerHNS::RoadNetwork& out_map);
 

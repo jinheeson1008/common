@@ -32,10 +32,6 @@ include_directories(
 
 set(PLANNERH_SRC
 	src/BehaviorPrediction.cpp 
-	src/BehaviorPrediction.cpp 
-	src/BehaviorPrediction.cpp 
-	src/BehaviorPrediction.cpp 
-	src/BehaviorPrediction.cpp 
 	src/BehaviorStateMachine.cpp
 	src/DecisionMaker.cpp
 	src/LocalPlannerH.cpp
@@ -43,18 +39,11 @@ set(PLANNERH_SRC
 	src/MatrixOperations.cpp
 	src/PassiveDecisionMaker.cpp
 	src/PlannerH.cpp		
-	src/PlannerH.cpp		
-	src/PlannerH.cpp		
-	src/PlannerH.cpp		
-	src/PlannerH.cpp		
-	src/PlanningHelpers.cpp				
-	src/PlanningHelpers.cpp				
-	src/PlanningHelpers.cpp				
-	src/PlanningHelpers.cpp				
 	src/PlanningHelpers.cpp				
 	src/SimuDecisionMaker.cpp
 	src/TrajectoryCosts.cpp
 	src/TrajectoryDynamicCosts.cpp
+	src/TrajectoryEvaluator.cpp
 )
 
 ## Declare a cpp library

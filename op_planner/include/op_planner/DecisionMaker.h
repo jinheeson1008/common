@@ -24,38 +24,39 @@ public:
 	std::vector<WayPoint> m_Path;
 	PlannerHNS::RoadNetwork m_Map;
 
-	double m_MaxLaneSearchDistance;
 	int m_iCurrentTotalPathId;
 	std::vector<std::vector<WayPoint> > m_RollOuts;
+	std::vector<int> m_prev_index;
 	Lane* pLane;
 
-	BehaviorStateMachine* 		m_pCurrentBehaviorState;
-	StopState* 					m_pStopState;
-	WaitState* 					m_pWaitState;
-	SwerveStateII*				m_pAvoidObstacleState;
-	TrafficLightStopStateII*	m_pTrafficLightStopState;
-	TrafficLightWaitStateII*	m_pTrafficLightWaitState;
+	BehaviorStateMachine* m_pCurrentBehaviorState;
+	WaitState* m_pWaitState;
+	SwerveStateII* m_pAvoidObstacleState;
+	TrafficLightStopStateII* m_pTrafficLightStopState;
+	TrafficLightWaitStateII* m_pTrafficLightWaitState;
 
-	ForwardStateII * 			m_pGoToGoalState;;
-	InitStateII* 				m_pInitState;
-	MissionAccomplishedStateII*	m_pMissionCompleteState;
-	GoalStateII*				m_pGoalState;
-	FollowStateII*				m_pFollowState;
-	StopSignStopStateII* 			m_pStopSignStopState;
-	StopSignWaitStateII* 			m_pStopSignWaitState;
+	ForwardStateII* m_pGoToGoalState;;
+	InitStateII* m_pInitState;
+	MissionAccomplishedStateII* m_pMissionCompleteState;
+	GoalStateII* m_pGoalState;
+	FollowStateII* m_pFollowState;
+	StopSignStopStateII* m_pStopSignStopState;
+	StopSignWaitStateII* m_pStopSignWaitState;
+	StopStateII* m_pStopState;
 
 	void InitBehaviorStates();
 
 	//For Simulation
-	UtilityHNS::PIDController 	m_pidVelocity;
-	UtilityHNS::PIDController 	m_pidStopping;
-	UtilityHNS::PIDController 	m_pidFollowing;
+	UtilityHNS::PIDController m_pidVelocity;
+	UtilityHNS::PIDController m_pidStopping;
+	UtilityHNS::PIDController m_pidFollowing;
 
 public:
 
 	DecisionMaker();
 	virtual ~DecisionMaker();
 	void Init(const ControllerParams& ctrlParams, const PlanningParams& params, const CAR_BASIC_INFO& carInfo);
+	void UpdateAvoidanceParams(bool enable_swerve, int roll_out_numbers);
 	void CalculateImportantParameterForDecisionMaking(const VehicleState& car_state,
 			const int& goalID, const bool& bEmergencyStop, const std::vector<TrafficLight>& detectedLights,
 			const TrajectoryCost& bestTrajectory);
