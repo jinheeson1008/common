@@ -44,6 +44,8 @@ set(PLANNERH_SRC
 	src/TrajectoryCosts.cpp
 	src/TrajectoryDynamicCosts.cpp
 	src/TrajectoryEvaluator.cpp
+	src/KmlMapLoader.cpp
+	src/RoadNetwork.cpp
 )
 
 ## Declare a cpp library

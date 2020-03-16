@@ -88,12 +88,12 @@ public:
 			const std::vector<UtilityHNS::AisanPointsFileReader::AisanPoints>& points,
 			const GPSPoint& origin, WayPoint& way_point);
 
-	static void LoadKML(const std::string& kmlMap, RoadNetwork& map);
+	//static void LoadKML(const std::string& kmlMap, RoadNetwork& map);
 
 	static void LinkTrafficLightsIntoGroups(RoadNetwork& map);
 
-	static TiXmlElement* GetHeadElement(TiXmlElement* pMainElem);
-	static TiXmlElement* GetDataFolder(const std::string& folderName, TiXmlElement* pMainElem);
+//	static TiXmlElement* GetHeadElement(TiXmlElement* pMainElem);
+//	static TiXmlElement* GetDataFolder(const std::string& folderName, TiXmlElement* pMainElem);
 
 
 	static Lane* GetClosestLaneFromMap(const WayPoint& pos, RoadNetwork& map, const double& distance = 5.0, const bool bDirectionBased = true);
@@ -172,23 +172,23 @@ public:
 	static WayPoint* FindWaypoint(const int& id, RoadNetwork& map);
 	static WayPoint* FindWaypointV2(const int& id, const int& l_id, RoadNetwork& map);
 
-	static std::vector<Line> GetLinesList(TiXmlElement* pElem);
-	static std::vector<Curb> GetCurbsList(TiXmlElement* pElem);
-	static std::vector<Boundary> GetBoundariesList(TiXmlElement* pElem);
-	static std::vector<Marking> GetMarkingsList(TiXmlElement* pElem);
-	static std::vector<Crossing> GetCrossingsList(TiXmlElement* pElem);
-	static std::vector<TrafficSign> GetTrafficSignsList(TiXmlElement* pElem);
-	static std::vector<TrafficLight> GetTrafficLightsList(TiXmlElement* pElem);
-	static std::vector<StopLine> GetStopLinesList(TiXmlElement* pElem);
-	static std::vector<Lane> GetLanesList(TiXmlElement* pElem);
-	static std::vector<RoadSegment> GetRoadSegmentsList(TiXmlElement* pElem);
-	static std::vector<std::string> GetStringsFromPrefix(const std::string& str, const std::string& prefix, const std::string& postfix);
-	static std::vector<int> GetIDsFromPrefix(const std::string& str, const std::string& prefix, const std::string& postfix);
-	static std::vector<double> GetDoubleFromPrefix(const std::string& str, const std::string& prefix, const std::string& postfix);
-	static std::pair<ACTION_TYPE, double> GetActionPairFromPrefix(const std::string& str, const std::string& prefix, const std::string& postfix);
-	static std::vector<WayPoint> GetCenterLaneData(TiXmlElement* pElem, const int& currLaneID);
-	static std::vector<WayPoint> GetCenterLaneDataVer0(TiXmlElement* pElem, const int& currLaneID);
-	static std::vector<WayPoint> GetWaypointsData(TiXmlElement* pElem);
+//	static std::vector<Line> GetLinesList(TiXmlElement* pElem);
+//	static std::vector<Curb> GetCurbsList(TiXmlElement* pElem);
+//	static std::vector<Boundary> GetBoundariesList(TiXmlElement* pElem);
+//	static std::vector<Marking> GetMarkingsList(TiXmlElement* pElem);
+//	static std::vector<Crossing> GetCrossingsList(TiXmlElement* pElem);
+//	static std::vector<TrafficSign> GetTrafficSignsList(TiXmlElement* pElem);
+//	static std::vector<TrafficLight> GetTrafficLightsList(TiXmlElement* pElem);
+//	static std::vector<StopLine> GetStopLinesList(TiXmlElement* pElem);
+//	static std::vector<Lane> GetLanesList(TiXmlElement* pElem);
+//	static std::vector<RoadSegment> GetRoadSegmentsList(TiXmlElement* pElem);
+//	static std::vector<std::string> GetStringsFromPrefix(const std::string& str, const std::string& prefix, const std::string& postfix);
+//	static std::vector<int> GetIDsFromPrefix(const std::string& str, const std::string& prefix, const std::string& postfix);
+//	static std::vector<double> GetDoubleFromPrefix(const std::string& str, const std::string& prefix, const std::string& postfix);
+//	static std::pair<ACTION_TYPE, double> GetActionPairFromPrefix(const std::string& str, const std::string& prefix, const std::string& postfix);
+//	static std::vector<WayPoint> GetCenterLaneData(TiXmlElement* pElem, const int& currLaneID);
+//	static std::vector<WayPoint> GetCenterLaneDataVer0(TiXmlElement* pElem, const int& currLaneID);
+//	static std::vector<WayPoint> GetWaypointsData(TiXmlElement* pElem);
 	static std::vector<std::string> SplitString(const std::string& str, const std::string& token);
 
 	//static void CreateKmlFromLocalizationPathFile(const std::string& pathFileName,const double& maxLaneDistance, const double& density,const std::vector<TrafficLight>& trafficLights, const std::vector<GPSPoint>& stopLines);
@@ -266,17 +266,17 @@ public:
 	static TRAFFIC_LIGHT_TYPE FromNumberToLightType(int type);
 	static TRAFFIC_SIGN_TYPE FromNumberToSignType(int type);
 
-	static double m_USING_VER_ZERO;
-	static int g_max_point_id;
-	static int g_max_lane_id;
-	static int g_max_line_id;
-	static int g_max_stop_line_id;
-	static int g_max_traffic_light_id ;
-	static int g_max_traffic_sign_id ;
-	static int g_max_boundary_area_id ;
-	static int g_max_marking_id ;
-	static int g_max_curb_id ;
-	static int g_max_crossing_id ;
+	//static double m_USING_VER_ZERO;
+//	static int g_max_point_id;
+//	static int g_max_lane_id;
+//	static int g_max_line_id;
+//	static int g_max_stop_line_id;
+//	static int g_max_traffic_light_id ;
+//	static int g_max_traffic_sign_id ;
+//	static int g_max_boundary_area_id ;
+//	static int g_max_marking_id ;
+//	static int g_max_curb_id ;
+//	static int g_max_crossing_id ;
 
 	static std::vector<Lane*> GetClosestMultipleLanesFromMap(const WayPoint& pos, RoadNetwork& map, const double& distance = 5.0);
 

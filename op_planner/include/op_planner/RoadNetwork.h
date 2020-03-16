@@ -875,7 +875,28 @@ public:
 		markings.clear();
 		signs.clear();
 		lines.clear();
+		RoadNetwork::g_max_point_id = 0;
+		RoadNetwork::g_max_lane_id = 0;
+		RoadNetwork::g_max_line_id = 0;
+		RoadNetwork::g_max_stop_line_id = 0;
+		RoadNetwork::g_max_traffic_light_id = 0;
+		RoadNetwork::g_max_traffic_sign_id = 0;
+		RoadNetwork::g_max_boundary_area_id = 0;
+		RoadNetwork::g_max_marking_id = 0;
+		RoadNetwork::g_max_curb_id = 0;
+		RoadNetwork::g_max_crossing_id = 0;
 	}
+
+	static int g_max_point_id;
+	static int g_max_lane_id;
+	static int g_max_line_id;
+	static int g_max_stop_line_id;
+	static int g_max_traffic_light_id;
+	static int g_max_traffic_sign_id;
+	static int g_max_boundary_area_id;
+	static int g_max_marking_id;
+	static int g_max_curb_id;
+	static int g_max_crossing_id;
 };
 
 class VehicleState : public ObjTimeStamp
