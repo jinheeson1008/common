@@ -75,7 +75,6 @@ public:
 class SimpleReaderBase
 {
 private:
-	std::ifstream* m_pFile;
 	std::vector<std::string> m_RawHeaders;
 	std::vector<std::string> m_DataTitlesHeader;
 	std::vector<std::vector<std::vector<std::string> > > m_AllData;
@@ -107,7 +106,7 @@ public:
 	std::string file_name_;
 
 protected:
-
+	std::ifstream* m_pFile;
 	bool ReadSingleLine(std::vector<std::vector<std::string> >& line);
 
 };
@@ -1469,6 +1468,78 @@ public:
 			delete pWhitelines;
 			pWhitelines = nullptr;
 		}
+	}
+
+	void LoadFromFolder(std::string vector_map_folder)
+	{
+		this->pAreas = new UtilityHNS::AisanAreasFileReader(vector_map_folder);
+		this->pAreas->ReadAllData();
+
+		this->pCenterLines = new UtilityHNS::AisanCenterLinesFileReader(vector_map_folder);
+		this->pCenterLines->ReadAllData();
+
+		this->pCrossWalks = new UtilityHNS::AisanCrossWalkFileReader(vector_map_folder);
+		this->pCrossWalks->ReadAllData();
+
+		this->pCurbs = new UtilityHNS::AisanCurbFileReader(vector_map_folder);
+		this->pCurbs->ReadAllData();
+
+		this->pGutter = new UtilityHNS::AisanGutterFileReader(vector_map_folder);
+		this->pGutter->ReadAllData();
+
+		this->pIdx = new UtilityHNS::AisanIdxFileReader(vector_map_folder);
+		this->pIdx->ReadAllData();
+
+		this->pIntersections = new UtilityHNS::AisanIntersectionFileReader(vector_map_folder);
+		this->pIntersections->ReadAllData();
+
+		this->pLanes = new UtilityHNS::AisanLanesFileReader(vector_map_folder);
+		this->pLanes->ReadAllData();
+
+		this->pLines = new UtilityHNS::AisanLinesFileReader(vector_map_folder);
+		this->pLines->ReadAllData();
+
+		this->pNodes = new UtilityHNS::AisanNodesFileReader(vector_map_folder);
+		this->pNodes->ReadAllData();
+
+		this->pPoints = new UtilityHNS::AisanPointsFileReader(vector_map_folder);
+		this->pPoints->ReadAllData();
+
+		this->pPole = new UtilityHNS::AisanPoleFileReader(vector_map_folder);
+		this->pPole->ReadAllData();
+
+		this->pPoledata = new UtilityHNS::AisanPoledataFileReader(vector_map_folder);
+		this->pPoledata->ReadAllData();
+
+		this->pRoadedges = new UtilityHNS::AisanRoadEdgeFileReader(vector_map_folder);
+		this->pRoadedges->ReadAllData();
+
+		this->pSignals = new UtilityHNS::AisanSignalFileReader(vector_map_folder);
+		this->pSignals->ReadAllData();
+
+		this->pStopLines = new UtilityHNS::AisanStopLineFileReader(vector_map_folder);
+		this->pStopLines->ReadAllData();
+
+		this->pStreetLight = new UtilityHNS::AisanStreetlightFileReader(vector_map_folder);
+		this->pStreetLight->ReadAllData();
+
+		this->pSurfacemark = new UtilityHNS::AisanSurfacemarkFileReader(vector_map_folder);
+		this->pSurfacemark->ReadAllData();
+
+		this->pUtilitypole = new UtilityHNS::AisanUtilitypoleFileReader(vector_map_folder);
+		this->pUtilitypole->ReadAllData();
+
+		this->pVectors = new UtilityHNS::AisanVectorFileReader(vector_map_folder);
+		this->pVectors->ReadAllData();
+
+		this->pWayAreas = new UtilityHNS::AisanWayareaFileReader(vector_map_folder);
+		this->pWayAreas->ReadAllData();
+
+		this->pWhitelines = new UtilityHNS::AisanWhitelinesFileReader(vector_map_folder);
+		this->pWhitelines->ReadAllData();
+
+		this->pZebrazore = new UtilityHNS::AisanZebrazoneFileReader(vector_map_folder);
+		this->pZebrazore->ReadAllData();
 	}
 
 	int GetVersion()

@@ -7,6 +7,7 @@ find_package(autoware_build_flags REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
 		cmake_modules
 		op_utility
+		lanelet2_extension
 )
 
 find_package(TinyXML REQUIRED)
@@ -45,6 +46,8 @@ set(PLANNERH_SRC
 	src/TrajectoryDynamicCosts.cpp
 	src/TrajectoryEvaluator.cpp
 	src/KmlMapLoader.cpp
+	src/VectorMapLoader.cpp
+	src/Lanelet2MapLoader.cpp
 	src/RoadNetwork.cpp
 )
 

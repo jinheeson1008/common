@@ -7,7 +7,7 @@
 #ifndef KMLMAPLOADER_H_
 #define KMLMAPLOADER_H_
 
-#include "MappingHelpers.h"
+#include <op_planner/MappingHelpers.h>
 
 namespace PlannerHNS {
 
@@ -19,7 +19,7 @@ public:
 	/**
 	 * @brief Read xml based .kml map file format. it is custom format for OpenPlanner internal road network map requirements
 	 * @param kmlFile
-	 * @param map
+	 * @param map, OpenPlanner RoadNetwork map
 	 */
 	void LoadKML(const std::string& kmlFile, RoadNetwork& map);
 
