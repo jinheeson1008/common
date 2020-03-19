@@ -711,8 +711,7 @@ void VectorMapLoader::ExtractLines(UtilityHNS::AisanLinesFileReader* pLineData, 
 }
 
 void VectorMapLoader::ExtractCurbDataV2(const std::vector<UtilityHNS::AisanCurbFileReader::AisanCurb>& curb_data,
-				UtilityHNS::AisanLinesFileReader* pLinedata,
-				UtilityHNS::AisanPointsFileReader* pPointsData,
+				UtilityHNS::AisanLinesFileReader* pLinedata, UtilityHNS::AisanPointsFileReader* pPointsData,
 				const GPSPoint& origin, RoadNetwork& map)
 {
 	for(unsigned int ic=0; ic < curb_data.size(); ic++)
@@ -721,6 +720,8 @@ void VectorMapLoader::ExtractCurbDataV2(const std::vector<UtilityHNS::AisanCurbF
 		c.id = curb_data.at(ic).ID;
 		c.height = curb_data.at(ic).Height;
 		c.width = curb_data.at(ic).Width;
+		WayPoint curb_wp;
+		WayPoint point_2;
 
 		for(unsigned int il=0; il < pLinedata->m_data_list.size() ; il++)
 		{
@@ -738,28 +739,55 @@ void VectorMapLoader::ExtractCurbDataV2(const std::vector<UtilityHNS::AisanCurbF
 					p.pos.lon = pP->B;
 					p.pos.alt = pP->H;
 					MappingHelpers::correct_gps_coor(p.pos.lat, p.pos.lon);
+					curb_wp = p;
 
-					WayPoint p2 = p;
-					p2.pos.x += 0.1*cos(M_PI_2);
-					p2.pos.y += 0.1*sin(M_PI_2);
-					c.points.push_back(p);
-					c.points.push_back(p2);
-					WayPoint wp;
-					wp = c.points.at(0);
-					Lane* pLane = MappingHelpers::GetClosestLaneFromMap(wp, map, 3);
-					if(pLane != nullptr)
+					point_2 = p;
+					point_2.pos.x += 0.1*cos(M_PI_2);
+					point_2.pos.y += 0.1*sin(M_PI_2);
+					if(curb_data.at(ic).LinkID == 0)
 					{
-						c.laneId = pLane->id;
-						c.pLane = pLane;
+						Lane* pLane = MappingHelpers::GetClosestLaneFromMap(curb_wp, map, 3);
+						if(pLane != nullptr)
+						{
+							c.laneId = pLane->id;
+							c.pLane = pLane;
+						}
+					}
+					else
+					{
+						c.laneId = curb_data.at(ic).LinkID;
 					}
 				}
 			}
 		}
 
-		if(c.id > RoadNetwork::g_max_curb_id)
-			RoadNetwork::g_max_curb_id = c.id;
+		if(curb_data.at(ic).LinkID == 0)
+		{
+			if(c.id > RoadNetwork::g_max_curb_id)
+				RoadNetwork::g_max_curb_id = c.id;
+			c.points.push_back(curb_wp);
+			c.points.push_back(point_2);
+			map.curbs.push_back(c);
+		}
+		else
+		{
+			bool bFound = false;
+			for(auto& x: map.curbs)
+			{
+				if(x.laneId == c.laneId)
+				{
+					x.points.push_back(curb_wp);
+					bFound = true;
+					break;
+				}
+			}
 
-		map.curbs.push_back(c);
+			if(!bFound)
+			{
+				c.points.push_back(curb_wp);
+				map.curbs.push_back(c);
+			}
+		}
 	}
 }
 
