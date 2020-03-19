@@ -1376,8 +1376,12 @@ public:
 		UtilityH::GetTickCount(_time_out);
 	}
 
-
 	virtual ~MapRaw()
+	{
+		ClearRawMap();
+	}
+
+	void ClearRawMap()
 	{
 		if(pLanes != nullptr)
 		{
@@ -1468,10 +1472,88 @@ public:
 			delete pWhitelines;
 			pWhitelines = nullptr;
 		}
+
+		if(pUtilitypole != nullptr)
+		{
+			delete pUtilitypole;
+			pUtilitypole = nullptr;
+		}
+
+		if(pGutter != nullptr)
+		{
+			delete pGutter;
+			pGutter = nullptr;
+		}
+
+		if(pIdx != nullptr)
+		{
+			delete pIdx;
+			pIdx = nullptr;
+		}
+
+		if(pPole != nullptr)
+		{
+			delete pPole;
+			pPole = nullptr;
+		}
+
+		if(pPoledata != nullptr)
+		{
+			delete pPoledata;
+			pPoledata = nullptr;
+		}
+
+		if(pSurfacemark != nullptr)
+		{
+			delete pSurfacemark;
+			pSurfacemark =  nullptr;
+		}
+
+		if(pStreetLight != nullptr)
+		{
+			delete pStreetLight;
+			pStreetLight = nullptr;
+		}
+
+		if(pZebrazore != nullptr)
+		{
+			delete pZebrazore;
+			pZebrazore = nullptr;
+		}
+	}
+
+
+	void LoadFromData(const vector_map_msgs::LaneArray& lanes, const vector_map_msgs::DTLaneArray& dt_lanes, const vector_map_msgs::PointArray& points)
+	{
+		ClearRawMap();
+		this->pAreas = new UtilityHNS::AisanAreasFileReader(vector_map_msgs::AreaArray());
+		this->pCenterLines = new UtilityHNS::AisanCenterLinesFileReader(dt_lanes);
+		this->pCrossWalks = new UtilityHNS::AisanCrossWalkFileReader(vector_map_msgs::CrossWalkArray());
+		this->pCurbs = new UtilityHNS::AisanCurbFileReader(vector_map_msgs::CurbArray());
+		this->pGutter = new UtilityHNS::AisanGutterFileReader(vector_map_msgs::GutterArray());
+		//this->pIntersections = new UtilityHNS::AisanIntersectionFileReader(vector_map_msgs::Int);
+		this->pLanes = new UtilityHNS::AisanLanesFileReader(lanes);
+		this->pLines = new UtilityHNS::AisanLinesFileReader(vector_map_msgs::LineArray());
+		this->pNodes = new UtilityHNS::AisanNodesFileReader(vector_map_msgs::NodeArray());
+		this->pPoints = new UtilityHNS::AisanPointsFileReader(points);
+		this->pPole = new UtilityHNS::AisanPoleFileReader(vector_map_msgs::PoleArray());
+		//this->pPoledata = new UtilityHNS::AisanPoledataFileReader(vector_map_msgs::Pole);
+		this->pRoadedges = new UtilityHNS::AisanRoadEdgeFileReader(vector_map_msgs::RoadEdgeArray());
+		this->pSignals = new UtilityHNS::AisanSignalFileReader(vector_map_msgs::SignalArray());
+		this->pStopLines = new UtilityHNS::AisanStopLineFileReader(vector_map_msgs::StopLineArray());
+		this->pStreetLight = new UtilityHNS::AisanStreetlightFileReader(vector_map_msgs::StreetLightArray());
+		//this->pSurfacemark = new UtilityHNS::AisanSurfacemarkFileReader(vector_map_msgs::sur);
+		this->pUtilitypole = new UtilityHNS::AisanUtilitypoleFileReader(vector_map_msgs::UtilityPoleArray());
+		this->pVectors = new UtilityHNS::AisanVectorFileReader(vector_map_msgs::VectorArray());
+		this->pWayAreas = new UtilityHNS::AisanWayareaFileReader(vector_map_msgs::WayAreaArray());
+		this->pWhitelines = new UtilityHNS::AisanWhitelinesFileReader(vector_map_msgs::WhiteLineArray());
+		this->pZebrazore = new UtilityHNS::AisanZebrazoneFileReader(vector_map_msgs::ZebraZoneArray());
 	}
 
 	void LoadFromFolder(std::string vector_map_folder)
 	{
+		ClearRawMap();
+
 		this->pAreas = new UtilityHNS::AisanAreasFileReader(vector_map_folder);
 		this->pAreas->ReadAllData();
 
@@ -1540,6 +1622,11 @@ public:
 
 		this->pZebrazore = new UtilityHNS::AisanZebrazoneFileReader(vector_map_folder);
 		this->pZebrazore->ReadAllData();
+	}
+
+	bool AreMessagesReceived()
+	{
+		return pLanes != nullptr && pPoints != nullptr && pCenterLines  != nullptr && pNodes  != nullptr;
 	}
 
 	int GetVersion()

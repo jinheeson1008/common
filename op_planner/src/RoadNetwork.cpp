@@ -21,5 +21,4 @@ int RoadNetwork::g_max_marking_id = 0;
 int RoadNetwork::g_max_curb_id = 0;
 int RoadNetwork::g_max_crossing_id = 0;
 
-
 }

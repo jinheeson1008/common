@@ -69,12 +69,53 @@ private:
 				UtilityHNS::AisanNodesFileReader* pNodesData, const int& LnID);
 	int GetEndPointIdFromLaneNo(UtilityHNS::AisanLanesFileReader* pLaneData, UtilityHNS::AisanPointsFileReader* pPointsData,
 				UtilityHNS::AisanNodesFileReader* pNodesData,const int& LnID);
-	bool IsPointExist(const WayPoint& p, const std::vector<PlannerHNS::WayPoint>& points);
-	void FixRedundantPointsLanes(std::vector<Lane>& lanes);
-	void FixTwoPointsLanes(std::vector<Lane>& lanes);
-	void FixTwoPointsLane(Lane& lanes);
-	void FixUnconnectedLanes(std::vector<Lane>& lanes, const int& max_angle_diff = 90);
-	void AssignActionCostToLane(Lane* pL, ACTION_TYPE action, double cost);
+	void ExtractSignalDataV2(const std::vector<UtilityHNS::AisanSignalFileReader::AisanSignal>& signal_data,
+				const std::vector<UtilityHNS::AisanVectorFileReader::AisanVector>& vector_data, UtilityHNS::AisanPointsFileReader* pPointsData,
+				const GPSPoint& origin, RoadNetwork& map);
+	void ExtractStopLinesDataV2(const std::vector<UtilityHNS::AisanStopLineFileReader::AisanStopLine>& stop_line_data,
+					UtilityHNS::AisanLinesFileReader* pLineData, UtilityHNS::AisanPointsFileReader* pPointData, const GPSPoint& origin, RoadNetwork& map);
+	void ExtractLines(UtilityHNS::AisanLinesFileReader* pLineData, UtilityHNS::AisanWhitelinesFileReader* pWhitelineData,
+			UtilityHNS::AisanPointsFileReader* pPointsData, const GPSPoint& origin, RoadNetwork& map);
+	void ExtractCurbDataV2(const std::vector<UtilityHNS::AisanCurbFileReader::AisanCurb>& curb_data, UtilityHNS::AisanLinesFileReader* pLinedata,
+					UtilityHNS::AisanPointsFileReader* pPointsData, const GPSPoint& origin, RoadNetwork& map);
+	void ExtractWayArea(const std::vector<UtilityHNS::AisanAreasFileReader::AisanArea>& area_data,
+			const std::vector<UtilityHNS::AisanWayareaFileReader::AisanWayarea>& wayarea_data, const std::vector<UtilityHNS::AisanLinesFileReader::AisanLine>& line_data,
+			const std::vector<UtilityHNS::AisanPointsFileReader::AisanPoints>& points_data, const GPSPoint& origin, RoadNetwork& map);
+	bool GetWayPoint(const int& id, const int& laneID,const double& refVel, const int& did, UtilityHNS::AisanPointsFileReader* pPointsData,
+				UtilityHNS::AisanCenterLinesFileReader* pDtData, const GPSPoint& origin, WayPoint& way_point);
+	int ReplaceMyID(int& id, const std::vector<std::pair<int,int> >& rep_list);
+	void ExtractSignalData(const std::vector<UtilityHNS::AisanSignalFileReader::AisanSignal>& signal_data,
+				const std::vector<UtilityHNS::AisanVectorFileReader::AisanVector>& vector_data,
+				const std::vector<UtilityHNS::AisanPointsFileReader::AisanPoints>& points_data, const GPSPoint& origin, RoadNetwork& map);
+	void ExtractStopLinesData(const std::vector<UtilityHNS::AisanStopLineFileReader::AisanStopLine>& stop_line_data,
+				const std::vector<UtilityHNS::AisanLinesFileReader::AisanLine>& line_data,
+				const std::vector<UtilityHNS::AisanPointsFileReader::AisanPoints>& points_data, const GPSPoint& origin, RoadNetwork& map);
+	void ExtractCurbData(const std::vector<UtilityHNS::AisanCurbFileReader::AisanCurb>& curb_data,
+				const std::vector<UtilityHNS::AisanLinesFileReader::AisanLine>& line_data,
+				const std::vector<UtilityHNS::AisanPointsFileReader::AisanPoints>& points_data, const GPSPoint& origin, RoadNetwork& map);
+
+	/**
+	 * @brief Fix dt lane problem for vector maps generated from the free web based mapping service.
+	 * @param pLaneData
+	 * @param pPointsData
+	 * @param pNodesData
+	 * @param map
+	 * @param dtlane_data
+	 */
+	void GenerateDtLaneAndFixLaneForVectorMap(UtilityHNS::AisanLanesFileReader* pLaneData,
+			UtilityHNS::AisanPointsFileReader* pPointsData,
+			UtilityHNS::AisanNodesFileReader* pNodesData,
+			PlannerHNS::RoadNetwork& map, std::vector<UtilityHNS::AisanCenterLinesFileReader::AisanCenterLine>& dtlane_data);
+
+	/**
+	 * @brief Old data connection function, used for old vector map versions
+	 * @param conn_data
+	 * @param id_replace_list
+	 * @param map
+	 */
+	void LinkTrafficLightsAndStopLinesConData(const std::vector<UtilityHNS::AisanDataConnFileReader::DataConn>& conn_data,
+			const std::vector<std::pair<int,int> >& id_replace_list, RoadNetwork& map); //pointers link
+
 };
 
 } /* namespace PlannerHNS */
