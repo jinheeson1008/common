@@ -1740,11 +1740,13 @@ void ROSHelpers::ConvertFromAutowareDetectedObjectToOpenPlannerDetectedObject(co
 
 void ROSHelpers::ConvertFromOpenPlannerDetectedObjectToAutowareDetectedObject(const PlannerHNS::DetectedObject& det_obj, const bool& bSimulationMode, autoware_msgs::DetectedObject& obj)
 {
+
 	if(bSimulationMode)
 		obj.id = det_obj.originalID;
 	else
 		obj.id = det_obj.id;
 
+	obj.valid = true;
 	obj.label = det_obj.label;
 	obj.indicator_state = det_obj.indicator_state;
 	obj.dimensions.x = det_obj.w;
@@ -1755,12 +1757,18 @@ void ROSHelpers::ConvertFromOpenPlannerDetectedObjectToAutowareDetectedObject(co
 	obj.pose.position.y = det_obj.center.pos.y;
 	obj.pose.position.z = det_obj.center.pos.z;
 	obj.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, UtilityHNS::UtilityH::SplitPositiveAngle(det_obj.center.pos.a));
+	obj.pose_reliable = true;
+
+	obj.acceleration.linear.x = det_obj.acceleration_raw;
+	obj.acceleration_reliable = true;
 
 	obj.velocity.linear.x = det_obj.center.v;
-	obj.velocity.linear.y = det_obj.acceleration_raw;
-	obj.velocity.linear.z = det_obj.acceleration_desc;
-	obj.velocity_reliable = det_obj.bVelocity;
-	obj.pose_reliable = det_obj.bDirection;
+	//obj.velocity.linear.y = det_obj.acceleration_raw;
+	//obj.velocity.linear.z = det_obj.acceleration_desc;
+	//obj.velocity_reliable = det_obj.bVelocity;
+	//obj.pose_reliable = det_obj.bDirection;
+	obj.velocity_reliable = true;
+
 
 	geometry_msgs::Point32 p;
 	obj.convex_hull.polygon.points.clear();
