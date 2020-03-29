@@ -11,6 +11,7 @@
 namespace PlannerHNS {
 
 KmlMapLoader::KmlMapLoader(int map_version) : _map_version(map_version) {
+	_pMap = nullptr;
 }
 
 KmlMapLoader::~KmlMapLoader() {
@@ -18,6 +19,9 @@ KmlMapLoader::~KmlMapLoader() {
 
 void KmlMapLoader::LoadKML(const std::string& kmlFile, RoadNetwork& map)
 {
+	PlannerHNS::MappingHelpers::LoadProjectionData(kmlFile, map);
+
+	_pMap = &map;
 	//First, Get the main element
 	TiXmlElement* pHeadElem = 0;
 	TiXmlElement* pElem = 0;
@@ -47,7 +51,7 @@ void KmlMapLoader::LoadKML(const std::string& kmlFile, RoadNetwork& map)
 	std::cout << " >> Reading Data from KML map file ... " << std::endl;
 
 	pElem = doc.FirstChildElement();
-	TiXmlElement* pOriginalType = GetDataFolder("OriginalFormat", pElem);
+	TiXmlElement* pOriginalType = GetDataFolder("ProjectionType", pElem);
 	if(pOriginalType != nullptr)
 	{
 		int iType = atoi(pOriginalType->GetText());
@@ -55,27 +59,22 @@ void KmlMapLoader::LoadKML(const std::string& kmlFile, RoadNetwork& map)
 		{
 		case 0:
 		{
-			map.original_map_format = MAP_VECTOR;
+			map.proj = NO_PROJ;
 		}
 		break;
 		case 1:
 		{
-			map.original_map_format = MAP_KML;
+			map.proj = UTM_PROJ;
 		}
 		break;
 		case 2:
 		{
-			map.original_map_format = MAP_OPEN_DRIVE;
-		}
-		break;
-		case 3:
-		{
-			map.original_map_format = MAP_LANELET2;
+			map.proj = MGRS_PROJ;
 		}
 		break;
 		default:
 		{
-			map.original_map_format = MAP_KML;
+			map.proj = UTM_PROJ;
 		}
 		break;
 		}
@@ -283,6 +282,8 @@ void KmlMapLoader::LoadKML(const std::string& kmlFile, RoadNetwork& map)
 	MappingHelpers::GetMapMaxIds(map);
 
 	std::cout << "Map loaded from kml file with (" << laneLinksList.size()  << ") lanes, First Point ( " << MappingHelpers::GetFirstWaypoint(map).pos.ToString() << ")"<< std::endl;
+
+	_pMap = nullptr;
 }
 
 TiXmlElement* KmlMapLoader::GetHeadElement(TiXmlElement* pMainElem)
@@ -730,8 +731,8 @@ std::vector<WayPoint> KmlMapLoader::GetWaypointsData(TiXmlElement* pElem)
 
 			std::istringstream ss(token);
 
-			getline(ss, lat, ',');
 			getline(ss, lon, ',');
+			getline(ss, lat, ',');
 			getline(ss, alt, ',');
 
 			numLat = atof(lat.c_str());
@@ -740,9 +741,15 @@ std::vector<WayPoint> KmlMapLoader::GetWaypointsData(TiXmlElement* pElem)
 
 			WayPoint p;
 
-			p.pos.x = p.pos.lat = numLat;
-			p.pos.y = p.pos.lon = numLon;
-			p.pos.z = p.pos.alt = numAlt;
+			p.pos.x = numLon;
+			p.pos.y = numLat;
+			p.pos.z = numAlt;
+
+			if(_pMap != nullptr)
+			{
+				MappingHelpers::UpdatePointWithProjection(*_pMap, p);
+			}
+
 			points.push_back(p);
 		}
 	}
@@ -779,8 +786,8 @@ std::vector<WayPoint> KmlMapLoader::GetCenterLaneData(TiXmlElement* pElem, const
 
 			std::istringstream ss(token);
 
-			getline(ss, lat, ',');
 			getline(ss, lon, ',');
+			getline(ss, lat, ',');
 			getline(ss, alt, ',');
 
 			numLat = atof(lat.c_str());
@@ -789,9 +796,14 @@ std::vector<WayPoint> KmlMapLoader::GetCenterLaneData(TiXmlElement* pElem, const
 
 			WayPoint wp;
 
-			wp.pos.x = wp.pos.lat = numLat;
-			wp.pos.y = wp.pos.lon = numLon;
-			wp.pos.z = wp.pos.alt = numAlt;
+			wp.pos.x = numLon;
+			wp.pos.y = numLat;
+			wp.pos.z = numAlt;
+
+			if(_pMap != nullptr)
+			{
+				MappingHelpers::UpdatePointWithProjection(*_pMap, wp);
+			}
 
 			wp.laneId = currLaneID;
 			gps_points.push_back(wp);
@@ -864,8 +876,8 @@ std::vector<WayPoint> KmlMapLoader::GetCenterLaneDataVer0(TiXmlElement* pElem, c
 
 			std::istringstream ss(token);
 
-			getline(ss, lat, ',');
 			getline(ss, lon, ',');
+			getline(ss, lat, ',');
 			getline(ss, alt, ',');
 
 			numLat = atof(lat.c_str());
@@ -874,9 +886,14 @@ std::vector<WayPoint> KmlMapLoader::GetCenterLaneDataVer0(TiXmlElement* pElem, c
 
 			WayPoint wp;
 
-			wp.pos.x = wp.pos.lat = numLat;
-			wp.pos.y = wp.pos.lon = numLon;
-			wp.pos.z = wp.pos.alt = numAlt;
+			wp.pos.x = numLon;
+			wp.pos.y = numLat;
+			wp.pos.z = numAlt;
+
+			if(_pMap != nullptr)
+			{
+				MappingHelpers::UpdatePointWithProjection(*_pMap, wp);
+			}
 
 			wp.laneId = currLaneID;
 			gps_points.push_back(wp);

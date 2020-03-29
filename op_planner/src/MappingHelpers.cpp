@@ -10,9 +10,8 @@
 #include "op_planner/MatrixOperations.h"
 #include "op_planner/PlanningHelpers.h"
 #include <float.h>
-
-#include "math.h"
 #include <fstream>
+#include <proj_api.h>
 
 using namespace std;
 #define RIGHT_INITIAL_TURNS_COST 0
@@ -53,6 +52,63 @@ GPSPoint MappingHelpers::GetTransformationOrigin(const int& bToyotaCityMap)
 //	else
 		return GPSPoint();
 	//return GPSPoint(18221.1, 93546.1, -36.19, 0);
+}
+
+void MappingHelpers::RemoveShortTwoPointsLanesFromMap(RoadNetwork& map, double l_length)
+{
+	for(auto& rseg : map.roadSegments)
+	{
+		for(int i = 0 ; i < rseg.Lanes.size(); i++)
+		{
+			Lane* pL = &rseg.Lanes.at(i);
+			if(pL->points.size() > 0 && pL->points.size() < 4)
+			{
+				PlanningHelpers::CalcAngleAndCost(pL->points);
+				//double d = hypot(pL->points.at(1).pos.y-pL->points.at(0).pos.y, pL->points.at(1).pos.x-pL->points.at(0).pos.x);
+				double d = pL->points.at(pL->points.size()-1).cost;
+				if(d < l_length)
+				{
+					for(auto& f_id : pL->fromIds)
+					{
+						Lane* pPrev = GetLaneById(f_id, map);
+						if(pPrev != nullptr)
+						{
+							for(int k = 0 ; k < pPrev->toIds.size(); k++)
+							{
+								if(pPrev->toIds.at(k) == pL->id)
+								{
+									pPrev->toIds.erase(pPrev->toIds.begin()+k);
+									break;
+								}
+							}
+							pPrev->toIds.insert(pPrev->toIds.begin(), pL->toIds.begin(), pL->toIds.end());
+						}
+					}
+
+					for(auto& t_id : pL->toIds)
+					{
+						Lane* pNext = GetLaneById(t_id, map);
+						if(pNext != nullptr)
+						{
+							for(int k = 0 ; k < pNext->fromIds.size(); k++)
+							{
+								if(pNext->fromIds.at(k) == pL->id)
+								{
+									pNext->fromIds.erase(pNext->fromIds.begin()+k);
+									break;
+								}
+							}
+							pNext->fromIds.insert(pNext->fromIds.begin(), pL->fromIds.begin(), pL->fromIds.end());
+						}
+					}
+
+					//std::cout << "Short Lane: " << pL->id << ", size: " << pL->points.size() << ", Length: " << d << std::endl;
+					rseg.Lanes.erase(rseg.Lanes.begin()+i);
+					i--;
+				}
+			}
+		}
+	}
 }
 
 Lane* MappingHelpers::GetLaneById(const int& id,RoadNetwork& map)
@@ -1581,6 +1637,64 @@ void MappingHelpers::TrimPath(std::vector<PlannerHNS::WayPoint>& points, double 
 	points = trimed_points;
 }
 
+void MappingHelpers::llaToxyz_proj(const std::string& proj_str, const PlannerHNS::WayPoint& origin, const double& lat,
+		const double& lon, const double& alt, double& x_out, double& y_out, double& z_out)
+{
+	if(proj_str.size() < 8) return;
+
+	projPJ pj_latlong, pj_utm;
+	pj_latlong = pj_init_plus("+proj=latlong");
+	pj_utm = pj_init_plus(proj_str.c_str());
+
+	double _intern_lat = lat;
+	double _intern_lon = lon;
+
+	double _z = alt;
+	double _x = DEG2RAD*_intern_lon;
+	double _y = DEG2RAD*_intern_lat;
+
+	if(pj_latlong != 0 && pj_utm !=0 )
+	{
+		pj_transform(pj_latlong, pj_utm, 1, 1, &_x, &_y, &_z);
+		y_out = _y + origin.pos.y;
+		x_out = _x + origin.pos.x;
+		z_out = _z + origin.pos.z;
+	}
+	else
+	{
+		x_out = y_out = z_out = 0;
+	}
+}
+
+void MappingHelpers::xyzTolla_proj(const std::string& proj_str, const PlannerHNS::WayPoint& origin, const double& x_in,
+		const double& y_in, const double& z_in, double& lat, double& lon, double& alt)
+{
+	if(proj_str.size() < 8) return;
+
+	projPJ pj_latlong, pj_utm;
+	pj_latlong = pj_init_plus("+proj=latlong");
+	pj_utm = pj_init_plus(proj_str.c_str());
+
+	double _lon = x_in - origin.pos.x;
+	double _lat = y_in - origin.pos.y;
+	double _alt = z_in - origin.pos.z;
+
+	if(pj_latlong != 0 && pj_utm !=0)
+	{
+		pj_transform(pj_utm,pj_latlong, 1, 1, &_lon, &_lat, &_alt);
+		_lon = _lon * RAD2DEG;
+		_lat = _lat * RAD2DEG;
+
+		lon = _lon;
+		lat = _lat;
+		alt = _alt;
+	}
+	else
+	{
+		lon = lat = alt = 0;
+	}
+}
+
  void MappingHelpers::correct_gps_coor(double& lat,double& lon)
  {
  	double part1 = floor(lat);
@@ -1892,4 +2006,37 @@ TRAFFIC_SIGN_TYPE MappingHelpers::FromNumberToSignType(int type)
 	else
 		return UNKNOWN_SIGN;
 }
+
+void MappingHelpers::LoadProjectionData(const std::string& fileName, PlannerHNS::RoadNetwork& map)
+{
+	std::string projFileName = fileName + ".proj.dat";
+	UtilityHNS::ProjectionDataFileReader proj_data(projFileName);
+	if(proj_data.ReadAllData() > 0)
+	{
+		if(proj_data.m_data_list.at(0).proj_type.compare("UTM")==0)
+			map.proj = UTM_PROJ;
+		else if(proj_data.m_data_list.at(0).proj_type.compare("MGRS")==0)
+			map.proj = MGRS_PROJ;
+		else
+			map.proj = NO_PROJ;
+
+		map.str_proj = proj_data.m_data_list.at(0).proj_str;
+		map.origin.pos.lon = proj_data.m_data_list.at(0).lon;
+		map.origin.pos.lat = proj_data.m_data_list.at(0).lat;
+		map.origin.pos.alt = proj_data.m_data_list.at(0).alt;
+
+		map.origin.pos.x = proj_data.m_data_list.at(0).x;
+		map.origin.pos.y = proj_data.m_data_list.at(0).y;
+		map.origin.pos.z = proj_data.m_data_list.at(0).z;
+	}
+}
+
+void MappingHelpers::UpdatePointWithProjection(const PlannerHNS::RoadNetwork& map, PlannerHNS::WayPoint& p)
+{
+	if(map.str_proj.size() > 8)
+	{
+		xyzTolla_proj(map.str_proj, map.origin, p.pos.x, p.pos.y, p.pos.z, p.pos.lat, p.pos.lon, p.pos.alt);
+	}
+}
+
 } /* namespace PlannerHNS */

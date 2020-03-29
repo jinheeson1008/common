@@ -106,7 +106,7 @@ public:
 	std::string file_name_;
 
 protected:
-	std::ifstream* m_pFile;
+	std::ifstream m_File;
 	bool ReadSingleLine(std::vector<std::vector<std::string> >& line);
 
 };
@@ -181,6 +181,48 @@ public:
 	bool ReadNextLine(LocalizationWayPoint& data);
 	int ReadAllData(std::vector<LocalizationWayPoint>& data_list);
 	int ReadAllData();
+};
+
+class ProjectionDataFileReader : public SimpleReaderBase
+{
+public:
+	struct ProjectionData
+	{
+		std::string proj_type;
+		std::string proj_str;
+		double lon;
+		double lat;
+		double alt;
+		double x;
+		double y;
+		double z;
+	};
+
+	ProjectionDataFileReader(const std::string& fileName) : SimpleReaderBase(fileName, 1, "projection.csv")
+	{
+		header_ = "ProjType,ProjString,Longitude,Latitude,Altitude,X,Y,Z";
+	}
+
+	ProjectionDataFileReader(const ProjectionData& proj_data);
+	virtual ~ProjectionDataFileReader(){}
+
+	bool ReadNextLine(ProjectionData& data);
+	int ReadAllData(std::vector<ProjectionData>& data_list);
+	int ReadAllData();
+	std::vector<ProjectionData> m_data_list;
+
+	friend std::ostream& operator<<(std::ostream& os, const ProjectionData& obj)
+	{
+	    os << obj.proj_type << ","
+		<< obj.proj_str << ","
+	    << obj.lon << ","
+	    << obj.lat << ","
+	    << obj.alt << ","
+	    << obj.x << ","
+	    << obj.y << ","
+	    << obj.z;
+	    return os;
+	}
 };
 
 class AisanPointsFileReader : public SimpleReaderBase

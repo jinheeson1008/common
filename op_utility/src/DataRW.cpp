@@ -258,13 +258,13 @@ SimpleReaderBase::SimpleReaderBase(const string& path, const int& nHeaders, cons
 	//then change the file_name_ for all classes to match file name .csv
 
 	file_name_ = path;
-	if(file_name_.at(file_name_.size()-1) == '\\')
+	if(file_name_.at(file_name_.size()-1) == '/')
 	{
 		file_name_ += csv_file_name;
 	}
 
-	m_pFile = new ifstream(file_name_.c_str(), ios::in);
-	if(!m_pFile->is_open())
+	m_File = ifstream(file_name_.c_str(), ios::in);
+	if(!m_File.is_open())
 	{
 		printf("\n Can't Open Map File !, %s", file_name_.c_str());
 		return;
@@ -276,24 +276,24 @@ SimpleReaderBase::SimpleReaderBase(const string& path, const int& nHeaders, cons
 	m_HeaderRepeatKey = headerRepeatKey;
 	m_nLineHeaders = nLineHeaders;
 	m_Separator = separator;
-	m_pFile->precision(16);
+	m_File.precision(16);
 
 	ReadHeaders();
 }
 
 SimpleReaderBase::~SimpleReaderBase()
 {
-	if(m_pFile->is_open())
-		m_pFile->close();
+	if(m_File.is_open())
+		m_File.close();
 }
 
 bool SimpleReaderBase::ReadSingleLine(vector<vector<string> >& line)
 {
-	if(!m_pFile->is_open() || m_pFile->eof()) return false;
+	if(!m_File.is_open() || m_File.eof()) return false;
 
 	string strLine, innerToken;
 	line.clear();
-	getline(*m_pFile, strLine);
+	getline(m_File, strLine);
 	istringstream str_stream(strLine);
 
 	vector<string> header;
@@ -342,11 +342,11 @@ bool SimpleReaderBase::ReadSingleLine(vector<vector<string> >& line)
 
 //int SimpleReaderBase::ReadAllData()X
 //{
-//	if(!m_pFile->is_open()) return 0;
+//	if(!m_File.is_open()) return 0;
 //
 //	m_AllData.clear();
 //	vector<vector<string> > singleLine;
-//	while(!m_pFile->eof())
+//	while(!m_File.eof())
 //	{
 //		ReadSingleLine(singleLine);
 //		m_AllData.push_back(singleLine);
@@ -357,14 +357,14 @@ bool SimpleReaderBase::ReadSingleLine(vector<vector<string> >& line)
 
 void SimpleReaderBase::ReadHeaders()
 {
-	if(!m_pFile->is_open()) return;
+	if(!m_File.is_open()) return;
 
 	string strLine;
 	int iCounter = 0;
 	m_RawHeaders.clear();
-	while(!m_pFile->eof() && iCounter < m_nHeders)
+	while(!m_File.eof() && iCounter < m_nHeders)
 	{
-		getline(*m_pFile, strLine);
+		getline(m_File, strLine);
 		m_RawHeaders.push_back(strLine);
 		if(iCounter == m_iDataTitles)
 			ParseDataTitles(strLine);
@@ -413,7 +413,7 @@ int GPSDataReader::ReadAllData()
 
 int GPSDataReader::ReadAllData(vector<GPSBasicData>& data_list)
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 
 	data_list.clear();
 	GPSBasicData data;
@@ -456,7 +456,7 @@ int SimulationFileReader::ReadAllData()
 
 int SimulationFileReader::ReadAllData(SimulationData& data_list)
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	data_list.simuCars.clear();
 	SimulationPoint data;
 	//double logTime = 0;
@@ -508,7 +508,7 @@ int LocalizationPathReader::ReadAllData()
 
 int LocalizationPathReader::ReadAllData(vector<LocalizationWayPoint>& data_list)
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	data_list.clear();
 	LocalizationWayPoint data;
 	//double logTime = 0;
@@ -520,6 +520,57 @@ int LocalizationPathReader::ReadAllData(vector<LocalizationWayPoint>& data_list)
 	}
 	return count;
 }
+
+ProjectionDataFileReader::ProjectionDataFileReader(const ProjectionData& proj_data) : SimpleReaderBase("d", 1)
+{
+	header_ = "ProjType,ProjString,Longitude,Latitude,Altitude,X,Y,Z";
+	m_data_list.clear();
+	m_data_list.push_back(proj_data);
+}
+
+bool ProjectionDataFileReader::ReadNextLine(ProjectionData& data)
+{
+	vector<vector<string> > lineData;
+	if(ReadSingleLine(lineData))
+	{
+		if(lineData.size()==0) return false;
+		if(lineData.at(0).size() < 8) return false;
+
+		data.proj_type = lineData.at(0).at(0);
+		data.proj_str = lineData.at(0).at(1);
+		data.lon = strtod(lineData.at(0).at(2).c_str(), NULL);
+		data.lat = strtod(lineData.at(0).at(3).c_str(), NULL);
+		data.alt = strtod(lineData.at(0).at(4).c_str(), NULL);
+		data.x = strtod(lineData.at(0).at(5).c_str(), NULL);
+		data.y = strtod(lineData.at(0).at(6).c_str(), NULL);
+		data.z = strtod(lineData.at(0).at(7).c_str(), NULL);
+		return true;
+	}
+	else
+		return false;
+}
+
+int ProjectionDataFileReader::ReadAllData(vector<ProjectionData>& data_list)
+{
+	ReadAllData();
+	data_list = m_data_list;
+	return m_data_list.size();
+}
+
+int ProjectionDataFileReader::ReadAllData()
+{
+	if(!m_File.is_open()) return 0;
+
+	m_data_list.clear();
+	ProjectionData data;
+	while(ReadNextLine(data))
+	{
+		m_data_list.push_back(data);
+	}
+	return m_data_list.size();
+}
+
+
 
 //Nodes
 
@@ -610,7 +661,7 @@ int AisanNodesFileReader::ReadAllData(vector<AisanNode>& data_list)
 
 int AisanNodesFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanNode data;
 	//double logTime = 0;
@@ -737,7 +788,7 @@ int AisanPointsFileReader::ReadAllData(vector<AisanPoints>& data_list)
 
 int AisanPointsFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanPoints data;
 	//double logTime = 0;
@@ -852,7 +903,7 @@ int AisanLinesFileReader::ReadAllData(vector<AisanLine>& data_list)
 
 int AisanLinesFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanLine data;
 	//double logTime = 0;
@@ -970,7 +1021,7 @@ int AisanWhitelinesFileReader::ReadAllData(vector<AisanWhiteline>& data_list)
 
 int AisanWhitelinesFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanWhiteline data;
 
@@ -1096,7 +1147,7 @@ int AisanCenterLinesFileReader::ReadAllData(vector<AisanCenterLine>& data_list)
 
 int AisanCenterLinesFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanCenterLine data;
 	int max_id = std::numeric_limits<int>::min();
@@ -1273,7 +1324,7 @@ int AisanLanesFileReader::ReadAllData(vector<AisanLane>& data_list)
 
 int AisanLanesFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanLane data;
 	//double logTime = 0;
@@ -1386,7 +1437,7 @@ int AisanAreasFileReader::ReadAllData(vector<AisanArea>& data_list)
 
 int AisanAreasFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanArea data;
 	//double logTime = 0;
@@ -1498,7 +1549,7 @@ int AisanIntersectionFileReader::ReadAllData(vector<AisanIntersection>& data_lis
 
 int AisanIntersectionFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanIntersection data;
 	//double logTime = 0;
@@ -1614,7 +1665,7 @@ int AisanStopLineFileReader::ReadAllData(vector<AisanStopLine>& data_list)
 
 int AisanStopLineFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanStopLine data;
 	//double logTime = 0;
@@ -1730,7 +1781,7 @@ int AisanRoadSignFileReader::ReadAllData(vector<AisanRoadSign>& data_list)
 
 int AisanRoadSignFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanRoadSign data;
 	//double logTime = 0;
@@ -1846,7 +1897,7 @@ int AisanSignalFileReader::ReadAllData(vector<AisanSignal>& data_list)
 
 int AisanSignalFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanSignal data;
 	//double logTime = 0;
@@ -1960,7 +2011,7 @@ int AisanVectorFileReader::ReadAllData(vector<AisanVector>& data_list)
 
 int AisanVectorFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanVector data;
 	//double logTime = 0;
@@ -2078,7 +2129,7 @@ int AisanCurbFileReader::ReadAllData(vector<AisanCurb>& data_list)
 
 int AisanCurbFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanCurb data;
 	//double logTime = 0;
@@ -2194,7 +2245,7 @@ int AisanCrossWalkFileReader::ReadAllData(vector<AisanCrossWalk>& data_list)
 
 int AisanCrossWalkFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanCrossWalk data;
 	//double logTime = 0;
@@ -2306,7 +2357,7 @@ int AisanWayareaFileReader::ReadAllData(vector<AisanWayarea>& data_list)
 
 int AisanWayareaFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanWayarea data;
 	//double logTime = 0;
@@ -2420,7 +2471,7 @@ int AisanGutterFileReader::ReadAllData(vector<AisanGutter>& data_list)
 
 int AisanGutterFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanGutter data;
 	//double logTime = 0;
@@ -2496,7 +2547,7 @@ int AisanIdxFileReader::ReadAllData(vector<AisanIdx>& data_list)
 
 int AisanIdxFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanIdx data;
 	//double logTime = 0;
@@ -2598,7 +2649,7 @@ int AisanPoleFileReader::ReadAllData(vector<AisanPole>& data_list)
 
 int AisanPoleFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanPole data;
 	//double logTime = 0;
@@ -2673,7 +2724,7 @@ int AisanPoledataFileReader::ReadAllData(vector<AisanPoledata>& data_list)
 
 int AisanPoledataFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanPoledata data;
 	//double logTime = 0;
@@ -2773,7 +2824,7 @@ int AisanRoadEdgeFileReader::ReadAllData(vector<AisanRoadEdge>& data_list)
 
 int AisanRoadEdgeFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanRoadEdge data;
 	//double logTime = 0;
@@ -2850,7 +2901,7 @@ int AisanSurfacemarkFileReader::ReadAllData(vector<AisanSurfacemark>& data_list)
 
 int AisanSurfacemarkFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanSurfacemark data;
 	//double logTime = 0;
@@ -2952,7 +3003,7 @@ int AisanStreetlightFileReader::ReadAllData(vector<AisanStreetlight>& data_list)
 
 int AisanStreetlightFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanStreetlight data;
 	//double logTime = 0;
@@ -3064,7 +3115,7 @@ int AisanUtilitypoleFileReader::ReadAllData(vector<AisanUtilitypole>& data_list)
 
 int AisanUtilitypoleFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanUtilitypole data;
 	//double logTime = 0;
@@ -3176,7 +3227,7 @@ int AisanZebrazoneFileReader::ReadAllData(vector<AisanZebrazone>& data_list)
 
 int AisanZebrazoneFileReader::ReadAllData()
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	m_data_list.clear();
 	AisanZebrazone data;
 	//double logTime = 0;
@@ -3227,7 +3278,7 @@ int AisanDataConnFileReader::ReadAllData()
 
 int AisanDataConnFileReader::ReadAllData(vector<DataConn>& data_list)
 {
-	if(m_pFile == nullptr || !m_pFile->is_open()) return 0;
+	if(!m_File.is_open()) return 0;
 	data_list.clear();
 	DataConn data;
 	//double logTime = 0;

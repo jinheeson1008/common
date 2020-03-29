@@ -19,6 +19,13 @@
 namespace PlannerHNS
 {
 
+enum MAP_TARGET_PROJECTION
+{
+	NO_PROJ,
+	UTM_PROJ,
+	MGRS_PROJ
+};
+
 enum MAP_SOURCE_TYPE
 {
 	MAP_AUTOWARE,
@@ -119,16 +126,14 @@ public:
 class GPSPoint
 {
 public:
-	double lat, x;
-	double lon, y;
-	double alt, z;
+	double x, y, z;
+	double lat, lon, alt;
 	double dir, a;
 
 	GPSPoint()
 	{
-		lat = x = 0;
-		lon = y = 0;
-		alt = z = 0;
+		x = y = z = 0;
+		lat = lon = alt = 0;
 		dir = a = 0;
 	}
 
@@ -856,13 +861,13 @@ public:
 	std::vector<TrafficSign> signs;
 	std::vector<Line> lines;
 
-	MAP_SOURCE_FORMAT original_map_format;
 	std::string str_proj;
 	WayPoint origin;
+	MAP_TARGET_PROJECTION proj;
 
 	RoadNetwork()
 	{
-		original_map_format = MAP_KML;
+		proj = UTM_PROJ;
 	}
 
 	void Clear()

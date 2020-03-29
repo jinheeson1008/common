@@ -6,10 +6,15 @@ find_package(autoware_build_flags REQUIRED)
 
 find_package(catkin REQUIRED COMPONENTS
 		cmake_modules
+		geometry_msgs
+		roscpp
 		op_utility
 		lanelet2_extension
 )
 
+if(EXISTS "/usr/include/proj_api.h")
+  include(FindProj.cmake)
+endif()  
 find_package(TinyXML REQUIRED)
 
 ###################################
@@ -21,15 +26,19 @@ catkin_package(
   CATKIN_DEPENDS op_utility
   DEPENDS TinyXML
 )
+ 
 
 ###########
 ## Build ##
 ###########
+
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
 	${TinyXML_INCLUDE_DIRS}
+	${PROJ_INCLUDE_DIRS}
 )
+
 
 set(PLANNERH_SRC
 	src/BehaviorPrediction.cpp 
@@ -53,12 +62,11 @@ set(PLANNERH_SRC
 
 ## Declare a cpp library
 add_library(${PROJECT_NAME}
-	${PLANNERH_SRC}
+	${PLANNERH_SRC} 	
 )
 
 target_link_libraries(${PROJECT_NAME}
-	${catkin_LIBRARIES}
-	${TinyXML_LIBRARIES}
+	${catkin_LIBRARIES} ${TinyXML_LIBRARIES} ${PROJ_LIBRARY}
 )
 
 install(DIRECTORY include/${PROJECT_NAME}/

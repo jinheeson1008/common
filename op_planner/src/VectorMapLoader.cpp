@@ -46,7 +46,7 @@ void VectorMapLoader::LoadFromData(UtilityHNS::MapRaw& mapRaw, PlannerHNS::RoadN
 	}
 
 	WayPoint origin = MappingHelpers::GetFirstWaypoint(map);
-	std::cout << origin.pos.ToString();
+	std::cout << "First Point: " <<  origin.pos.ToString();
 }
 
 void VectorMapLoader::ConstructRoadNetworkFromROSMessage(UtilityHNS::MapRaw& mapRaw, const PlannerHNS::WayPoint& origin, PlannerHNS::RoadNetwork& map)
@@ -442,11 +442,11 @@ bool VectorMapLoader::GetPointFromDataList(UtilityHNS::AisanPointsFileReader* pP
 	if(pP!=nullptr)
 	{
 		out_wp.id = pP->PID;
-		out_wp.pos.x = pP->Ly;
-		out_wp.pos.y = pP->Bx;
-		out_wp.pos.z = pP->H;
-		out_wp.pos.lat = pP->L;
-		out_wp.pos.lon = pP->B;
+		out_wp.pos.x = pP->Ly + _origin.pos.x;
+		out_wp.pos.y = pP->Bx + _origin.pos.y;
+		out_wp.pos.z = pP->H + _origin.pos.z;
+		out_wp.pos.lat = pP->B;
+		out_wp.pos.lon = pP->L;
 		out_wp.pos.alt = pP->H;
 		MappingHelpers::correct_gps_coor(out_wp.pos.lat, out_wp.pos.lon);
 		return true;
@@ -562,16 +562,10 @@ void VectorMapLoader::ExtractSignalDataV2(const std::vector<UtilityHNS::AisanSig
 				{
 					tl.horizontal_angle = vector_data.at(iv).Hang;
 					tl.vertical_angle = vector_data.at(iv).Vang;
-					UtilityHNS::AisanPointsFileReader::AisanPoints* pP =  pPointData->GetDataRowById(vector_data.at(iv).PID);
-					if(pP != nullptr)
-					{
-						WayPoint p(pP->Ly + origin.x, pP->Bx + origin.y, pP->H + origin.z, vector_data.at(iv).Hang*DEG2RAD);
-						p.pos.lat = pP->L;
-						p.pos.lon = pP->B;
-						p.pos.alt = pP->H;
-						MappingHelpers::correct_gps_coor(p.pos.lat, p.pos.lon);
-						tl.pose = p;
-					}
+					WayPoint p;
+					GetPointFromDataList(pPointData, vector_data.at(iv).PID, p);
+					p.pos.a = vector_data.at(iv).Hang*DEG2RAD;
+					tl.pose = p;
 				}
 			}
 			map.trafficLights.push_back(tl);
@@ -597,27 +591,13 @@ void VectorMapLoader::ExtractStopLinesDataV2(const std::vector<UtilityHNS::Aisan
 		UtilityHNS::AisanLinesFileReader::AisanLine* pLine = pLineData->GetDataRowById(stop_line_data.at(ist).LID);
 		if(pLine != nullptr)
 		{
-			UtilityHNS::AisanPointsFileReader::AisanPoints* pStart = pPointData->GetDataRowById(pLine->BPID);
-			UtilityHNS::AisanPointsFileReader::AisanPoints* pEnd = pPointData->GetDataRowById(pLine->FPID);
-			if(pStart != nullptr)
-			{
-				WayPoint p(pStart->Ly + origin.x, pStart->Bx + origin.y, pStart->H + origin.z, 0);
-				p.pos.lat = pStart->L;
-				p.pos.lon = pStart->B;
-				p.pos.alt = pStart->H;
-				MappingHelpers::correct_gps_coor(p.pos.lat, p.pos.lon);
-				sl.points.push_back(p);
-			}
+			WayPoint p1, p2;
 
-			if(pEnd != nullptr)
-			{
-				WayPoint p(pEnd->Ly + origin.x, pEnd->Bx + origin.y, pEnd->H + origin.z, 0);
-				p.pos.lat = pEnd->L;
-				p.pos.lon = pEnd->B;
-				p.pos.alt = pEnd->H;
-				MappingHelpers::correct_gps_coor(p.pos.lat, p.pos.lon);
-				sl.points.push_back(p);
-			}
+			if(GetPointFromDataList(pPointData, pLine->BPID, p1))
+				sl.points.push_back(p1);
+
+			if(GetPointFromDataList(pPointData, pLine->FPID, p2))
+				sl.points.push_back(p2);
 		}
 
 		map.stopLines.push_back(sl);
@@ -657,16 +637,9 @@ void VectorMapLoader::ExtractLines(UtilityHNS::AisanLinesFileReader* pLineData, 
 
 		if(line.BLID != 0 && line.FLID != 0) // old line
 		{
-			UtilityHNS::AisanPointsFileReader::AisanPoints* pAP =  pPointsData->GetDataRowById(line.BPID);
-			if(pAP != nullptr)
-			{
-				WayPoint p(pAP->Ly, pAP->Bx, pAP->H, 0);
-				p.pos.lat = pAP->L;
-				p.pos.lon = pAP->B;
-				p.pos.alt = pAP->H;
-				MappingHelpers::correct_gps_coor(p.pos.lat, p.pos.lon);
+			WayPoint p;
+			if(GetPointFromDataList(pPointsData, line.BPID, p))
 				l.points.push_back(p);
-			}
 		}
 
 		if(line.BLID == 0) // new line
@@ -677,30 +650,17 @@ void VectorMapLoader::ExtractLines(UtilityHNS::AisanLinesFileReader* pLineData, 
 			l.original_type = l_original_type;
 			l.type = l_type;
 			l.width = l_width;
-			UtilityHNS::AisanPointsFileReader::AisanPoints* pAP =  pPointsData->GetDataRowById(line.BPID);
-			if(pAP != nullptr)
-			{
-				WayPoint p(pAP->Ly, pAP->Bx, pAP->H, 0);
-				p.pos.lat = pAP->L;
-				p.pos.lon = pAP->B;
-				p.pos.alt = pAP->H;
-				MappingHelpers::correct_gps_coor(p.pos.lat, p.pos.lon);
+
+			WayPoint p;
+			if(GetPointFromDataList(pPointsData, line.BPID, p))
 				l.points.push_back(p);
-			}
 		}
 
 		if(line.FLID == 0) //insert and reset points
 		{
-			UtilityHNS::AisanPointsFileReader::AisanPoints* pAP =  pPointsData->GetDataRowById(line.FPID);
-			if(pAP != nullptr)
-			{
-				WayPoint p(pAP->Ly, pAP->Bx, pAP->H, 0);
-				p.pos.lat = pAP->L;
-				p.pos.lon = pAP->B;
-				p.pos.alt = pAP->H;
-				MappingHelpers::correct_gps_coor(p.pos.lat, p.pos.lon);
+			WayPoint p;
+			if(GetPointFromDataList(pPointsData, line.FPID, p))
 				l.points.push_back(p);
-			}
 
 			if(l.id > RoadNetwork::g_max_line_id)
 				RoadNetwork::g_max_line_id = l.id;
@@ -720,73 +680,13 @@ void VectorMapLoader::ExtractCurbDataV2(const std::vector<UtilityHNS::AisanCurbF
 		c.id = curb_data.at(ic).ID;
 		c.height = curb_data.at(ic).Height;
 		c.width = curb_data.at(ic).Width;
-		WayPoint curb_wp;
-		WayPoint point_2;
+		c.laneId = curb_data.at(ic).LinkID;
 
-		for(unsigned int il=0; il < pLinedata->m_data_list.size() ; il++)
+		UtilityHNS::AisanLinesFileReader::AisanLine* pSingleLine = pLinedata->GetDataRowById(curb_data.at(ic).LID);
+		std::vector<int> ids;
+		if(ExtractSingleLine(pLinedata, pPointsData, curb_data.at(ic).LID, c.points) == true)
 		{
-			if(curb_data.at(ic).LID == pLinedata->m_data_list.at(il).LID)
-			{
-				int s_id = pLinedata->m_data_list.at(il).BPID;
-				if(s_id == 0)
-					s_id = pLinedata->m_data_list.at(il).FPID;
-
-				UtilityHNS::AisanPointsFileReader::AisanPoints* pP = pPointsData->GetDataRowById(s_id);
-				if(pP != nullptr)
-				{
-					WayPoint p(pP->Ly + origin.x, pP->Bx + origin.y, pP->H + origin.z, 0);
-					p.pos.lat = pP->L;
-					p.pos.lon = pP->B;
-					p.pos.alt = pP->H;
-					MappingHelpers::correct_gps_coor(p.pos.lat, p.pos.lon);
-					curb_wp = p;
-
-					point_2 = p;
-					point_2.pos.x += 0.1*cos(M_PI_2);
-					point_2.pos.y += 0.1*sin(M_PI_2);
-					if(curb_data.at(ic).LinkID == 0)
-					{
-						Lane* pLane = MappingHelpers::GetClosestLaneFromMap(curb_wp, map, 3);
-						if(pLane != nullptr)
-						{
-							c.laneId = pLane->id;
-							c.pLane = pLane;
-						}
-					}
-					else
-					{
-						c.laneId = curb_data.at(ic).LinkID;
-					}
-				}
-			}
-		}
-
-		if(curb_data.at(ic).LinkID == 0)
-		{
-			if(c.id > RoadNetwork::g_max_curb_id)
-				RoadNetwork::g_max_curb_id = c.id;
-			c.points.push_back(curb_wp);
-			c.points.push_back(point_2);
 			map.curbs.push_back(c);
-		}
-		else
-		{
-			bool bFound = false;
-			for(auto& x: map.curbs)
-			{
-				if(x.laneId == c.laneId)
-				{
-					x.points.push_back(curb_wp);
-					bFound = true;
-					break;
-				}
-			}
-
-			if(!bFound)
-			{
-				c.points.push_back(curb_wp);
-				map.curbs.push_back(c);
-			}
 		}
 	}
 }
@@ -818,8 +718,8 @@ void VectorMapLoader::ExtractWayArea(const std::vector<UtilityHNS::AisanAreasFil
 							if(points_data.at(ip).PID == line_data.at(il).BPID)
 							{
 								WayPoint p(points_data.at(ip).Ly + origin.x, points_data.at(ip).Bx + origin.y, points_data.at(ip).H + origin.z, 0);
-								p.pos.lat = points_data.at(ip).L;
-								p.pos.lon = points_data.at(ip).B;
+								p.pos.lat = points_data.at(ip).B;
+								p.pos.lon = points_data.at(ip).L;
 								p.pos.alt = points_data.at(ip).H;
 								MappingHelpers::correct_gps_coor(p.pos.lat, p.pos.lon);
 								bound.points.push_back(p);
@@ -1225,22 +1125,15 @@ bool VectorMapLoader::GetWayPoint(const int& id, const int& laneID,const double&
 	UtilityHNS::AisanCenterLinesFileReader::AisanCenterLine* pDT = pDtData->GetDataRowById(did);
 	if(pDT != nullptr)
 	{
-		UtilityHNS::AisanPointsFileReader::AisanPoints* pP =  pPointsData->GetDataRowById(pDT->PID);
-
-		if(pP != nullptr)
+		WayPoint wp;
+		if(GetPointFromDataList(pPointsData, pDT->PID, wp))
 		{
-			WayPoint wp;
 			wp.id = id;
 			wp.laneId = laneID;
 			wp.v = refVel;
-			wp.pos = GPSPoint(pP->Ly + origin.x, pP->Bx + origin.y, pP->H + origin.z, pDT->Dir);
-			wp.pos.lat = pP->L;
-			wp.pos.lon = pP->B;
-			wp.pos.alt = pP->H;
 			wp.pos.dir = pDT->Dir;
-			MappingHelpers::correct_gps_coor(wp.pos.lat, wp.pos.lon);
-			wp.iOriginalIndex = pP->PID;
-
+			wp.pos.a = pDT->Dir;
+			wp.iOriginalIndex = wp.id;
 			way_point = wp;
 			return true;
 		}
@@ -1289,8 +1182,8 @@ void VectorMapLoader::ExtractSignalData(const std::vector<UtilityHNS::AisanSigna
 						if(vector_data.at(iv).PID == points_data.at(ip).PID)
 						{
 							WayPoint p(points_data.at(ip).Ly + origin.x, points_data.at(ip).Bx + origin.y, points_data.at(ip).H + origin.z, vector_data.at(iv).Hang*DEG2RAD);
-							p.pos.lat = points_data.at(ip).L;
-							p.pos.lon = points_data.at(ip).B;
+							p.pos.lat = points_data.at(ip).B;
+							p.pos.lon = points_data.at(ip).L;
 							p.pos.alt = points_data.at(ip).H;
 							MappingHelpers::correct_gps_coor(p.pos.lat, p.pos.lon);
 							tl.pose = p;
@@ -1331,8 +1224,8 @@ void VectorMapLoader::ExtractStopLinesData(const std::vector<UtilityHNS::AisanSt
 					if(points_data.at(ip).PID == s_id || points_data.at(ip).PID == e_id)
 					{
 						WayPoint p(points_data.at(ip).Ly + origin.x, points_data.at(ip).Bx + origin.y, points_data.at(ip).H + origin.z, 0);
-						p.pos.lat = points_data.at(ip).L;
-						p.pos.lon = points_data.at(ip).B;
+						p.pos.lat = points_data.at(ip).B;
+						p.pos.lon = points_data.at(ip).L;
 						p.pos.alt = points_data.at(ip).H;
 						MappingHelpers::correct_gps_coor(p.pos.lat, p.pos.lon);
 						sl.points.push_back(p);
@@ -1366,8 +1259,8 @@ void VectorMapLoader::ExtractCurbData(const std::vector<UtilityHNS::AisanCurbFil
 						if(points_data.at(ip).PID == s_id)
 						{
 							WayPoint p(points_data.at(ip).Ly + origin.x, points_data.at(ip).Bx + origin.y, points_data.at(ip).H + origin.z, 0);
-							p.pos.lat = points_data.at(ip).L;
-							p.pos.lon = points_data.at(ip).B;
+							p.pos.lat = points_data.at(ip).B;
+							p.pos.lon = points_data.at(ip).L;
 							p.pos.alt = points_data.at(ip).H;
 							MappingHelpers::correct_gps_coor(p.pos.lat, p.pos.lon);
 							c.points.push_back(p);
@@ -1385,6 +1278,42 @@ void VectorMapLoader::ExtractCurbData(const std::vector<UtilityHNS::AisanCurbFil
 			}
 			map.curbs.push_back(c);
 		}
+}
+
+bool VectorMapLoader::ExtractSingleLine(UtilityHNS::AisanLinesFileReader* pLinedata, UtilityHNS::AisanPointsFileReader* pPointsData, const int& lid,
+		std::vector<WayPoint>& out_line_points)
+{
+	out_line_points.clear();
+	UtilityHNS::AisanLinesFileReader::AisanLine* pSingleLine = pLinedata->GetDataRowById(lid);
+	if(pSingleLine->BLID != 0)
+		return false;
+
+	while(pSingleLine != nullptr)
+	{
+
+		WayPoint p1, p2;
+		if(GetPointFromDataList(pPointsData, pSingleLine->BPID, p1) && GetPointFromDataList(pPointsData, pSingleLine->FPID, p2))
+		{
+			out_line_points.push_back(p1);
+
+			if(pSingleLine->FLID == 0)
+			{
+				out_line_points.push_back(p2);
+				return true;
+			}
+
+			pSingleLine = pLinedata->GetDataRowById(pSingleLine->FLID);
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	if(out_line_points.size() == 0)
+		return false;
+	else
+		return true;
 }
 
 void VectorMapLoader::GenerateDtLaneAndFixLaneForVectorMap(UtilityHNS::AisanLanesFileReader* pLaneData,
@@ -1481,4 +1410,6 @@ void VectorMapLoader::LinkTrafficLightsAndStopLinesConData(const std::vector<Uti
 		}
 	}
 }
+
+
 } /* namespace PlannerHNS */

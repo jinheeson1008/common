@@ -10,7 +10,7 @@
 
 namespace PlannerHNS {
 
-Lanelet2MapLoader::Lanelet2MapLoader(const PlannerHNS::WayPoint& origin) : _origin(origin) {
+Lanelet2MapLoader::Lanelet2MapLoader()  {
 
 }
 
@@ -28,66 +28,41 @@ void Lanelet2MapLoader::LoadMap(const autoware_lanelet2_msgs::MapBin& msg, Plann
 
 void Lanelet2MapLoader::LoadMap(const std::string& fileName, PlannerHNS::RoadNetwork& map)
 {
-	bool bAutowareVer = false;
+	PlannerHNS::MappingHelpers::LoadProjectionData(fileName, map);
 	lanelet::LaneletMapPtr l2_map;
 	lanelet::ErrorMessages errors;
-	std::string format_version, map_version;
 	lanelet::Projector* p_proj = nullptr;
 
-	std::vector<std::string> parsers = lanelet::supportedParsers();
-	for(auto& x : parsers)
+	if(map.proj == PlannerHNS::MGRS_PROJ)
 	{
-		std::cout << x << std::endl;
-		if(x.compare("autoware_osm_handler") == 0)
-		{
-			try
-			{
-				lanelet::io_handlers::AutowareOsmParser::parseVersions(fileName, &format_version, &map_version);
-				std::cout << "Format Ver: " << format_version << ", Map Ver: " << map_version << std::endl;
-				if(format_version.size() > 0 && map_version.size() > 0)
-				{
-					bAutowareVer = true;
-					break;
-				}
-			}
-			catch(std::exception& e)
-			{
-			}
-		}
-	}
+		std::cout << " >> Loading Map using Autoware OSM parser and MGRS projector." << std::endl;
+		std::cout << "Using projection string: " << map.str_proj << std::endl;
+		std::cout << "Using origin : " << map.origin.pos.ToString() << std::endl;
+		p_proj = new lanelet::projection::MGRSProjector();
 
-	if(bAutowareVer)
-	{
-		std::cout << " >> Loading Map using Autoware OSM parser, Format Ver: " << format_version << ", Map Ver: " << format_version << std::endl;
-		//p_proj = new lanelet::projection::MGRSProjector();
-		p_proj = new lanelet::projection::UtmProjector(lanelet::Origin({_origin.pos.lat, _origin.pos.lon, _origin.pos.alt}));
-		try
-		{
-			l2_map = lanelet::load(fileName, "autoware_osm_handler", *p_proj, &errors);
-		}
-		catch(std::exception& e)
-		{
-			std::cout << "Faild to Load map file: " << fileName << ", Error: " << e.what() << std::endl;
-			return;
-		}
-		lanelet::utils::overwriteLaneletsCenterline(l2_map, false);
 	}
 	else
 	{
-		std::cout << " >> Loading Map using original OSM parser." << std::endl;
-		p_proj = new lanelet::projection::UtmProjector(lanelet::Origin({_origin.pos.lat, _origin.pos.lon, _origin.pos.alt}));
-		//p_proj = new lanelet::projection::UtmProjector(lanelet::Origin({49, 8.4}));
-		//p_proj = new lanelet::projection::MGRSProjector();
+		std::cout << " >> Loading Map using Autoware OSM parser and UTM projector." << std::endl;
+		std::cout << "Using projection string: " << map.str_proj << std::endl;
+		std::cout << "Using origin : " << map.origin.pos.ToString() << std::endl;
 
-		try
-		{
-			l2_map = lanelet::load(fileName, "osm_handler", *p_proj, &errors);
-		}
-		catch(std::exception& e)
-		{
-			std::cout << "Faild to Load map file: " << fileName << ", Error: " << e.what() << std::endl;
-			return;
-		}
+		PlannerHNS::MappingHelpers::xyzTolla_proj(map.str_proj, PlannerHNS::WayPoint(), 0.0, 0.0, 0.0,
+					map.origin.pos.lat, map.origin.pos.lon, map.origin.pos.alt);
+
+		p_proj = new lanelet::projection::UtmProjector(lanelet::Origin({map.origin.pos.lat, map.origin.pos.lon, map.origin.pos.alt}));
+	}
+
+	try
+	{
+		l2_map = lanelet::load(fileName, "autoware_osm_handler", *p_proj, &errors);
+		lanelet::utils::overwriteLaneletsCenterline(l2_map, false);
+		FromLaneletToRoadNetwork(l2_map, map, p_proj);
+	}
+	catch(std::exception& e)
+	{
+		std::cout << "Faild to Load map file: " << fileName << ", Error: " << e.what() << std::endl;
+		return;
 	}
 
 	if(errors.size() > 0)
@@ -99,8 +74,6 @@ void Lanelet2MapLoader::LoadMap(const std::string& fileName, PlannerHNS::RoadNet
 		std::cout << "Faild to Load map file: " << fileName << std::endl;
 		return;
 	}
-
-	FromLaneletToRoadNetwork(l2_map, map, p_proj);
 
 	if(p_proj != nullptr)
 		delete p_proj;
@@ -134,7 +107,7 @@ void Lanelet2MapLoader::FromLaneletToRoadNetwork(lanelet::LaneletMapPtr l2_map, 
 			  }
 
 			  lanelet::ConstLineString3d center_l = x.centerline();
-			  CreateWayPointsFromLineString(l.points, center_l, proj, l.id);
+			  CreateWayPointsFromLineString(map, l.points, center_l, proj, l.id);
 			  PlannerHNS::PlanningHelpers::CalcAngleAndCost(l.points);
 
 			  std::vector<lanelet::ConstLanelet> x_lets;
@@ -193,13 +166,13 @@ void Lanelet2MapLoader::FromLaneletToRoadNetwork(lanelet::LaneletMapPtr l2_map, 
 							{
 								lanelet::Optional<lanelet::ConstLineString3d> line_str = l_or_p.lineString();
 								if(!!line_str)
-									CreateWayPointsFromLineString(op_ts.points, line_str.get(), proj);
+									CreateWayPointsFromLineString(map, op_ts.points, line_str.get(), proj);
 							}
 							else if(l_or_p.polygon())
 							{
 								lanelet::Optional<lanelet::ConstPolygon3d> poly_str = l_or_p.polygon();
 								if(!!poly_str)
-									CreateWayPointsFromPolygon(op_ts.points, poly_str.get(), proj);
+									CreateWayPointsFromPolygon(map, op_ts.points, poly_str.get(), proj);
 							}
 
 							PlannerHNS::WayPoint sum_p;
@@ -227,7 +200,7 @@ void Lanelet2MapLoader::FromLaneletToRoadNetwork(lanelet::LaneletMapPtr l2_map, 
 							PlannerHNS::StopLine sl;
 							sl.id = stop_line_points.id();
 							sl.stopSignID = ts->id();
-							CreateWayPointsFromLineString(sl.points, stop_line_points, proj);
+							CreateWayPointsFromLineString(map, sl.points, stop_line_points, proj);
 							l.stopLines.push_back(sl);
 							PlannerHNS::MappingHelpers::InsertUniqueStopLine(map.stopLines, sl);
 						}
@@ -241,7 +214,7 @@ void Lanelet2MapLoader::FromLaneletToRoadNetwork(lanelet::LaneletMapPtr l2_map, 
 				  lanelet::ConstLineString3d stop_line_points = stop_lines.at(i);
 				  PlannerHNS::StopLine sl;
 				  sl.id = stop_line_points.id();
-				  CreateWayPointsFromLineString(sl.points, stop_line_points, proj);
+				  CreateWayPointsFromLineString(map, sl.points, stop_line_points, proj);
 				  l.stopLines.push_back(sl);
 				  PlannerHNS::MappingHelpers::InsertUniqueStopLine(map.stopLines, sl);
 			  }
@@ -249,7 +222,7 @@ void Lanelet2MapLoader::FromLaneletToRoadNetwork(lanelet::LaneletMapPtr l2_map, 
 			  std::vector<lanelet::AutowareTrafficLightConstPtr> lanelet_lights = lanelet::utils::query::autowareTrafficLights(x_lets);
 			  for(unsigned int i=0; i < lanelet_lights.size(); i++)
 			  {
-				  std::vector<PlannerHNS::TrafficLight> tls = CreateTrafficLightsFromLanelet2(lanelet_lights.at(i), proj, l.id);
+				  std::vector<PlannerHNS::TrafficLight> tls = CreateTrafficLightsFromLanelet2(map, lanelet_lights.at(i), proj, l.id);
 				  l.trafficlights.insert(l.trafficlights.begin(), tls.begin(), tls.end());
 				  for(unsigned int j=0; j < tls.size(); j++)
 				  {
@@ -273,7 +246,7 @@ void Lanelet2MapLoader::FromLaneletToRoadNetwork(lanelet::LaneletMapPtr l2_map, 
 		  for(auto& bound : x.outerBound())
 		  {
 //			  std::cout << "Bound Side: " << bound.id() << ", " << bound.size() << std::endl;
-			  CreateWayPointsFromLineString(area.points, bound, proj);
+			  CreateWayPointsFromLineString(map, area.points, bound, proj);
 		  }
 		  map.boundaries.push_back(area);
 	  }
@@ -287,7 +260,7 @@ void Lanelet2MapLoader::FromLaneletToRoadNetwork(lanelet::LaneletMapPtr l2_map, 
 			  PlannerHNS::Boundary area;
 			  area.id = x.id();
 			  area.type = PlannerHNS::PARKING_BOUNDARY;
-			  CreateWayPointsFromLineString(area.points, x, proj);
+			  CreateWayPointsFromLineString(map, area.points, x, proj);
 			  map.boundaries.push_back(area);
 		  }
 	  }
@@ -297,24 +270,24 @@ void Lanelet2MapLoader::FromLaneletToRoadNetwork(lanelet::LaneletMapPtr l2_map, 
 	  PlannerHNS::MappingHelpers::ConnectLanes(map);
 	  PlannerHNS::MappingHelpers::ConnectTrafficLightsAndStopLines(map);
 	  PlannerHNS::MappingHelpers::ConnectTrafficSignsAndStopLines(map);
-		//Link Lanes and lane's waypoints by pointers
-		std::cout << " >> Link lanes and waypoints with pointers ... " << std::endl;
-		MappingHelpers::LinkLanesPointers(map);
-		//Link waypoints
-		std::cout << " >> Link missing branches and waypoints... " << std::endl;
-		MappingHelpers::LinkMissingBranchingWayPointsV2(map);
+	//Link Lanes and lane's waypoints by pointers
+	std::cout << " >> Link lanes and waypoints with pointers ... " << std::endl;
+	MappingHelpers::LinkLanesPointers(map);
+	//Link waypoints
+	std::cout << " >> Link missing branches and waypoints... " << std::endl;
+	MappingHelpers::LinkMissingBranchingWayPointsV2(map);
 }
 
-void Lanelet2MapLoader::CreateWayPointsFromLineString(std::vector<PlannerHNS::WayPoint>& points, lanelet::ConstLineString3d& line_string, lanelet::Projector* proj, int lane_id)
+void Lanelet2MapLoader::CreateWayPointsFromLineString(const PlannerHNS::RoadNetwork& map, std::vector<PlannerHNS::WayPoint>& points, lanelet::ConstLineString3d& line_string, lanelet::Projector* proj, int lane_id)
 {
 	for(auto& p : line_string )
 	{
-	  //std::cout << "Size of Point: " << p.id() << ", " <<  "( " << p.x() << ", " << p.y() << ", " << p.z() << ")" << std::endl;
-	  PlannerHNS::WayPoint wp;
-	  PlannerHNS::RoadNetwork::g_max_point_id++;
-	  wp.id = PlannerHNS::RoadNetwork::g_max_point_id;
-	  wp.laneId = lane_id;
-	  wp.iOriginalIndex = points.size();
+		//std::cout << "Size of Point: " << p.id() << ", " <<  "( " << p.x() << ", " << p.y() << ", " << p.z() << ")" << std::endl;
+		PlannerHNS::WayPoint wp;
+		PlannerHNS::RoadNetwork::g_max_point_id++;
+		wp.id = PlannerHNS::RoadNetwork::g_max_point_id;
+		wp.laneId = lane_id;
+		wp.iOriginalIndex = points.size();
 
 		wp.pos.x = p.x();
 		wp.pos.y = p.y();
@@ -323,9 +296,12 @@ void Lanelet2MapLoader::CreateWayPointsFromLineString(std::vector<PlannerHNS::Wa
 		if(proj != nullptr)
 		{
 			lanelet::GPSPoint gps_p = proj->reverse(p);
-			wp.pos.lat = gps_p.lon;
-			wp.pos.lon = gps_p.lat;
+			wp.pos.lon = gps_p.lon;
+			wp.pos.lat = gps_p.lat;
 			wp.pos.alt = gps_p.ele;
+
+			PlannerHNS::MappingHelpers::llaToxyz_proj(map.str_proj, PlannerHNS::WayPoint(), wp.pos.lat, wp.pos.lon, wp.pos.alt,
+					wp.pos.x, wp.pos.y, wp.pos.z);
 		}
 
 		points.push_back(wp);
@@ -340,7 +316,7 @@ void Lanelet2MapLoader::CreateWayPointsFromLineString(std::vector<PlannerHNS::Wa
 	}
 }
 
-void Lanelet2MapLoader::CreateWayPointsFromLineString(std::vector<PlannerHNS::WayPoint>& points,const lanelet::LineString3d& line_string, lanelet::Projector* proj, int lane_id)
+void Lanelet2MapLoader::CreateWayPointsFromLineString(const PlannerHNS::RoadNetwork& map, std::vector<PlannerHNS::WayPoint>& points,const lanelet::LineString3d& line_string, lanelet::Projector* proj, int lane_id)
 {
 	for(auto& p : line_string )
 	{
@@ -355,9 +331,12 @@ void Lanelet2MapLoader::CreateWayPointsFromLineString(std::vector<PlannerHNS::Wa
 		if(proj != nullptr)
 		{
 			lanelet::GPSPoint gps_p = proj->reverse(p);
-			wp.pos.lat = gps_p.lon;
-			wp.pos.lon = gps_p.lat;
+			wp.pos.lon = gps_p.lon;
+			wp.pos.lat = gps_p.lat;
 			wp.pos.alt = gps_p.ele;
+
+			PlannerHNS::MappingHelpers::llaToxyz_proj(map.str_proj, PlannerHNS::WayPoint(), wp.pos.lat, wp.pos.lon, wp.pos.alt,
+					wp.pos.x, wp.pos.y, wp.pos.z);
 		}
 
 		if(points.size() > 0)
@@ -375,7 +354,7 @@ void Lanelet2MapLoader::CreateWayPointsFromLineString(std::vector<PlannerHNS::Wa
 	}
 }
 
-void Lanelet2MapLoader::CreateWayPointsFromPolygon(std::vector<PlannerHNS::WayPoint>& points,const lanelet::ConstPolygon3d& line_string, lanelet::Projector* proj, int lane_id)
+void Lanelet2MapLoader::CreateWayPointsFromPolygon(const PlannerHNS::RoadNetwork& map, std::vector<PlannerHNS::WayPoint>& points,const lanelet::ConstPolygon3d& line_string, lanelet::Projector* proj, int lane_id)
 {
 	for(auto& p : line_string )
 	{
@@ -392,22 +371,25 @@ void Lanelet2MapLoader::CreateWayPointsFromPolygon(std::vector<PlannerHNS::WayPo
 		if(proj != nullptr)
 		{
 			lanelet::GPSPoint gps_p = proj->reverse(p);
-			wp.pos.lat = gps_p.lon;
-			wp.pos.lon = gps_p.lat;
+			wp.pos.lon = gps_p.lon;
+			wp.pos.lat = gps_p.lat;
 			wp.pos.alt = gps_p.ele;
+
+			PlannerHNS::MappingHelpers::llaToxyz_proj(map.str_proj, PlannerHNS::WayPoint(), wp.pos.lat, wp.pos.lon, wp.pos.alt,
+					wp.pos.x, wp.pos.y, wp.pos.z);
 		}
 
 		points.push_back(wp);
 	}
 }
 
-std::vector<PlannerHNS::StopLine> Lanelet2MapLoader::CreateStopLinesFromLanelet2(lanelet::ConstLineString3d& sl_let, lanelet::Projector* proj, int lane_id )
+std::vector<PlannerHNS::StopLine> Lanelet2MapLoader::CreateStopLinesFromLanelet2(const PlannerHNS::RoadNetwork& map, lanelet::ConstLineString3d& sl_let, lanelet::Projector* proj, int lane_id )
 {
 	PlannerHNS::StopLine sl;
 	std::vector<PlannerHNS::StopLine> stop_lines;
 
 	sl.id = sl_let.id();
-	CreateWayPointsFromLineString(sl.points, sl_let, proj);
+	CreateWayPointsFromLineString(map, sl.points, sl_let, proj);
 
 	if(lane_id != 0)
 		sl.laneId = lane_id;
@@ -417,7 +399,7 @@ std::vector<PlannerHNS::StopLine> Lanelet2MapLoader::CreateStopLinesFromLanelet2
 	return stop_lines;
 }
 
-std::vector<PlannerHNS::TrafficLight> Lanelet2MapLoader::CreateTrafficLightsFromLanelet2(lanelet::AutowareTrafficLightConstPtr& tl_let, lanelet::Projector* proj, int lane_id)
+std::vector<PlannerHNS::TrafficLight> Lanelet2MapLoader::CreateTrafficLightsFromLanelet2(const PlannerHNS::RoadNetwork& map, lanelet::AutowareTrafficLightConstPtr& tl_let, lanelet::Projector* proj, int lane_id)
 {
 	//std::cout << "### One Light >> " << std::endl;
 

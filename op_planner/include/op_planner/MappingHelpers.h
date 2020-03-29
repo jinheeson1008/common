@@ -14,9 +14,28 @@
 #include "op_utility/DataRW.h"
 #include "tinyxml.h"
 
-
 namespace PlannerHNS {
 
+
+static EnumString<BOUNDARY_TYPE> BOUNDARY_TYPE_STR(NORMAL_ROAD_BOUNDARY,
+		{
+				{NORMAL_ROAD_BOUNDARY, "Road"},
+				{INTERSECTION_BOUNDARY, "Intersection"},
+				{CROSSING_BOUNDARY, "Crossing"},
+				{UTURN__BOUNDARY, "U turn"},
+				{EXIT_ROAD_BOUNDARY, "Road exit"},
+				{MERGE_ROAD_BOUNDARY, "Merge"},
+				{HIGHWAY_BOUNDARY, "Highway"},
+				{PARKING_BOUNDARY, "Parking"},
+				{FREE_SPACE_BOUNDARY, "Free space"},
+				{VEGETATION_BOUNDARY, "Vegetation"},
+				{KEEP_OUT_BOUNDARY, "Keep out"},
+				{BUILDING_BOUNDARY, "Building"},
+				{TRAFFIC_ISLAN_BOUNDARY, "Island"},
+				{WALK_WAY_BOUNDARY, "Walkway"},
+				{SHARED_WALK_WAY_BOUNDARY, "Sharedway"},
+				{EXIT_BOUNDARY, "Exit"},
+		});
 
 class MappingHelpers {
 public:
@@ -52,6 +71,8 @@ public:
 
 	static GPSPoint GetTransformationOrigin(const int& bToyotaCityMap = 0);
 
+	static void RemoveShortTwoPointsLanesFromMap(RoadNetwork& map, double l_length);
+
 	static Lane* GetLaneFromPath(const WayPoint& currPos, const std::vector<WayPoint>& currPath);
 	static Lane* GetLaneById(const int& id,RoadNetwork& map);
 	static int GetLaneIdByWaypointId(const int& id,std::vector<Lane>& lanes);
@@ -85,6 +106,12 @@ public:
 	static void InsertUniqueTrafficLight(std::vector<PlannerHNS::TrafficLight>& traffic_lights, const PlannerHNS::TrafficLight& tl);
 	static void InsertUniqueTrafficSign(std::vector<PlannerHNS::TrafficSign>& traffic_signs, const PlannerHNS::TrafficSign& ts);
 
+	static void llaToxyz_proj(const std::string& proj_str, const PlannerHNS::WayPoint& origin, const double& lat,
+			const double& lon, const double& alt, double& x_out, double& y_out, double& z_out);
+
+	static void xyzTolla_proj(const std::string& proj_str, const PlannerHNS::WayPoint& origin, const double& x_in,
+			const double& y_in, const double& z_in, double& lat, double& lon, double& alt);
+
 	static void correct_gps_coor(double& lat,double& lon);
 	static void correct_nmea_coor(double& lat,double& lon);
 
@@ -104,6 +131,16 @@ public:
 	static TRAFFIC_SIGN_TYPE FromNumberToSignType(int type);
 
 	static std::vector<Lane*> GetClosestMultipleLanesFromMap(const WayPoint& pos, RoadNetwork& map, const double& distance = 5.0);
+
+
+	/**
+	 * @brief Reading supporting file which contains projection string and map origin. it should have the same name as the fileName + ".proj.dat"
+	 * @param fileName map file name
+	 * @param map Map object that will be filled with projection data
+	 */
+	static void LoadProjectionData(const std::string& fileName, PlannerHNS::RoadNetwork& map);
+
+	static void UpdatePointWithProjection(const PlannerHNS::RoadNetwork& map, PlannerHNS::WayPoint& p);
 
 };
 

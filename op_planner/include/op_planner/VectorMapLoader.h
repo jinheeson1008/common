@@ -55,7 +55,6 @@ private:
 
 	void ConstructRoadNetworkFromROSMessage(UtilityHNS::MapRaw& mapRaw, const PlannerHNS::WayPoint& origin, PlannerHNS::RoadNetwork& map);
 	void ConstructRoadNetworkFromROSMessageVer0(UtilityHNS::MapRaw& mapRaw, const PlannerHNS::WayPoint& origin, PlannerHNS::RoadNetwork& map);
-
 	void CreateLanes(UtilityHNS::AisanLanesFileReader* pLaneData, UtilityHNS::AisanPointsFileReader* pPointsData,
 			UtilityHNS::AisanNodesFileReader* pNodesData, std::vector<PlannerHNS::Lane>& out_lanes);
 	void ConnectLanes(UtilityHNS::AisanLanesFileReader* pLaneData, std::vector<PlannerHNS::Lane>& lanes);
@@ -93,6 +92,16 @@ private:
 	void ExtractCurbData(const std::vector<UtilityHNS::AisanCurbFileReader::AisanCurb>& curb_data,
 				const std::vector<UtilityHNS::AisanLinesFileReader::AisanLine>& line_data,
 				const std::vector<UtilityHNS::AisanPointsFileReader::AisanPoints>& points_data, const GPSPoint& origin, RoadNetwork& map);
+
+	/**
+	 * @brief Extract line points of lid is the first point of the line, BLID has to be zero, otherwise the function will return 0 points
+	 * @param pLine line data
+	 * @param lid line row id in the line.csv vector map file
+	 * @param out_line_points the points from BLID=0 to FLID=0
+	 * @return true of line is extracted, false if lid row is not the beginning of the line (BLID != 0).
+	 */
+	bool ExtractSingleLine(UtilityHNS::AisanLinesFileReader* pLine, UtilityHNS::AisanPointsFileReader* pPoint, const int& lid,
+			std::vector<WayPoint>& out_line_points);
 
 	/**
 	 * @brief Fix dt lane problem for vector maps generated from the free web based mapping service.

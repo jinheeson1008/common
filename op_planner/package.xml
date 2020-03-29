@@ -13,5 +13,5 @@
   <depend>cmake_modules</depend>
   <depend>op_utility</depend>
   <depend>tinyxml</depend>
-  <depend>lanelet2_extension</depend>
+  <depend>lanelet2_extension</depend>    	  
 </package>

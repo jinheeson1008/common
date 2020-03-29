@@ -61,8 +61,25 @@ int main(int argc, char** argv)
 
   lanelet::ErrorMessages errors;
 
-  lanelet::projection::MGRSProjector projector;
-  lanelet::LaneletMapPtr map = lanelet::load(lanelet2_filename, projector, &errors);
+  lanelet::Projector* p_projector = nullptr;
+
+  std::string projector_param;
+  double origin_lat = 0.0;
+  double origin_lon = 0.0;
+  rosnode.getParam("projector", projector_param);
+  rosnode.getParam("origin_lat", origin_lat);
+  rosnode.getParam("origin_lon", origin_lon);
+
+  if(projector_param.compare("UTM") == 0)
+  {
+	  p_projector = new lanelet::projection::UtmProjector(lanelet::Origin({origin_lat, origin_lon, 0}));
+  }
+  else
+  {
+	  p_projector = new lanelet::projection::MGRSProjector();
+  }
+
+  lanelet::LaneletMapPtr map = lanelet::load(lanelet2_filename, *p_projector, &errors);
 
   for(const auto &error: errors)
   {
