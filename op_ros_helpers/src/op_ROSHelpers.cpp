@@ -24,28 +24,66 @@ ROSHelpers::ROSHelpers() {
 ROSHelpers::~ROSHelpers() {
 }
 
-void ROSHelpers::GetTransformFromTF(const std::string parent_frame, const std::string child_frame, tf::StampedTransform &transform)
+void ROSHelpers::getTransformFromTF(const std::string src_frame, const std::string dst_frame, tf::TransformListener& listener, tf::StampedTransform &transform)
 {
-	static tf::TransformListener listener;
-
-	int nFailedCounter = 0;
 	while (1)
 	{
 		try
 		{
-			listener.lookupTransform(parent_frame, child_frame, ros::Time(0), transform);
+			listener.waitForTransform(src_frame, dst_frame, ros::Time(0), ros::Duration(1.0));
+			listener.lookupTransform(dst_frame, src_frame, ros::Time(0), transform);
 			break;
 		}
 		catch (tf::TransformException& ex)
 		{
-			if(nFailedCounter > 2)
-			{
-				ROS_ERROR("%s", ex.what());
-			}
+			ROS_ERROR("%s", ex.what());
 			ros::Duration(1.0).sleep();
-			nFailedCounter ++;
 		}
 	}
+}
+
+void ROSHelpers::transformDetectedObjects(const std::string& src_frame, const std::string& dst_frame, const tf::StampedTransform& trans,
+		const autoware_msgs::DetectedObjectArray& input, autoware_msgs::DetectedObjectArray& transformed_input, bool bTransformBoundary)
+{
+  transformed_input.header = input.header;
+  for (size_t i = 0; i < input.objects.size(); i++)
+  {
+    geometry_msgs::PoseStamped pose_out;
+    tf::Transform input_object_pose;
+    tf::Transform poly_pose;
+
+    autoware_msgs::DetectedObject dd;
+	dd = input.objects.at(i);
+	dd.header.frame_id = dst_frame;
+	dd.header.stamp = ros::Time();
+	dd.convex_hull.header.frame_id = dst_frame;
+	dd.convex_hull.header.stamp = ros::Time();
+	dd.space_frame = dst_frame;
+
+    input_object_pose.setOrigin(tf::Vector3(input.objects.at(i).pose.position.x, input.objects.at(i).pose.position.y, input.objects.at(i).pose.position.z));
+    input_object_pose.setRotation(tf::Quaternion(input.objects.at(i).pose.orientation.x, input.objects.at(i).pose.orientation.y, input.objects.at(i).pose.orientation.z, input.objects.at(i).pose.orientation.w));
+    tf::poseTFToMsg(trans * input_object_pose, pose_out.pose);
+    dd.pose = pose_out.pose;
+
+    dd.convex_hull.polygon.points.clear();
+    geometry_msgs::Point32 p;
+    for(unsigned int j=0; j < input.objects.at(i).convex_hull.polygon.points.size(); j++)
+    {
+    	p = input.objects.at(i).convex_hull.polygon.points.at(j);
+    	if(bTransformBoundary == true)
+    	{
+			poly_pose.setOrigin(tf::Vector3(p.x, p.y, p.z));
+			poly_pose.setRotation(tf::Quaternion(input.objects.at(i).pose.orientation.x, input.objects.at(i).pose.orientation.y, input.objects.at(i).pose.orientation.z, input.objects.at(i).pose.orientation.w));
+			tf::poseTFToMsg(trans * poly_pose, pose_out.pose);
+			p.x = pose_out.pose.position.x;
+			p.y = pose_out.pose.position.y;
+			p.z = pose_out.pose.position.z;
+    	}
+    	dd.convex_hull.polygon.points.push_back(p);
+    }
+
+    transformed_input.objects.push_back(dd);
+  }
 }
 
 visualization_msgs::Marker ROSHelpers::CreateGenMarker(const double& x, const double& y, const double& z,const double& a,

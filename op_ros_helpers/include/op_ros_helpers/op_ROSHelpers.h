@@ -173,7 +173,10 @@ public:
 	ROSHelpers();
 	virtual ~ROSHelpers();
 
-	static void GetTransformFromTF(const std::string parent_frame, const std::string child_frame, tf::StampedTransform &transform);
+	static void getTransformFromTF(const std::string parent_frame, const std::string child_frame, tf::TransformListener& listener, tf::StampedTransform &transform);
+
+	static void transformDetectedObjects(const std::string& src_frame, const std::string& dst_frame, const tf::StampedTransform& trans,
+			const autoware_msgs::DetectedObjectArray& input, autoware_msgs::DetectedObjectArray& transformed_input, bool bTransformBoundary = true);
 
 	static void ConvertFromAutowareCloudClusterObstaclesToPlannerH(const PlannerHNS::WayPoint& currState, const double& car_width,
 			const double& car_length, const autoware_msgs::CloudClusterArray& clusters,

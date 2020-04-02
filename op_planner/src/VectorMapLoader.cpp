@@ -560,11 +560,11 @@ void VectorMapLoader::ExtractSignalDataV2(const std::vector<UtilityHNS::AisanSig
 			{
 				if(signal_data.at(is).VID == vector_data.at(iv).VID)
 				{
-					tl.horizontal_angle = vector_data.at(iv).Hang;
+					tl.horizontal_angle = -vector_data.at(iv).Hang-180.0;
 					tl.vertical_angle = vector_data.at(iv).Vang;
 					WayPoint p;
 					GetPointFromDataList(pPointData, vector_data.at(iv).PID, p);
-					p.pos.a = vector_data.at(iv).Hang*DEG2RAD;
+					p.pos.a = tl.horizontal_angle*DEG2RAD;
 					tl.pose = p;
 				}
 			}
@@ -1181,7 +1181,7 @@ void VectorMapLoader::ExtractSignalData(const std::vector<UtilityHNS::AisanSigna
 					{
 						if(vector_data.at(iv).PID == points_data.at(ip).PID)
 						{
-							WayPoint p(points_data.at(ip).Ly + origin.x, points_data.at(ip).Bx + origin.y, points_data.at(ip).H + origin.z, vector_data.at(iv).Hang*DEG2RAD);
+							WayPoint p(points_data.at(ip).Ly + origin.x, points_data.at(ip).Bx + origin.y, points_data.at(ip).H + origin.z, (-vector_data.at(iv).Hang-180.0)*DEG2RAD);
 							p.pos.lat = points_data.at(ip).B;
 							p.pos.lon = points_data.at(ip).L;
 							p.pos.alt = points_data.at(ip).H;
