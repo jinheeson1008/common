@@ -1668,7 +1668,57 @@ public:
 
 	bool AreMessagesReceived()
 	{
-		return pLanes != nullptr && pPoints != nullptr && pCenterLines  != nullptr && pNodes  != nullptr;
+		bool bBasicData =  pLanes != nullptr && pPoints != nullptr && pCenterLines  != nullptr && pNodes  != nullptr;
+
+		if(bBasicData)
+		{
+			if(this->pAreas == nullptr)
+				this->pAreas = new UtilityHNS::AisanAreasFileReader(vector_map_msgs::AreaArray());
+
+			if(this->pCrossWalks == nullptr)
+				this->pCrossWalks = new UtilityHNS::AisanCrossWalkFileReader(vector_map_msgs::CrossWalkArray());
+
+			if(this->pCurbs == nullptr)
+				this->pCurbs = new UtilityHNS::AisanCurbFileReader(vector_map_msgs::CurbArray());
+
+			if(this->pGutter == nullptr)
+				this->pGutter = new UtilityHNS::AisanGutterFileReader(vector_map_msgs::GutterArray());
+
+			if(this->pLines == nullptr)
+				this->pLines = new UtilityHNS::AisanLinesFileReader(vector_map_msgs::LineArray());
+
+			if(this->pPole == nullptr)
+				this->pPole = new UtilityHNS::AisanPoleFileReader(vector_map_msgs::PoleArray());
+
+			if(this->pRoadedges == nullptr)
+				this->pRoadedges = new UtilityHNS::AisanRoadEdgeFileReader(vector_map_msgs::RoadEdgeArray());
+
+			if(this->pSignals == nullptr)
+				this->pSignals = new UtilityHNS::AisanSignalFileReader(vector_map_msgs::SignalArray());
+
+			if(this->pStopLines == nullptr)
+				this->pStopLines = new UtilityHNS::AisanStopLineFileReader(vector_map_msgs::StopLineArray());
+
+			if(this->pStreetLight == nullptr)
+				this->pStreetLight = new UtilityHNS::AisanStreetlightFileReader(vector_map_msgs::StreetLightArray());
+
+			if(this->pUtilitypole == nullptr)
+				this->pUtilitypole = new UtilityHNS::AisanUtilitypoleFileReader(vector_map_msgs::UtilityPoleArray());
+
+			if(this->pVectors == nullptr)
+				this->pVectors = new UtilityHNS::AisanVectorFileReader(vector_map_msgs::VectorArray());
+
+			if(this->pWayAreas == nullptr)
+				this->pWayAreas = new UtilityHNS::AisanWayareaFileReader(vector_map_msgs::WayAreaArray());
+
+			if(this->pWhitelines == nullptr)
+				this->pWhitelines = new UtilityHNS::AisanWhitelinesFileReader(vector_map_msgs::WhiteLineArray());
+
+			if(this->pZebrazore == nullptr)
+				this->pZebrazore = new UtilityHNS::AisanZebrazoneFileReader(vector_map_msgs::ZebraZoneArray());
+		}
+
+		return bBasicData;
 	}
 
 	int GetVersion()
