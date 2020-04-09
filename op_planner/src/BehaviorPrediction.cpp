@@ -48,6 +48,7 @@ BehaviorPrediction::~BehaviorPrediction()
 	m_temp_list.clear();
 
 	//save log data
+#ifdef LOG_PREDICTION_DATA
 	std::ostringstream fileName;
 	if(g_PredParams.experiment_name.size() == 0)
 		fileName << UtilityHNS::UtilityH::GetHomeDirectory()+UtilityHNS::DataRW::LoggingMainfolderName + UtilityHNS::DataRW::PredictionFolderName;
@@ -89,6 +90,7 @@ BehaviorPrediction::~BehaviorPrediction()
 				  "best_beh_U,all_p_U,all_w_U,best_p_U,best_w_U,real_w_U," , m_AllLogData.at(i).second);
 		}
 	}
+#endif
 }
 
 void BehaviorPrediction::DoOneStep(const std::vector<DetectedObject>& obj_list, const WayPoint& currPose, const double& minSpeed, const double& maxDeceleration, RoadNetwork& map)
@@ -225,7 +227,9 @@ void BehaviorPrediction::ParticleFilterSteps(std::vector<ObjParticles*>& part_in
 		RemoveWeakParticles(part_info.at(i));
 		CalculateAveragesAndProbabilities(part_info.at(i));
 		FindBest(part_info.at(i));
+#ifdef LOG_PREDICTION_DATA
 		part_info.at(i)->LogDataRow();
+#endif
 	}
 }
 

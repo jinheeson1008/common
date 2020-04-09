@@ -509,10 +509,11 @@ void ROSHelpers::ConvertFromRoadNetworkToAutowareVisualizeMapFormat(const Planne
 	lane_waypoint_marker.action = visualization_msgs::Marker::ADD;
 	lane_waypoint_marker.scale.x = 0.15;
 	std_msgs::ColorRGBA roll_color;
-	roll_color.r = 1;
-	roll_color.g = 0.5;
-	roll_color.b = 0;
+	roll_color.r = 0.9;
+	roll_color.g = 0.9;
+	roll_color.b = 0.9;
 	roll_color.a = 0.5;
+
 	lane_waypoint_marker.color = roll_color;
         lane_waypoint_marker.frame_locked = false;
 
@@ -522,7 +523,7 @@ void ROSHelpers::ConvertFromRoadNetworkToAutowareVisualizeMapFormat(const Planne
         stop_line_marker.ns = "road_network_stop_line";
         stop_line_marker.type = visualization_msgs::Marker::LINE_STRIP;
         stop_line_marker.action = visualization_msgs::Marker::ADD;
-        stop_line_marker.scale.x = 0.15;
+        stop_line_marker.scale.x = 0.25;
         roll_color.r = 1;
         roll_color.g = 1;
         roll_color.b = 1;
@@ -1160,6 +1161,12 @@ std::string ROSHelpers::GetBehaviorNameFromCode(const PlannerHNS::STATE_TYPE& be
 	case PlannerHNS::STOPPING_STATE:
 		str = "Stop";
 		break;
+	case PlannerHNS::EMERGENCY_STATE:
+		str = "Emergency";
+		break;
+	case PlannerHNS::LANE_CHANGE_STATE:
+		str = "Lane Change";
+		break;
 	case PlannerHNS::FINISH_STATE:
 		str = "End";
 		break;
@@ -1180,6 +1187,19 @@ std::string ROSHelpers::GetBehaviorNameFromCode(const PlannerHNS::STATE_TYPE& be
 		break;
 	case PlannerHNS::STOP_SIGN_WAIT_STATE:
 		str = "Sign Wait";
+		break;
+
+	case PlannerHNS::GOAL_STATE:
+		str = "Goal Achieved";
+		break;
+	case PlannerHNS::YIELDING_STATE:
+		str = "Yielding";
+		break;
+	case PlannerHNS::BRANCH_LEFT_STATE:
+		str = "Turning Left";
+		break;
+	case PlannerHNS::BRANCH_RIGHT_STATE:
+		str = "Turning Right";
 		break;
 	default:
 		str = "Unknown";

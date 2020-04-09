@@ -82,7 +82,7 @@ void DataRW::CreateExperimentFolder(const std::string& folderName)
 
 	if (-1 == dir_err)
 	{
-		std::cout << "Can't Create Experiment Log Path! " << main_folder << std::endl;
+		//std::cout << "Can't Create Experiment Log Path! " << main_folder << std::endl;
 	}
 
 	CreateLoggingFolders(main_folder);

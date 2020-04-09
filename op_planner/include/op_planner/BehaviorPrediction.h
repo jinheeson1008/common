@@ -15,6 +15,8 @@
 #include "op_utility/UtilityH.h"
 #include "PassiveDecisionMaker.h"
 
+#define _LOG_PREDICTION_DATA
+
 class PredictionParams
 {
 public:
