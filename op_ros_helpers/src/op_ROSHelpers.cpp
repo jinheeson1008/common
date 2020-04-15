@@ -12,6 +12,8 @@
 #include "op_ros_helpers/PolygonGenerator.h"
 #include "op_planner/MappingHelpers.h"
 #include "op_planner/MatrixOperations.h"
+#include <pcl_ros/transforms.h>
+#include <pcl_ros/point_cloud.h>
 
 
 namespace PlannerHNS
@@ -43,25 +45,20 @@ void ROSHelpers::getTransformFromTF(const std::string src_frame, const std::stri
 }
 
 void ROSHelpers::transformDetectedObjects(const std::string& src_frame, const std::string& dst_frame, const tf::StampedTransform& trans,
-		const autoware_msgs::DetectedObjectArray& input, autoware_msgs::DetectedObjectArray& transformed_input, bool bTransformBoundary)
+		const autoware_msgs::DetectedObjectArray& input, autoware_msgs::DetectedObjectArray& transformed_out, bool bTransformBoundary)
 {
-  transformed_input.header = input.header;
+	transformed_out.objects.clear();
   for (size_t i = 0; i < input.objects.size(); i++)
   {
-    geometry_msgs::PoseStamped pose_out;
     tf::Transform input_object_pose;
     tf::Transform poly_pose;
 
     autoware_msgs::DetectedObject dd;
 	dd = input.objects.at(i);
-	dd.header.frame_id = dst_frame;
-	dd.header.stamp = ros::Time();
-	dd.convex_hull.header.frame_id = dst_frame;
-	dd.convex_hull.header.stamp = ros::Time();
-	dd.space_frame = dst_frame;
 
     input_object_pose.setOrigin(tf::Vector3(input.objects.at(i).pose.position.x, input.objects.at(i).pose.position.y, input.objects.at(i).pose.position.z));
     input_object_pose.setRotation(tf::Quaternion(input.objects.at(i).pose.orientation.x, input.objects.at(i).pose.orientation.y, input.objects.at(i).pose.orientation.z, input.objects.at(i).pose.orientation.w));
+    geometry_msgs::PoseStamped pose_out;
     tf::poseTFToMsg(trans * input_object_pose, pose_out.pose);
     dd.pose = pose_out.pose;
 
@@ -72,17 +69,23 @@ void ROSHelpers::transformDetectedObjects(const std::string& src_frame, const st
     	p = input.objects.at(i).convex_hull.polygon.points.at(j);
     	if(bTransformBoundary == true)
     	{
+    		geometry_msgs::PoseStamped point_pose_out;
 			poly_pose.setOrigin(tf::Vector3(p.x, p.y, p.z));
 			poly_pose.setRotation(tf::Quaternion(input.objects.at(i).pose.orientation.x, input.objects.at(i).pose.orientation.y, input.objects.at(i).pose.orientation.z, input.objects.at(i).pose.orientation.w));
-			tf::poseTFToMsg(trans * poly_pose, pose_out.pose);
-			p.x = pose_out.pose.position.x;
-			p.y = pose_out.pose.position.y;
-			p.z = pose_out.pose.position.z;
+			tf::poseTFToMsg(trans * poly_pose, point_pose_out.pose);
+			p.x = point_pose_out.pose.position.x;
+			p.y = point_pose_out.pose.position.y;
+			p.z = point_pose_out.pose.position.z;
     	}
     	dd.convex_hull.polygon.points.push_back(p);
     }
 
-    transformed_input.objects.push_back(dd);
+    if(input.objects.at(i).pointcloud.data.size() > 0)
+    {
+    	pcl_ros::transformPointCloud(dst_frame, trans, input.objects.at(i).pointcloud, dd.pointcloud);
+    }
+
+    transformed_out.objects.push_back(dd);
   }
 }
 
