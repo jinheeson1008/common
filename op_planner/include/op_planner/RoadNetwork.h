@@ -1105,16 +1105,6 @@ public:
 	}
 };
 
-class HMIPreCalculatedConditions
-{
-public:
-
-	HMIPreCalculatedConditions()
-	{
-
-	}
-};
-
 class PreCalculatedConditions
 {
 public:

@@ -521,6 +521,63 @@ int LocalizationPathReader::ReadAllData(vector<LocalizationWayPoint>& data_list)
 	return count;
 }
 
+// Destinations data
+
+DestinationsDataFileReader::DestinationsDataFileReader(const DestinationData& proj_data) : SimpleReaderBase("d", 1)
+{
+	header_ = "ID,Name,Longitude,latitude,Altitude,X,Y,Z,Angle,Hour,Minute";
+	m_data_list.clear();
+	m_data_list.push_back(proj_data);
+}
+
+bool DestinationsDataFileReader::ReadNextLine(DestinationData& data)
+{
+	vector<vector<string> > lineData;
+	if(ReadSingleLine(lineData))
+	{
+		if(lineData.size()==0) return false;
+		if(lineData.at(0).size() < 11) return false;
+
+		data.id = strtol(lineData.at(0).at(0).c_str(), NULL, 10);
+		data.name = lineData.at(0).at(1);
+		data.lon = strtod(lineData.at(0).at(2).c_str(), NULL);
+		data.lat = strtod(lineData.at(0).at(3).c_str(), NULL);
+		data.alt = strtod(lineData.at(0).at(4).c_str(), NULL);
+		data.x = strtod(lineData.at(0).at(5).c_str(), NULL);
+		data.y = strtod(lineData.at(0).at(6).c_str(), NULL);
+		data.z = strtod(lineData.at(0).at(7).c_str(), NULL);
+		data.angle = strtod(lineData.at(0).at(8).c_str(), NULL);
+		data.hour = strtol(lineData.at(0).at(9).c_str(), NULL, 10);
+		data.minute = strtol(lineData.at(0).at(10).c_str(), NULL, 10);
+
+		return true;
+	}
+	else
+		return false;
+}
+
+int DestinationsDataFileReader::ReadAllData(vector<DestinationData>& data_list)
+{
+	ReadAllData();
+	data_list = m_data_list;
+	return m_data_list.size();
+}
+
+int DestinationsDataFileReader::ReadAllData()
+{
+	if(!m_File.is_open()) return 0;
+
+	m_data_list.clear();
+	DestinationData data;
+	while(ReadNextLine(data))
+	{
+		m_data_list.push_back(data);
+	}
+	return m_data_list.size();
+}
+
+// Projection data
+
 ProjectionDataFileReader::ProjectionDataFileReader(const ProjectionData& proj_data) : SimpleReaderBase("d", 1)
 {
 	header_ = "ProjType,ProjString,Longitude,Latitude,Altitude,X,Y,Z";

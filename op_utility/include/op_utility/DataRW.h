@@ -183,6 +183,54 @@ public:
 	int ReadAllData();
 };
 
+class DestinationsDataFileReader : public SimpleReaderBase
+{
+public:
+	struct DestinationData
+	{
+		int id;
+		std::string name;
+		double lon;
+		double lat;
+		double alt;
+		double x;
+		double y;
+		double z;
+		double angle;
+		int hour; //0->24
+		int minute; //0->59
+	};
+
+	DestinationsDataFileReader(const std::string& fileName) : SimpleReaderBase(fileName, 1, "destinations.csv")
+	{
+		header_ = "ID,Name,Longitude,latitude,Altitude,X,Y,Z,Angle,Hour,Minute";
+	}
+
+	DestinationsDataFileReader(const DestinationData& proj_data);
+	virtual ~DestinationsDataFileReader(){}
+
+	bool ReadNextLine(DestinationData& data);
+	int ReadAllData(std::vector<DestinationData>& data_list);
+	int ReadAllData();
+	std::vector<DestinationData> m_data_list;
+
+	friend std::ostream& operator<<(std::ostream& os, const DestinationData& obj)
+	{
+	    os << obj.id << ","
+	    << obj.name << ","
+	    << obj.lon << ","
+		<< obj.lat << ","
+	    << obj.alt << ","
+	    << obj.x << ","
+	    << obj.y << ","
+	    << obj.z << ","
+	    << obj.angle << ","
+	    << obj.hour << ","
+	    << obj.minute;
+	    return os;
+	}
+};
+
 class ProjectionDataFileReader : public SimpleReaderBase
 {
 public:
