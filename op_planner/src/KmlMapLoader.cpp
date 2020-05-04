@@ -407,7 +407,8 @@ std::vector<Boundary> KmlMapLoader::GetBoundariesList(TiXmlElement* pElem)
 			tfID = pNameXml->GetText();
 			Boundary b;
 			b.id = GetIDsFromPrefix(tfID, "BID", "RdID").at(0);
-			b.roadId = GetIDsFromPrefix(tfID, "RdID", "").at(0);
+			b.roadId = GetIDsFromPrefix(tfID, "RdID", "Type").at(0);
+			b.type = PlannerHNS::BOUNDARY_TYPE_STR.GetEnum(GetIDsFromPrefix(tfID, "Type", "").at(0));
 
 			TiXmlElement* pPoints = pE->FirstChildElement("LineString")->FirstChildElement("coordinates");
 			b.points = GetWaypointsData(pPoints);

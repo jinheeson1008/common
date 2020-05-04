@@ -173,7 +173,7 @@ double PlannerH::PlanUsingDP(const WayPoint& start,
 
 	if(fabs(goal_info.perp_distance) > GOAL_POINT_MAX_DISTANCE)
 	{
-		if(fabs(start_info.perp_distance) > 20)
+		if(fabs(goal_info.perp_distance) > 20)
 		{
 			GPSPoint gp = goalPos.pos;
 			cout << endl << "Error: PlannerH -> Goal Distance to Lane is: " << goal_info.perp_distance

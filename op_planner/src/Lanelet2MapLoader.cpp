@@ -22,8 +22,16 @@ void Lanelet2MapLoader::LoadMap(const autoware_lanelet2_msgs::MapBin& msg, Plann
 	map.Clear();
 	lanelet::LaneletMapPtr l2_map = std::make_shared<lanelet::LaneletMap>();
 
-	lanelet::utils::conversion::fromBinMsg(msg, l2_map);
-	FromLaneletToRoadNetwork(l2_map, map, nullptr);
+	try
+	{
+		lanelet::utils::conversion::fromBinMsg(msg, l2_map);
+		FromLaneletToRoadNetwork(l2_map, map, nullptr);
+	}
+	catch(std::exception& e)
+	{
+		std::cout << "Failed to parse lanelet2 message, Error: " << e.what() << std::endl;
+		return;
+	}
 }
 
 void Lanelet2MapLoader::LoadMap(const std::string& fileName, PlannerHNS::RoadNetwork& map)
@@ -61,7 +69,7 @@ void Lanelet2MapLoader::LoadMap(const std::string& fileName, PlannerHNS::RoadNet
 	}
 	catch(std::exception& e)
 	{
-		std::cout << "Faild to Load map file: " << fileName << ", Error: " << e.what() << std::endl;
+		std::cout << "Failed to Load map file: " << fileName << ", Error: " << e.what() << std::endl;
 		return;
 	}
 
@@ -71,7 +79,7 @@ void Lanelet2MapLoader::LoadMap(const std::string& fileName, PlannerHNS::RoadNet
 		{
 			std::cout << "Lanelet Error: " << error <<std::endl;
 		}
-		std::cout << "Faild to Load map file: " << fileName << std::endl;
+		std::cout << "Failed to Load map file: " << fileName << std::endl;
 		return;
 	}
 

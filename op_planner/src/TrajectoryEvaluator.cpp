@@ -10,7 +10,8 @@
 namespace PlannerHNS
 {
 
-  double constexpr g_lateral_skip_value = 20;
+  double constexpr g_lateral_skip_value = 20.0;
+  double constexpr g_longitudinal_safe_overtake_distance = 0.5;
   bool constexpr g_enable_debug = false;
 
 TrajectoryEvaluator::TrajectoryEvaluator()
@@ -27,11 +28,12 @@ TrajectoryCost TrajectoryEvaluator::doOneStep(const std::vector<std::vector<WayP
                                               const VehicleState& vehicle_state,
                                               const std::vector<DetectedObject>& obj_list,
                                               const bool& b_static_only,
-                                              const int& prev_curr_index)
+                                              const int& prev_curr_index,
+											  const bool& b_keep_curr)
 {
 
-  timespec _t;
-  UtilityHNS::UtilityH::GetTickCount(_t);
+//  timespec _t;
+//  UtilityHNS::UtilityH::GetTickCount(_t);
 
   double critical_lateral_distance = car_info.width / 2.0 + params.horizontalSafetyDistancel;
   double critical_long_front_distance = car_info.wheel_base / 2.0 + car_info.length / 2.0
@@ -39,7 +41,11 @@ TrajectoryCost TrajectoryEvaluator::doOneStep(const std::vector<std::vector<WayP
   double critical_long_back_distance = car_info.length / 2.0 + params.verticalSafetyDistance
       - car_info.wheel_base / 2.0;
 
-  int curr_index = getCurrentRollOutIndex(total_paths, curr_state, params);
+	int curr_index = -1;
+	if(prev_curr_index >=0 && prev_curr_index < roll_outs.size())
+		curr_index  = prev_curr_index;
+	else
+		curr_index = getCurrentRollOutIndex(total_paths, curr_state, params);
 
   initializeLocalRollOuts(curr_state, car_info, params, critical_long_back_distance, roll_outs, local_roll_outs_);
 
@@ -61,7 +67,7 @@ TrajectoryCost TrajectoryEvaluator::doOneStep(const std::vector<std::vector<WayP
 
   normalizeCosts(trajectory_costs_);
 
-  TrajectoryCost best_trajectory = findBestTrajectory(params, trajectory_costs_);
+  TrajectoryCost best_trajectory = findBestTrajectory(params, prev_curr_index, b_keep_curr, trajectory_costs_);
 //	cout << "------------------------------------------------------------- " << endl;
 
 //  double dt = UtilityHNS::UtilityH::GetTimeDiffNow(_t);
@@ -376,7 +382,7 @@ void TrajectoryEvaluator::initializeSafetyPolygon(const WayPoint& curr_state, co
 }
 
 TrajectoryCost TrajectoryEvaluator::findBestTrajectory(const PlanningParams& params,
-                                                       std::vector<TrajectoryCost> trajectory_costs)
+		const int& prev_curr_index, const bool& b_keep_curr, std::vector<TrajectoryCost> trajectory_costs)
 {
   TrajectoryCost best_trajectory;
   best_trajectory.bBlocked = true;
@@ -384,6 +390,8 @@ TrajectoryCost TrajectoryEvaluator::findBestTrajectory(const PlanningParams& par
   best_trajectory.closest_obj_velocity = 0;
   best_trajectory.index = params.rollOutNumber / 2;
   best_trajectory.lane_index = 0;
+  double all_closest_obj_distance = params.horizonDistance;
+  double all_closest_obj_velocity = 0;
 
   std::sort(trajectory_costs.begin(), trajectory_costs.end(), sortCosts);
 
@@ -399,31 +407,110 @@ TrajectoryCost TrajectoryEvaluator::findBestTrajectory(const PlanningParams& par
     std::cout << "--------------------------------------------------" << std::endl;
   }
 
-  for (unsigned int ic = 0; ic < trajectory_costs.size(); ic++)
-    {
-      if (trajectory_costs.at(ic).closest_obj_distance < best_trajectory.closest_obj_distance)
-        {
-          best_trajectory.closest_obj_distance = trajectory_costs.at(ic).closest_obj_distance;
-          best_trajectory.closest_obj_velocity = trajectory_costs.at(ic).closest_obj_velocity;
-        }
-    }
+	for (unsigned int ic = 0; ic < trajectory_costs.size(); ic++)
+	{
+		if (trajectory_costs.at(ic).closest_obj_distance < all_closest_obj_distance)
+		{
+			all_closest_obj_distance = trajectory_costs.at(ic).closest_obj_distance;
+			all_closest_obj_velocity = trajectory_costs.at(ic).closest_obj_velocity;
+		}
+	}
 
-  //Find Best not blocked rollout
-  for (unsigned int ic = 0; ic < trajectory_costs.size(); ic++)
+  //new approach, in b_keep_curr branch
+  //1. remove blocked trajectories
+  //2. find average diff between the non blocked trajectories
+  //3. find diff between previous trajectory cost and the current best cost
+  //4. change best if only diff > avg_diff
+  if(prev_curr_index >=0 && prev_curr_index < trajectory_costs.size() && b_keep_curr == true)
   {
-    if(!trajectory_costs.at(ic).bBlocked)
-    {
-      if(g_enable_debug)
-        std::cout << trajectory_costs.at(ic).ToString();
+	  double avg_diff = 0;
+	  //find average diff before remove blocked trajectories
+		for (int ic = 0; ic < trajectory_costs.size()-1; ic++)
+		{
+			avg_diff += (trajectory_costs.at(ic+1).cost - trajectory_costs.at(ic).cost);
+		}
 
-      trajectory_costs.at(ic).closest_obj_distance = best_trajectory.closest_obj_distance;
-      //std::cout << "Closest Distance : " <<  trajectory_costs.at(ic).closest_obj_distance << std::endl;
-      return trajectory_costs.at(ic);
-    }
+		avg_diff = avg_diff/(double)trajectory_costs.size();
+
+	  //Remove blocked
+	  for(int i=0; i < trajectory_costs.size(); i++)
+	  {
+		  if(trajectory_costs.at(i).bBlocked)
+		  {
+			  trajectory_costs.erase(trajectory_costs.begin()+i);
+			  i--;
+		  }
+	  }
+
+	  if(trajectory_costs.size() == 0)
+	  {
+		  best_trajectory.closest_obj_distance = all_closest_obj_distance;
+		  best_trajectory.closest_obj_velocity = all_closest_obj_velocity;
+	  }
+	  else
+	  {
+		  double closest_obj_distance = params.horizonDistance;
+		  double closest_obj_velocity = 0;
+
+
+		  //find closest object to vehicle and that object's velocity
+			for (unsigned int ic = 0; ic < trajectory_costs.size(); ic++)
+			{
+				if (trajectory_costs.at(ic).closest_obj_distance < closest_obj_distance)
+				{
+					closest_obj_distance = trajectory_costs.at(ic).closest_obj_distance;
+					closest_obj_velocity = trajectory_costs.at(ic).closest_obj_velocity;
+				}
+			}
+
+			//we consider the first one with smallest cost is the best trajectory. trajectory_costs.at(0) , so
+			// now let's find the previous one.
+
+			int best_traj_index = 0;
+			int relativ_prev_curr_index = prev_curr_index - params.rollOutNumber / 2;
+			for (unsigned int ic = 0; ic < trajectory_costs.size(); ic++)
+			{
+				if(g_enable_debug)
+				{
+					std::cout << "Keep, Prev: " << relativ_prev_curr_index << ", Order: " << ic << ", Average Diff: " << avg_diff << std::endl;
+				}
+
+				//keep the best as the previous if: 1. exists , 2. cost different between previous best and current bes is less than the average cost diff
+				if(trajectory_costs.at(ic).relative_index == relativ_prev_curr_index && fabs(trajectory_costs.at(ic).cost - trajectory_costs.at(0).cost) < avg_diff)
+				{
+					best_traj_index = ic;
+					break;
+				}
+			}
+			//if we can't find the previous one, then most properly it is blocked now, so , we have to change trajectory to best, trajectory_costs.at(0)
+			best_trajectory = trajectory_costs.at(best_traj_index);
+	  }
+
+  }
+  else
+  {
+	  //Assign closest distance and velocity of the best trajectory , only as additional information for the dicision maker
+	  best_trajectory.closest_obj_distance = all_closest_obj_distance;
+	  best_trajectory.closest_obj_velocity = all_closest_obj_velocity;
+
+	  //Find Best not blocked rollout
+	  for (unsigned int ic = 0; ic < trajectory_costs.size(); ic++)
+	  {
+		if(!trajectory_costs.at(ic).bBlocked)
+		{
+			trajectory_costs.at(ic).closest_obj_distance = best_trajectory.closest_obj_distance;
+			best_trajectory = trajectory_costs.at(ic);
+			break;
+		}
+	  }
   }
 
   if(g_enable_debug)
-    std::cout << best_trajectory.ToString();
+  {
+	  std::cout << "Best Trajectory: " << " --------------------- " << std::endl;
+      std::cout << best_trajectory.ToString();
+      std::cout << "--------------------------------------------------" << std::endl << std::endl;
+  }
 
   return best_trajectory;
 }
@@ -433,75 +520,92 @@ void TrajectoryEvaluator::calculateDistanceCosts(const PlanningParams& params, c
   int center_index = params.rollOutNumber / 2;
   for(unsigned int i=0; i < roll_outs.size(); i++)
   {
-    for(unsigned int j = 0; j < contour_points.size(); j++)
-    {
-      RelativeInfo info;
-      int prev_index = 0;
-      PlanningHelpers::GetRelativeInfoLimited(roll_outs.at(center_index), contour_points.at(j), info, prev_index);
-      info.perp_distance = fabs( info.perp_distance - trajectory_costs.at(i).distance_from_center);
+		for(unsigned int j = 0; j < contour_points.size(); j++) // Mainly for static collision estimation
+		{
+			RelativeInfo info;
+			int prev_index = 0;
+			PlanningHelpers::GetRelativeInfoLimited(roll_outs.at(center_index), contour_points.at(j), info, prev_index);
+			info.perp_distance = fabs( info.perp_distance - trajectory_costs.at(i).distance_from_center);
 
-      double actual_lateral_distance = fabs(info.perp_distance) - 0.05; //add small distance so this never become zero
-      double actual_longitudinal_distance = info.from_back_distance + roll_outs.at(i).at(info.iBack).cost - 0.05; //add small distance so this never become zero
+			double actual_lateral_distance = fabs(info.perp_distance) - 0.05; //add small distance so this never become zero
+			double actual_longitudinal_distance = info.from_back_distance + roll_outs.at(i).at(info.iBack).cost - 0.05; //add small distance so this never become zero
 
-      if(actual_lateral_distance < g_lateral_skip_value && !info.bAfter && !info.bBefore)
-	{
-	  trajectory_costs.at(i).longitudinal_cost  += 1.0/actual_longitudinal_distance;
+			bool bBefore = info.bBefore;
+			if(bBefore == true && actual_longitudinal_distance < g_longitudinal_safe_overtake_distance)
+			{
+				bBefore = false;
+			}
 
-	  if(actual_lateral_distance < c_lateral_d) // collision point
-	  {
-	    trajectory_costs.at(i).lateral_cost += 2.0; // use half meter fixed critical distance as contact cost for all collision points in the range
-	    collision_points.push_back(info.perp_point);
-	    if(actual_longitudinal_distance < params.minFollowingDistance)
-	      trajectory_costs.at(i).bBlocked = true;
+			//std::cout << "Traj: " <<  trajectory_costs.at(i).relative_index << ", LateralD: " << actual_lateral_distance << ", CriticD: " << c_lateral_d << ", LongD: " <<  actual_longitudinal_distance  << ", Before: " << bBefore << std::endl;
 
-	    if(trajectory_costs.at(i).closest_obj_distance > actual_longitudinal_distance)
-	    {
-	      trajectory_costs.at(i).closest_obj_distance = actual_longitudinal_distance;
-	    }
-	  }
-	  else
-	    {
-	      trajectory_costs.at(i).lateral_cost += 1.0/actual_lateral_distance;
-	    }
-	}
-    }
+			if(actual_lateral_distance < g_lateral_skip_value && !info.bAfter && !bBefore)
+			{
+				if(safety_border_.PointInsidePolygon(safety_border_, contour_points.at(j).pos) == true)
+				{
+					trajectory_costs.at(i).bBlocked = true;
+				}
 
-    for(unsigned int j = 0; j < trajectory_points.size(); j++)
-    {
-      RelativeInfo info;
-      int prev_index = 0;
-      PlanningHelpers::GetRelativeInfoLimited(roll_outs.at(i), trajectory_points.at(j), info, prev_index);
+				trajectory_costs.at(i).longitudinal_cost  += 1.0/actual_longitudinal_distance;
 
-      double actual_lateral_distance = fabs(info.perp_distance) - 0.05; //add small distance so this never become zero
-      double actual_longitudinal_distance = info.from_back_distance + roll_outs.at(i).at(info.iBack).cost - 0.05; //add small distance so this never become zero
-      double t_diff = fabs(info.perp_point.timeCost - trajectory_points.at(j).timeCost);
-      double a_diff = info.angle_diff;
-      double traj_prob = info.perp_point.collisionCost;
+				if(actual_lateral_distance < c_lateral_d) // collision point
+				{
+					trajectory_costs.at(i).lateral_cost += 2.0; // use half meter fixed critical distance as contact cost for all collision points in the range
+					collision_points.push_back(info.perp_point);
+					if(actual_longitudinal_distance < params.minFollowingDistance) // only block when it is closer than the min follow distance
+					{
+						trajectory_costs.at(i).bBlocked = true;
+					}
 
-      if(actual_longitudinal_distance > params.pathDensity && actual_longitudinal_distance < params.minFollowingDistance && actual_lateral_distance < g_lateral_skip_value && !info.bAfter && !info.bBefore && t_diff < eval_params_.collision_time_)
-      {
-        trajectory_costs.at(i).longitudinal_cost  += 1.0/actual_longitudinal_distance;
+					if(trajectory_costs.at(i).closest_obj_distance > actual_longitudinal_distance)
+					{
+						trajectory_costs.at(i).closest_obj_distance = actual_longitudinal_distance;
+					}
+				}
+				else
+				{
+					trajectory_costs.at(i).lateral_cost += 1.0/actual_lateral_distance;
+				}
+			}
+		}
 
-        //std::cout << info.bAfter << ", " << info.bBefore << ", " << actual_lateral_distance << ", " << actual_longitudinal_distance <<", " << t_diff <<", " << a_diff <<" ," << traj_prob <<std::endl;
+		for(unsigned int j = 0; j < trajectory_points.size(); j++) //for predictive collision estimation, using the estimated trajectories for other moving objects
+		{
+			RelativeInfo info;
+			int prev_index = 0;
+			PlanningHelpers::GetRelativeInfoLimited(roll_outs.at(i), trajectory_points.at(j), info, prev_index);
 
-        if(actual_lateral_distance < c_lateral_d && t_diff) // collision point
-        {
-          trajectory_costs.at(i).lateral_cost += 2.0; // use half meter fixed critical distance as contact cost for all collision points in the range
-          collision_points.push_back(info.perp_point);
-          if(actual_longitudinal_distance < params.minFollowingDistance)
-            trajectory_costs.at(i).bBlocked = true;
+			double actual_lateral_distance = fabs(info.perp_distance) - 0.05; //add small distance so this never become zero
+			double actual_longitudinal_distance = info.from_back_distance + roll_outs.at(i).at(info.iBack).cost - 0.05; //add small distance so this never become zero
+			double t_diff = fabs(info.perp_point.timeCost - trajectory_points.at(j).timeCost);
+			double a_diff = info.angle_diff;
+			double traj_prob = info.perp_point.collisionCost;
 
-          if(trajectory_costs.at(i).closest_obj_distance > actual_longitudinal_distance)
-          {
-            trajectory_costs.at(i).closest_obj_distance = actual_longitudinal_distance;
-          }
-        }
-        else
-          {
-            trajectory_costs.at(i).lateral_cost += 1.0/actual_lateral_distance;
-          }
-      }
-    }
+			if(actual_longitudinal_distance > params.pathDensity && actual_longitudinal_distance < params.minFollowingDistance && actual_lateral_distance < g_lateral_skip_value && !info.bAfter && !info.bBefore && t_diff < eval_params_.collision_time_)
+			{
+				trajectory_costs.at(i).longitudinal_cost  += 1.0/actual_longitudinal_distance;
+
+				//std::cout << info.bAfter << ", " << info.bBefore << ", " << actual_lateral_distance << ", " << actual_longitudinal_distance <<", " << t_diff <<", " << a_diff <<" ," << traj_prob <<std::endl;
+
+				if(actual_lateral_distance < c_lateral_d && t_diff) // collision point
+				{
+					trajectory_costs.at(i).lateral_cost += 2.0; // use half meter fixed critical distance as contact cost for all collision points in the range
+					collision_points.push_back(info.perp_point);
+					if(actual_longitudinal_distance < params.minFollowingDistance)
+					{
+						trajectory_costs.at(i).bBlocked = true;
+					}
+
+					if(trajectory_costs.at(i).closest_obj_distance > actual_longitudinal_distance)
+					{
+						trajectory_costs.at(i).closest_obj_distance = actual_longitudinal_distance;
+					}
+				}
+				else
+				{
+					trajectory_costs.at(i).lateral_cost += 1.0/actual_lateral_distance;
+				}
+			}
+		}
   }
 }
 

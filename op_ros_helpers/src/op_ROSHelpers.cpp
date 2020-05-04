@@ -51,16 +51,16 @@ void ROSHelpers::transformDetectedObjects(const std::string& src_frame, const st
   for (size_t i = 0; i < input.objects.size(); i++)
   {
     tf::Transform input_object_pose;
-    tf::Transform poly_pose;
 
     autoware_msgs::DetectedObject dd;
 	dd = input.objects.at(i);
 
     input_object_pose.setOrigin(tf::Vector3(input.objects.at(i).pose.position.x, input.objects.at(i).pose.position.y, input.objects.at(i).pose.position.z));
-    input_object_pose.setRotation(tf::Quaternion(input.objects.at(i).pose.orientation.x, input.objects.at(i).pose.orientation.y, input.objects.at(i).pose.orientation.z, input.objects.at(i).pose.orientation.w));
-    geometry_msgs::PoseStamped pose_out;
-    tf::poseTFToMsg(trans * input_object_pose, pose_out.pose);
-    dd.pose = pose_out.pose;
+    tf::Quaternion quat = tf::Quaternion(input.objects.at(i).pose.orientation.x, input.objects.at(i).pose.orientation.y, input.objects.at(i).pose.orientation.z, input.objects.at(i).pose.orientation.w);
+    input_object_pose.setRotation(quat);
+    geometry_msgs::Pose pose_out;
+    tf::poseTFToMsg(trans * input_object_pose, pose_out);
+    dd.pose = pose_out;
 
     dd.convex_hull.polygon.points.clear();
     geometry_msgs::Point32 p;
@@ -69,6 +69,7 @@ void ROSHelpers::transformDetectedObjects(const std::string& src_frame, const st
     	p = input.objects.at(i).convex_hull.polygon.points.at(j);
     	if(bTransformBoundary == true)
     	{
+    		tf::Transform poly_pose;
     		geometry_msgs::PoseStamped point_pose_out;
 			poly_pose.setOrigin(tf::Vector3(p.x, p.y, p.z));
 			poly_pose.setRotation(tf::Quaternion(input.objects.at(i).pose.orientation.x, input.objects.at(i).pose.orientation.y, input.objects.at(i).pose.orientation.z, input.objects.at(i).pose.orientation.w));
@@ -258,8 +259,8 @@ int ROSHelpers::ConvertTrackedObjectsMarkers(const PlannerHNS::WayPoint& currSta
 							trackedObstacles.at(i).center.pos.a,1,1,1,1.2,centers.markers.size()*2+i,"InfoText", visualization_msgs::Marker::TEXT_VIEW_FACING);
 
 		std::ostringstream str_out;
-		//str_out << trackedObstacles.at(i).id << " ( " << speed << " )" << " (" << trackedObstacles.at(i).distance_to_center << ")";
-		str_out << trackedObstacles.at(i).id << " (" << speed << ")";
+		str_out << trackedObstacles.at(i).id << " ( " << speed << " )" << " (" << trackedObstacles.at(i).distance_to_center << ")";
+		//str_out << trackedObstacles.at(i).id << " (" << speed << ")";
 		text_mkr.text = str_out.str();
 
 		if(i < text_info.markers.size())
@@ -506,7 +507,7 @@ void ROSHelpers::ConvertFromRoadNetworkToAutowareVisualizeMapFormat(const Planne
 {
 	visualization_msgs::Marker lane_waypoint_marker;
 	lane_waypoint_marker.header.frame_id = "map";
-	lane_waypoint_marker.header.stamp = ros::Time();
+	//lane_waypoint_marker.header.stamp = ros::Time();
 	lane_waypoint_marker.ns = "road_network_vector_map";
 	lane_waypoint_marker.type = visualization_msgs::Marker::LINE_STRIP;
 	lane_waypoint_marker.action = visualization_msgs::Marker::ADD;
@@ -518,21 +519,8 @@ void ROSHelpers::ConvertFromRoadNetworkToAutowareVisualizeMapFormat(const Planne
 	roll_color.a = 0.5;
 
 	lane_waypoint_marker.color = roll_color;
-        lane_waypoint_marker.frame_locked = false;
-
-        visualization_msgs::Marker stop_line_marker;
-        stop_line_marker.header.frame_id = "map";
-        stop_line_marker.header.stamp = ros::Time();
-        stop_line_marker.ns = "road_network_stop_line";
-        stop_line_marker.type = visualization_msgs::Marker::LINE_STRIP;
-        stop_line_marker.action = visualization_msgs::Marker::ADD;
-        stop_line_marker.scale.x = 0.25;
-        roll_color.r = 1;
-        roll_color.g = 1;
-        roll_color.b = 1;
-        roll_color.a = 0.5;
-        stop_line_marker.color = roll_color;
-        stop_line_marker.frame_locked = false;
+	lane_waypoint_marker.pose.orientation = tf::createQuaternionMsgFromYaw(0);
+	lane_waypoint_marker.frame_locked = false;
 
 	markerArray.markers.clear();
 
@@ -540,40 +528,122 @@ void ROSHelpers::ConvertFromRoadNetworkToAutowareVisualizeMapFormat(const Planne
 	{
 		for(unsigned int j = 0; j < map.roadSegments.at(i).Lanes.size(); j++)
 		{
-		  for(unsigned int sl = 0; sl < map.roadSegments.at(i).Lanes.at(j).stopLines.size(); sl++)
+		  lane_waypoint_marker.points.clear();
+		  lane_waypoint_marker.id = map.roadSegments.at(i).Lanes.at(j).id;
+		  for(unsigned int p = 0; p < map.roadSegments.at(i).Lanes.at(j).points.size(); p++)
 		  {
-		    if(map.roadSegments.at(i).Lanes.at(j).stopLines.at(sl).id > 0)
-		    {
-                      stop_line_marker.points.clear();
-                      stop_line_marker.id = map.roadSegments.at(i).Lanes.at(j).stopLines.at(sl).id;
-                      for(unsigned int p = 0; p < map.roadSegments.at(i).Lanes.at(j).stopLines.at(sl).points.size(); p++)
-                      {
-                        geometry_msgs::Point point;
-                        point.x = map.roadSegments.at(i).Lanes.at(j).stopLines.at(sl).points.at(p).pos.x;
-                        point.y = map.roadSegments.at(i).Lanes.at(j).stopLines.at(sl).points.at(p).pos.y;
-                        point.z = map.roadSegments.at(i).Lanes.at(j).stopLines.at(sl).points.at(p).pos.z;
-                        stop_line_marker.points.push_back(point);
-                      }
+			geometry_msgs::Point point;
+			point.x = map.roadSegments.at(i).Lanes.at(j).points.at(p).pos.x;
+			point.y = map.roadSegments.at(i).Lanes.at(j).points.at(p).pos.y;
+			point.z = map.roadSegments.at(i).Lanes.at(j).points.at(p).pos.z;
 
-                      markerArray.markers.push_back(stop_line_marker);
-		    }
+			lane_waypoint_marker.points.push_back(point);
 		  }
-
-
-                  lane_waypoint_marker.points.clear();
-                  lane_waypoint_marker.id = map.roadSegments.at(i).Lanes.at(j).id;
-                  for(unsigned int p = 0; p < map.roadSegments.at(i).Lanes.at(j).points.size(); p++)
-                  {
-                    geometry_msgs::Point point;
-                    point.x = map.roadSegments.at(i).Lanes.at(j).points.at(p).pos.x;
-                    point.y = map.roadSegments.at(i).Lanes.at(j).points.at(p).pos.y;
-                    point.z = map.roadSegments.at(i).Lanes.at(j).points.at(p).pos.z;
-
-                    lane_waypoint_marker.points.push_back(point);
-                  }
-
-                  markerArray.markers.push_back(lane_waypoint_marker);
+		  markerArray.markers.push_back(lane_waypoint_marker);
 		}
+	}
+
+	visualization_msgs::Marker stop_line_marker;
+		stop_line_marker.header.frame_id = "map";
+		//stop_line_marker.header.stamp = ros::Time();
+		stop_line_marker.ns = "road_network_stop_line";
+		stop_line_marker.type = visualization_msgs::Marker::LINE_STRIP;
+		stop_line_marker.action = visualization_msgs::Marker::ADD;
+		stop_line_marker.scale.x = 0.25;
+		roll_color.r = 1;
+		roll_color.g = 1;
+		roll_color.b = 1;
+		roll_color.a = 0.5;
+		stop_line_marker.color = roll_color;
+		stop_line_marker.pose.orientation = tf::createQuaternionMsgFromYaw(0);
+		stop_line_marker.frame_locked = false;
+
+	for(unsigned int sl = 0; sl < map.stopLines.size(); sl++)
+	{
+	  stop_line_marker.points.clear();
+	  stop_line_marker.id = map.stopLines.at(sl).id;
+	  for(unsigned int p = 0; p < map.stopLines.at(sl).points.size(); p++)
+	  {
+		geometry_msgs::Point point;
+		point.x = map.stopLines.at(sl).points.at(p).pos.x;
+		point.y = map.stopLines.at(sl).points.at(p).pos.y;
+		point.z = map.stopLines.at(sl).points.at(p).pos.z;
+		stop_line_marker.points.push_back(point);
+	  }
+	  markerArray.markers.push_back(stop_line_marker);
+	}
+
+	visualization_msgs::Marker boundary_marker;
+	boundary_marker.header.frame_id = "map";
+	//stop_line_marker.header.stamp = ros::Time();
+	boundary_marker.ns = "road_network_boundaries";
+	boundary_marker.type = visualization_msgs::Marker::LINE_STRIP;
+	boundary_marker.action = visualization_msgs::Marker::ADD;
+	boundary_marker.scale.x = 0.25;
+	boundary_marker.frame_locked = false;
+	boundary_marker.pose.orientation = tf::createQuaternionMsgFromYaw(0);
+
+	for(unsigned int ib = 0; ib< map.boundaries.size(); ib++)
+	{
+		std::cout << map.boundaries.at(ib).type << std::endl;
+		if(map.boundaries.at(ib).type == PlannerHNS::PARKING_BOUNDARY)
+		{
+			boundary_marker.color.r = 1.0;
+			boundary_marker.color.g = 0.2;
+			boundary_marker.color.b = 0.2;
+			boundary_marker.color.a = 0.5;
+		}
+		else
+		{
+			boundary_marker.color.r = 0.5;
+			boundary_marker.color.g = 0.5;
+			boundary_marker.color.b = 1.0;
+			boundary_marker.color.a = 0.5;
+		}
+		boundary_marker.points.clear();
+		boundary_marker.id = map.boundaries.at(ib).id;
+	  for(int p = 0; p < map.boundaries.at(ib).points.size(); p++)
+	  {
+		  int curr_index = p;
+			geometry_msgs::Point point;
+			point.x = map.boundaries.at(ib).points.at(curr_index).pos.x;
+			point.y = map.boundaries.at(ib).points.at(curr_index).pos.y;
+			point.z = map.boundaries.at(ib).points.at(curr_index).pos.z;
+			boundary_marker.points.push_back(point);
+	  }
+	  markerArray.markers.push_back(boundary_marker);
+	}
+
+	visualization_msgs::Marker curb_marker;
+	curb_marker.header.frame_id = "map";
+	//stop_line_marker.header.stamp = ros::Time();
+	curb_marker.ns = "road_network_curbs";
+	curb_marker.type = visualization_msgs::Marker::LINE_STRIP;
+	curb_marker.action = visualization_msgs::Marker::ADD;
+	curb_marker.scale.x = 0.25;
+	curb_marker.frame_locked = false;
+	curb_marker.color.r = 0.2;
+	curb_marker.color.g = 0.2;
+	curb_marker.color.b = 1.0;
+	curb_marker.color.a = 0.5;
+	curb_marker.pose.orientation = tf::createQuaternionMsgFromYaw(0);
+
+	for(unsigned int ic = 0; ic< map.curbs.size(); ic++)
+	{
+		if(map.curbs.at(ic).points.size() < 2)
+			continue;
+
+		curb_marker.points.clear();
+		curb_marker.id = map.curbs.at(ic).id;
+	  for(unsigned int p = 0; p < map.curbs.at(ic).points.size(); p++)
+	  {
+		geometry_msgs::Point point;
+		point.x = map.curbs.at(ic).points.at(p).pos.x;
+		point.y = map.curbs.at(ic).points.at(p).pos.y;
+		point.z = map.curbs.at(ic).points.at(p).pos.z;
+		curb_marker.points.push_back(point);
+	  }
+	  markerArray.markers.push_back(curb_marker);
 	}
 }
 
@@ -1587,6 +1657,7 @@ void ROSHelpers::createGlobalLaneArrayMarker(std_msgs::ColorRGBA color,
   lane_waypoint_marker.scale.y = 0.75;
   lane_waypoint_marker.color = color;
   lane_waypoint_marker.frame_locked = false;
+  lane_waypoint_marker.pose.orientation = tf::createQuaternionMsgFromYaw(0);
 
   int count = 0;
   for (unsigned int i=0; i<  lane_waypoints_array.lanes.size(); i++)
@@ -1616,12 +1687,15 @@ void ROSHelpers::createGlobalLaneArrayVelocityMarker(const autoware_msgs::LaneAr
   velocity_marker.header.stamp = ros::Time();
   velocity_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
   velocity_marker.action = visualization_msgs::Marker::ADD;
-  //velocity_marker.scale.z = 0.4;
+  velocity_marker.scale.x = 0.4;
+  velocity_marker.scale.y = 0.4;
+  velocity_marker.scale.z = 0.4;
   velocity_marker.color.a = 0.9;
   velocity_marker.color.r = 1;
   velocity_marker.color.g = 1;
   velocity_marker.color.b = 1;
   velocity_marker.frame_locked = false;
+  velocity_marker.pose.orientation = tf::createQuaternionMsgFromYaw(0);
 
   int count = 1;
   for (unsigned int i=0; i<  lane_waypoints_array.lanes.size(); i++)
