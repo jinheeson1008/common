@@ -318,8 +318,11 @@ void DecisionMaker::InitBehaviorStates()
 	 {
 		 m_pCurrentBehaviorState->GetCalcParams()->bNewGlobalPath = true;
 		 m_TotalOriginalPath = globalPath;
+		 m_prev_index.clear();
 		 for(unsigned int i=0; i < globalPath.size(); i++)
+		 {
 			 m_prev_index.push_back(0);
+		 }
 	 }
  }
 
