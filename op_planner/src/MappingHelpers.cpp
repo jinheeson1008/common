@@ -54,6 +54,20 @@ GPSPoint MappingHelpers::GetTransformationOrigin(const int& bToyotaCityMap)
 	//return GPSPoint(18221.1, 93546.1, -36.19, 0);
 }
 
+void MappingHelpers::ConvertVelocityToMeterPerSecond(RoadNetwork& map)
+{
+	if(map.roadSegments.size() == 0) return;
+
+	for(auto& l: map.roadSegments.at(0).Lanes)
+	{
+		l.speed = l.speed/3.6;
+		for(auto& p: l.points)
+		{
+			p.v = p.v/3.6;
+		}
+	}
+}
+
 void MappingHelpers::RemoveShortTwoPointsLanesFromMap(RoadNetwork& map, double l_length)
 {
 	for(auto& rseg : map.roadSegments)

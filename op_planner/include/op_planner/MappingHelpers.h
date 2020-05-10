@@ -67,6 +67,8 @@ public:
 	static void LinkTrafficLightsAndStopLines(RoadNetwork& map);
 	static void LinkTrafficLightsAndStopLinesV2(RoadNetwork& map);
 
+	static void ConvertVelocityToMeterPerSecond(RoadNetwork& map);
+
 	static void GetUniqueNextLanes(const Lane* l,  const std::vector<Lane*>& traversed_lanes, std::vector<Lane*>& lanes_list);
 
 	static GPSPoint GetTransformationOrigin(const int& bToyotaCityMap = 0);
