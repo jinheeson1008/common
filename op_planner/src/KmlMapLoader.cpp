@@ -208,6 +208,7 @@ void KmlMapLoader::LoadKML(const std::string& kmlFile, RoadNetwork& map)
 					{
 						pWP->LeftLnId = pWP->pLeft->laneId;
 						pWP->pLane->pLeftLane = pWP->pLeft->pLane;
+						pWP->pLane->lane_change = 1;
 
 						if(pWP->pLeft->RightPointId == pWP->id)
 						{
@@ -226,6 +227,7 @@ void KmlMapLoader::LoadKML(const std::string& kmlFile, RoadNetwork& map)
 					{
 						pWP->RightLnId = pWP->pRight->laneId;
 						pWP->pLane->pRightLane = pWP->pRight->pLane;
+						pWP->pLane->lane_change = 1;
 
 						if(pWP->pRight->LeftPointId == pWP->id)
 						{
@@ -828,19 +830,27 @@ std::vector<WayPoint> KmlMapLoader::GetCenterLaneData(TiXmlElement* pElem, const
 
 				std::vector<int> ids = GetIDsFromPrefix(add_info_list.at(i), "Lid", "Rid");
 				if(ids.size() > 0)
+				{
 					gps_points.at(i).LeftPointId =  ids.at(0);
+				}
 
 				ids = GetIDsFromPrefix(add_info_list.at(i), "Rid", "Vel");
 				if(ids.size() > 0)
+				{
 					gps_points.at(i).RightPointId =  ids.at(0);
+				}
 
 				std::vector<double> dnums = GetDoubleFromPrefix(add_info_list.at(i), "Vel", "Dir");
 				if(dnums.size() > 0)
+				{
 					gps_points.at(i).v =  dnums.at(0);
+				}
 
 				dnums = GetDoubleFromPrefix(add_info_list.at(i), "Dir", "");
 				if(dnums.size() > 0)
+				{
 					gps_points.at(i).pos.a = gps_points.at(i).pos.dir =  dnums.at(0);
+				}
 			}
 		}
 	}
