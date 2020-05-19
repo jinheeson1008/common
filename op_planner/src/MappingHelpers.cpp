@@ -1301,7 +1301,6 @@ void MappingHelpers::LinkTrafficLightsAndStopLinesV2(RoadNetwork& map)
 
 void MappingHelpers::FindAdjacentLanesV2(RoadNetwork& map)
 {
-	bool bTestDebug = false;
 	for(unsigned int rs = 0; rs < map.roadSegments.size(); rs++)
 	{
 		for(unsigned int i =0; i < map.roadSegments.at(rs).Lanes.size(); i++)
@@ -1312,10 +1311,6 @@ void MappingHelpers::FindAdjacentLanesV2(RoadNetwork& map)
 				Lane* pL2 = &map.roadSegments.at(rs).Lanes.at(i2);
 
 				if(pL->id == pL2->id) continue;
-
-
-				if(pL->id == 1683)
-					bTestDebug = true;
 
 				for(unsigned int p=0; p < pL->points.size(); p++)
 				{
@@ -1334,6 +1329,7 @@ void MappingHelpers::FindAdjacentLanesV2(RoadNetwork& map)
 								pWP->RightPointId = pWP2->id;
 								pWP->RightLnId = pL2->id;
 								pL->pRightLane = pL2;
+								pL->lane_change = 1;
 
 							}
 
@@ -1343,6 +1339,7 @@ void MappingHelpers::FindAdjacentLanesV2(RoadNetwork& map)
 								pWP2->LeftPointId = pWP->id;
 								pWP2->LeftLnId = pL->id;
 								pL2->pLeftLane = pL;
+								pL2->lane_change = 1;
 							}
 						}
 						else
@@ -1353,6 +1350,7 @@ void MappingHelpers::FindAdjacentLanesV2(RoadNetwork& map)
 								pWP->LeftPointId = pWP2->id;
 								pWP->LeftLnId = pL2->id;
 								pL->pLeftLane = pL2;
+								pL->lane_change = 1;
 							}
 
 							if(pWP2->pRight == 0)
@@ -1361,6 +1359,7 @@ void MappingHelpers::FindAdjacentLanesV2(RoadNetwork& map)
 								pWP2->RightPointId = pWP->id;
 								pWP2->RightLnId = pL->id;
 								pL2->pRightLane = pL;
+								pL2->lane_change = 1;
 							}
 						}
 					}
