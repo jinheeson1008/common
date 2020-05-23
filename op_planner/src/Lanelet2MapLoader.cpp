@@ -284,6 +284,10 @@ void Lanelet2MapLoader::FromLaneletToRoadNetwork(lanelet::LaneletMapPtr l2_map, 
 	//Link waypoints
 	std::cout << " >> Link missing branches and waypoints... " << std::endl;
 	MappingHelpers::LinkMissingBranchingWayPointsV2(map);
+
+	std::cout << " >> Connect Wayarea (boundaries) to waypoints ... " << std::endl;
+	MappingHelpers::ConnectBoundariesToWayPoints(map);
+	MappingHelpers::LinkBoundariesToWayPoints(map);
 }
 
 void Lanelet2MapLoader::CreateWayPointsFromLineString(const PlannerHNS::RoadNetwork& map, std::vector<PlannerHNS::WayPoint>& points, lanelet::ConstLineString3d& line_string, lanelet::Projector* proj, int lane_id)
