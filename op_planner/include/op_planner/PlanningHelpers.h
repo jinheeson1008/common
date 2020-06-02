@@ -12,6 +12,7 @@
 #include "op_utility/DataRW.h"
 #include "tinyxml.h"
 
+#define DISABLE_CARLA_SPECIAL_CODE
 
 namespace PlannerHNS {
 

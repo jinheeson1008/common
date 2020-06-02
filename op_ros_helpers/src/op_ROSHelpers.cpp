@@ -585,7 +585,6 @@ void ROSHelpers::ConvertFromRoadNetworkToAutowareVisualizeMapFormat(const Planne
 
 	for(unsigned int ib = 0; ib< map.boundaries.size(); ib++)
 	{
-		std::cout << map.boundaries.at(ib).type << std::endl;
 		if(map.boundaries.at(ib).type == PlannerHNS::PARKING_BOUNDARY)
 		{
 			boundary_marker.color.r = 1.0;

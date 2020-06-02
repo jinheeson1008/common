@@ -77,6 +77,7 @@ protected:
 	bool SelectSafeTrajectory();
 	BehaviorState GenerateBehaviorState(const VehicleState& vehicleState);
 	double UpdateVelocityDirectlyToTrajectory(const BehaviorState& beh, const VehicleState& CurrStatus, const double& dt);
+	double UpdateVelocityDirectlyToTrajectorySmooth(const BehaviorState& beh, const VehicleState& CurrStatus, const double& dt);
 	bool ReachEndOfGlobalPath(const double& min_distance, const int& iGlobalPathIndex);
 
 
