@@ -73,6 +73,8 @@ public:
 
 	static void FixPathDensity(std::vector<WayPoint>& path, const double& distanceDensity);
 
+	static void FixPathDensity(std::vector<GPSPoint>& path, const double& distanceDensity);
+
 	static void SmoothPath(std::vector<WayPoint>& path, double weight_data =0.25,double weight_smooth = 0.25,double tolerance = 0.01);
 
 	static void SmoothPath(std::vector<GPSPoint>& path, double weight_data =0.25,double weight_smooth = 0.25,double tolerance = 0.01);

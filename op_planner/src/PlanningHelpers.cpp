@@ -1191,6 +1191,57 @@ void PlanningHelpers::FixPathDensity(vector<WayPoint>& path, const double& dista
 	path = fixedPath;
 }
 
+void PlanningHelpers::FixPathDensity(vector<GPSPoint>& path, const double& distanceDensity)
+{
+	if(path.size() == 0 || distanceDensity==0) return;
+
+	double d = 0, a = 0;
+	double margin = distanceDensity*0.01;
+	double remaining = 0;
+	int nPoints = 0;
+	vector<GPSPoint> fixedPath;
+	fixedPath.push_back(path.at(0));
+	for(unsigned int si = 0, ei=1; ei < path.size(); )
+	{
+		d += hypot(path.at(ei).x- path.at(ei-1).x, path.at(ei).y- path.at(ei-1).y) + remaining;
+		a = atan2(path.at(ei).y - path.at(si).y, path.at(ei).x - path.at(si).x);
+		double z = path.at(ei).z;
+
+		if(d < distanceDensity - margin ) // skip
+		{
+			ei++;
+			remaining = 0;
+		}
+		else if(d > (distanceDensity +  margin)) // skip
+		{
+			GPSPoint pm = path.at(si);
+			nPoints = d  / distanceDensity;
+			for(int k = 0; k < nPoints; k++)
+			{
+				pm.x = pm.x + distanceDensity * cos(a);
+				pm.y = pm.y + distanceDensity * sin(a);
+				pm.z = z;
+				fixedPath.push_back(pm);
+			}
+			remaining = d - nPoints*distanceDensity;
+			si++;
+			path.at(si) = pm;
+			d = 0;
+			ei++;
+		}
+		else
+		{
+			d = 0;
+			remaining = 0;
+			fixedPath.push_back(path.at(ei));
+			ei++;
+			si = ei - 1;
+		}
+	}
+
+	path = fixedPath;
+}
+
 void PlanningHelpers::SmoothPath(vector<WayPoint>& path, double weight_data,
 		double weight_smooth, double tolerance)
 {

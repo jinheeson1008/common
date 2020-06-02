@@ -438,18 +438,20 @@ void ROSHelpers::ConvertPredictedTrqajectoryMarkers(std::vector<std::vector<Plan
 
 void ROSHelpers::ConvertCurbsMarkers(const std::vector<PlannerHNS::DetectedObject>& curbs, visualization_msgs::MarkerArray& curbs_markers, visualization_msgs::MarkerArray& curbs_markers_d)
 {
-
 	curbs_markers = curbs_markers_d;
+	int iMarkerIndex = 0;
 	for(unsigned int i = 0; i < curbs.size(); i++)
 	{
-		if(curbs.at(i).contour.size() > 0)
+		for(unsigned int j = 0; j < curbs.at(i).contour.size(); j++)
 		{
-			visualization_msgs::Marker curb_mkr = CreateGenMarker(curbs.at(i).contour.at(0).x,curbs.at(i).contour.at(0).y,curbs.at(i).contour.at(0).z,0,1,0.54,0,0.2,i,"map_detected_curbs", visualization_msgs::Marker::SPHERE);
+			visualization_msgs::Marker curb_mkr = CreateGenMarker(curbs.at(i).contour.at(j).x,curbs.at(i).contour.at(j).y,curbs.at(i).contour.at(j).z,0,1,0.54,0,0.2,iMarkerIndex,"map_detected_curbs", visualization_msgs::Marker::SPHERE);
 
-			if(i < curbs_markers.markers.size())
-				curbs_markers.markers.at(i) = curb_mkr;
+			if(iMarkerIndex < curbs_markers.markers.size())
+				curbs_markers.markers.at(iMarkerIndex) = curb_mkr;
 			else
 				curbs_markers.markers.push_back(curb_mkr);
+
+			iMarkerIndex++;
 		}
 	}
 }
