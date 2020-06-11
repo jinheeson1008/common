@@ -542,7 +542,19 @@ void TrajectoryEvaluator::calculateDistanceCosts(const PlanningParams& params, c
 				bBefore = false;
 			}
 
-			//std::cout << "Traj: " <<  trajectory_costs.at(i).relative_index << ", LateralD: " << actual_lateral_distance << ", CriticD: " << c_lateral_d << ", LongD: " <<  actual_longitudinal_distance  << ", Before: " << bBefore << std::endl;
+//			prev_index = 0;
+//			int closest_wp_index =  PlanningHelpers::GetClosestNextPointIndexFast(roll_outs.at(i), contour_points.at(j), prev_index);
+//			WayPoint closest_wp = roll_outs.at(i).at(closest_wp_index);
+//
+//			double distance_between_points = hypot(closest_wp.pos.y - info.perp_point.pos.y, closest_wp.pos.x - info.perp_point.pos.x);
+//
+//			if(distance_between_points > 2.0)
+//				std::cout << "###### >>> Tooo Large Distance: " << distance_between_points << ", closest_index: " <<  closest_wp_index << std::endl;
+
+//			std::cout << "Traj: " <<  trajectory_costs.at(i).relative_index << ", LateralD: " << actual_lateral_distance
+//					<< ", CriticD: " << c_lateral_d << ", LongD: " <<  actual_longitudinal_distance
+//					<< ", (" << info.from_back_distance << ", " << roll_outs.at(i).at(info.iBack).cost << ")"
+//					<< ", Before: " << bBefore << std::endl;
 
 			if(actual_lateral_distance < g_lateral_skip_value && !info.bAfter && !bBefore)
 			{
