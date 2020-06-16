@@ -166,8 +166,6 @@ public:
 
 	static bool FindInList(const std::vector<int>& list,const int& x);
 
-	static void RemoveWithValue(std::vector<int>& list,const int& x);
-
 	static ACTION_TYPE GetBranchingDirection(WayPoint& currWP, WayPoint& nextWP);
 
 	static void CalcContourPointsForDetectedObjects(const WayPoint& currPose, std::vector<DetectedObject>& obj_list, const double& filterDistance = 100);

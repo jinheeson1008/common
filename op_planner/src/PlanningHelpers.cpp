@@ -1985,17 +1985,6 @@ bool PlanningHelpers::FindInList(const std::vector<int>& list,const int& x)
 	return false;
 }
 
-void PlanningHelpers::RemoveWithValue(std::vector<int>& list,const int& x)
-{
-	for(unsigned int i = 0 ; i < list.size(); i++)
-	{
-		if(list.at(i) == x)
-		{
-			list.erase(list.begin()+i);
-		}
-	}
-}
-
 std::vector<int> PlanningHelpers::GetUniqueLeftRightIds(const std::vector<WayPoint>& path)
 {
 	 vector<int> sideLanes;
@@ -2032,8 +2021,6 @@ std::vector<int> PlanningHelpers::GetUniqueLeftRightIds(const std::vector<WayPoi
 			 if(!bFound)
 				 sideLanes.push_back(path.at(iwp).RightPointId);
 		 }
-
-		 //RemoveWithValue(sideLanes, path.at(iwp).laneId);
 	 }
 	return sideLanes;
 }

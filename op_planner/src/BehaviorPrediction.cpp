@@ -27,8 +27,8 @@ int TrajectoryTracker::total_particles_number = 90;
 BehaviorPrediction::BehaviorPrediction()
 {
 	m_PredictionHorizon = 100;
-	m_MaxLaneDetectionDistance = 0.5;
-	m_MaxPredictionDistance = 20.0;
+	m_LaneDetectionDistance = 0.5;
+	m_MinPredictionDistance = 2.0;
 	m_bGenerateBranches = false;
 	//m_bUseFixedPrediction = true;
 	m_bStepByStep = false;
@@ -172,24 +172,15 @@ void BehaviorPrediction::PredictCurrentTrajectory(RoadNetwork& map, ObjParticles
 	pCarPart->obj.predTrajectories.clear();
 	PlannerH planner;
 
-	CalPredictionTimeForObject(pCarPart, m_MaxPredictionDistance);
+	CalPredictionTimeForObject(pCarPart, m_MinPredictionDistance);
+	pCarPart->obj.pClosestWaypoints = MappingHelpers::GetClosestWaypointsListFromMap(pCarPart->obj.center, map, m_LaneDetectionDistance, pCarPart->obj.bDirection);
 
-	if(pCarPart->obj.bDirection && pCarPart->obj.bVelocity)
+	if(!(pCarPart->obj.bDirection && pCarPart->obj.bVelocity) && pCarPart->obj.pClosestWaypoints.size()>0)
 	{
-		pCarPart->obj.pClosestWaypoints = MappingHelpers::GetClosestWaypointsListFromMap(pCarPart->obj.center, map, m_MaxLaneDetectionDistance, pCarPart->obj.bDirection);
-		planner.PredictTrajectoriesUsingDP(pCarPart->obj.center, pCarPart->obj.pClosestWaypoints, pCarPart->m_PredictionDistance, pCarPart->obj.predTrajectories, m_bGenerateBranches, pCarPart->obj.bDirection, PREDICTED_PATH_DENSITY);
+		pCarPart->obj.center.pos.a = pCarPart->obj.pClosestWaypoints.at(0)->pos.a;
 	}
-	else
-	{
-		bool bLocalDirectionSearch = false;
-		pCarPart->obj.pClosestWaypoints = MappingHelpers::GetClosestWaypointsListFromMap(pCarPart->obj.center, map, m_MaxLaneDetectionDistance, pCarPart->obj.bDirection);
-		if(pCarPart->obj.pClosestWaypoints.size()>0)
-		{
-			pCarPart->obj.center.pos.a = pCarPart->obj.pClosestWaypoints.at(0)->pos.a;
-			bLocalDirectionSearch = true;
-		}
-		planner.PredictTrajectoriesUsingDP(pCarPart->obj.center, pCarPart->obj.pClosestWaypoints, pCarPart->m_PredictionDistance, pCarPart->obj.predTrajectories, m_bGenerateBranches, pCarPart->obj.bDirection, PREDICTED_PATH_DENSITY);
-	}
+
+	planner.PredictTrajectoriesUsingDP(pCarPart->obj.center, pCarPart->obj.pClosestWaypoints, pCarPart->m_PredictionDistance, pCarPart->obj.predTrajectories, m_bGenerateBranches, pCarPart->obj.bDirection, PREDICTED_PATH_DENSITY);
 
 	for(unsigned int t = 0; t < pCarPart->obj.predTrajectories.size(); t ++)
 	{
@@ -200,7 +191,9 @@ void BehaviorPrediction::PredictCurrentTrajectory(RoadNetwork& map, ObjParticles
 //		PlanningHelpers::GenerateRecommendedSpeed(pCarPart->obj.predTrajectories.at(t), 10, 1.0);
 //		PlannerHNS::PlanningHelpers::WritePathToFile(path_name.str(), pCarPart->obj.predTrajectories.at(t));
 		if(pCarPart->obj.predTrajectories.at(t).size() > 0)
+		{
 			pCarPart->obj.predTrajectories.at(t).at(0).collisionCost = 0;
+		}
 	}
 }
 
@@ -927,13 +920,13 @@ void BehaviorPrediction::FindBest(ObjParticles* pParts)
 	}
 }
 
-void BehaviorPrediction::CalPredictionTimeForObject(ObjParticles* pCarPart, const double& max_pre_distance)
+void BehaviorPrediction::CalPredictionTimeForObject(ObjParticles* pCarPart, const double& min_pred_distance)
 {
-//	double d = (MIN_PREDICTION_TIME * pCarPart->obj.center.v) + pCarPart->obj.l;
-//	if(d < max_pre_distance)
-//		pCarPart->m_PredictionDistance = d;
-//	else
-		pCarPart->m_PredictionDistance = max_pre_distance;
+	double d = (MIN_PREDICTION_TIME * pCarPart->obj.center.v) + pCarPart->obj.l;
+	if(d > min_pred_distance)
+		pCarPart->m_PredictionDistance = d;
+	else
+		pCarPart->m_PredictionDistance = min_pred_distance;
 }
 
 int BehaviorPrediction::FromIndicatorToNumber(const PlannerHNS::LIGHT_INDICATOR& indi)
