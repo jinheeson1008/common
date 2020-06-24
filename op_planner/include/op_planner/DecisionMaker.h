@@ -25,7 +25,8 @@ public:
 	PlannerHNS::RoadNetwork m_Map;
 
 	int m_iCurrentTotalPathId;
-	std::vector<std::vector<WayPoint> > m_RollOuts;
+	int m_CurrGlobalId;
+	std::vector<std::vector<std::vector<WayPoint> > > m_LanesRollOuts;
 	std::vector<int> m_prev_index;
 	Lane* pLane;
 
@@ -83,8 +84,8 @@ protected:
 
 
 	std::vector<PlannerHNS::WayPoint> t_centerTrajectorySmoothed;
-	std::vector<std::vector<WayPoint> > m_TotalOriginalPath;
-	std::vector<std::vector<WayPoint> > m_TotalPath;
+	std::vector<std::vector<WayPoint> > m_TotalOriginalPaths;
+	std::vector<std::vector<WayPoint> > m_TotalPaths;
 	PlannerHNS::PlanningParams m_params;
 
 };

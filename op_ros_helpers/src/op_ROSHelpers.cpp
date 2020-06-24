@@ -947,7 +947,7 @@ void ROSHelpers::TrajectoriesToColoredMarkers(const std::vector<std::vector<Plan
 	lane_waypoint_marker.frame_locked = false;
 	lane_waypoint_marker.pose.orientation = tf::createQuaternionMsgFromYaw(0);
 
-	int count = 0;
+	int count = markerArray.markers.size();
 	for (unsigned int i = 0; i < paths.size(); i++)
 	{
 		lane_waypoint_marker.points.clear();
@@ -1656,6 +1656,7 @@ void ROSHelpers::ConvertFromLocalLaneToAutowareLane(const std::vector<PlannerHNS
 		wp.left_lane_id = path.at(i).LeftPointId;
 		wp.right_lane_id = path.at(i).RightPointId;
 		wp.time_cost = path.at(i).timeCost;
+		wp.change_flag = ceil(path.at(i).laneChangeCost);
 
 		wp.gid = path.at(i).gid;
 
@@ -1708,6 +1709,7 @@ void ROSHelpers::ConvertFromAutowareLaneToLocalLane(const autoware_msgs::Lane& t
 		wp.LeftPointId = trajectory.waypoints.at(i).left_lane_id;
 		wp.RightPointId = trajectory.waypoints.at(i).right_lane_id;
 		wp.timeCost = trajectory.waypoints.at(i).time_cost;
+		wp.laneChangeCost = trajectory.waypoints.at(i).change_flag;
 
 		if(trajectory.waypoints.at(i).direction == 0)
 			wp.bDir = PlannerHNS::FORWARD_DIR;

@@ -33,7 +33,7 @@ public:
 				std::vector<WayPoint>& sampledPoints);
 
 	double PlanUsingDP(const WayPoint& carPos,const WayPoint& goalPos,
-			const double& maxPlanningDistance, const bool bEnableLaneChange, const std::vector<int>& globalPath,
+			const double& maxSearchDistance, const double& planning_distance, const bool bEnableLaneChange, const std::vector<int>& globalPath,
 			RoadNetwork& map, std::vector<std::vector<WayPoint> >& paths, std::vector<WayPoint*>* all_cell_to_delete = 0);
 
 	 double PlanUsingDPRandom(const WayPoint& start,

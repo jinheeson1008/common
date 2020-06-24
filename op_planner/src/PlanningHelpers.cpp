@@ -25,6 +25,30 @@ PlanningHelpers::~PlanningHelpers()
 {
 }
 
+int PlanningHelpers::CheckForEndOfPaths(const std::vector<std::vector<PlannerHNS::WayPoint> >& paths, const PlannerHNS::WayPoint& currPose, const double& end_range_distance)
+{
+	if(paths.size() == 0) return -1;
+
+	PlannerHNS::RelativeInfo info;
+	bool ret = PlannerHNS::PlanningHelpers::GetRelativeInfoRange(paths, currPose, 0.75, info);
+	if(ret == true && info.iGlobalPath >= 0 &&  info.iGlobalPath < paths.size() && info.iFront > 0 && info.iFront < paths.at(info.iGlobalPath).size())
+	{
+		double remaining_distance = paths.at(info.iGlobalPath).at(paths.at(info.iGlobalPath).size()-1).cost - (paths.at(info.iGlobalPath).at(info.iFront).cost + info.to_front_distance);
+
+		PlannerHNS::RelativeInfo info_curr;
+		PlannerHNS::PlanningHelpers::GetRelativeInfoLimited(paths.at(info.iGlobalPath), currPose, info_curr, info.iBack);
+
+		//std::cout << "Check End of Path: After: " << info_curr.bAfter << ", Distance: " << remaining_distance << ", param_distance: " << end_range_distance << std::endl;
+		if(info_curr.bAfter == true || remaining_distance < end_range_distance)
+		{
+			return info.iGlobalPath;
+		}
+	}
+
+	return -1;
+}
+
+
 bool PlanningHelpers::GetRelativeInfoRange(const std::vector<std::vector<WayPoint> >& trajectories, const WayPoint& p,const double& searchDistance, RelativeInfo& info)
 {
 	if(trajectories.size() == 0) return false;
@@ -2721,10 +2745,9 @@ WayPoint* PlanningHelpers::GetMinCostCell(const vector<WayPoint*>& cells, const 
 	return pC;
 }
 
-void PlanningHelpers::ExtractPlanAlernatives(const std::vector<WayPoint>& singlePath, std::vector<std::vector<WayPoint> >& allPaths)
+void PlanningHelpers::ExtractPlanAlernatives(const std::vector<WayPoint>& singlePath, const double& plan_distance, std::vector<std::vector<WayPoint> >& allPaths)
 {
-	if(singlePath.size() == 0)
-		return;
+	if(singlePath.size() == 0) return;
 
 	allPaths.clear();
 	std::vector<WayPoint> path;
@@ -2740,13 +2763,11 @@ void PlanningHelpers::ExtractPlanAlernatives(const std::vector<WayPoint>& single
 			bStartSkip = true;
 			WayPoint start_point = singlePath.at(i-1);
 
-			cout << "Current Velocity = " << start_point.v << endl;
-
 			RelativeInfo start_info;
 			PlanningHelpers::GetRelativeInfo(start_point.pLane->points, start_point, start_info);
 			vector<WayPoint*> local_cell_to_delete;
 			PlannerHNS::WayPoint* pStart = &start_point.pLane->points.at(start_info.iFront);
-			WayPoint* pLaneCell =  PlanningHelpers::BuildPlanningSearchTreeStraight(pStart, BACKUP_STRAIGHT_PLAN_DISTANCE, local_cell_to_delete);
+			WayPoint* pLaneCell =  PlanningHelpers::BuildPlanningSearchTreeStraight(pStart, plan_distance, local_cell_to_delete);
 			if(pLaneCell)
 			{
 				vector<WayPoint> straight_path;

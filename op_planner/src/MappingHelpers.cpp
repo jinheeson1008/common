@@ -347,7 +347,9 @@ std::vector<Lane*> MappingHelpers::GetClosestLanesFast(const WayPoint& center, R
 
 			double d = hypot(pL->points.at(index).pos.y - center.pos.y, pL->points.at(index).pos.x - center.pos.x);
 			if(d <= distance)
+			{
 				lanesList.push_back(pL);
+			}
 		}
 	}
 
@@ -1272,7 +1274,7 @@ void MappingHelpers::LinkTrafficLightsAndStopLinesV2(RoadNetwork& map)
 								map.trafficLights.at(itl).pLanes.push_back(pWP->pLane);
 							}
 						}
-						break;
+						//break; only one traffic light was connected when this break was activated
 					}
 				}
 			}

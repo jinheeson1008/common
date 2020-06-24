@@ -22,7 +22,7 @@ namespace PlannerHNS {
 #define angle2points(from , to) atan2(to.y - from.y, to.x - from.x )
 #define LANE_CHANGE_SPEED_FACTOR 0.5
 #define LANE_CHANGE_COST 3.0 // meters
-#define BACKUP_STRAIGHT_PLAN_DISTANCE 75 //meters
+//#define BACKUP_STRAIGHT_PLAN_DISTANCE 10 //meters
 #define LANE_CHANGE_MIN_DISTANCE 5
 
 class PlanningHelpers
@@ -34,6 +34,15 @@ public:
 public:
 	PlanningHelpers();
 	virtual ~PlanningHelpers();
+
+	/**
+	 * @brief For multiple paths input, this function calculate distance from currPose to the end of each path, if the distance to the end of the path is less than end_ragne_distance , the function returns the index of the path, if not it returns -1.
+	 * @param paths
+	 * @param currPose
+	 * @param end_range_distance
+	 * @return -1 if distance from currPose to the end of all paths is less than end_range_distance.
+	 */
+	static int CheckForEndOfPaths(const std::vector<std::vector<PlannerHNS::WayPoint> >& paths, const PlannerHNS::WayPoint& currPose, const double& end_range_distance);
 
 	static bool GetRelativeInfo(const std::vector<WayPoint>& trajectory, const WayPoint& p, RelativeInfo& info, const int& prevIndex = 0);
 
@@ -160,7 +169,7 @@ public:
 	static void TraversePathTreeBackwards(WayPoint* pHead, WayPoint* pStartWP, const std::vector<int>& globalPathIds,
 			std::vector<WayPoint>& localPath, std::vector<std::vector<WayPoint> >& localPaths);
 
-	static void ExtractPlanAlernatives(const std::vector<WayPoint>& singlePath, std::vector<std::vector<WayPoint> >& allPaths);
+	static void ExtractPlanAlernatives(const std::vector<WayPoint>& singlePath, const double& plan_distance, std::vector<std::vector<WayPoint> >& allPaths);
 
 	static std::vector<int> GetUniqueLeftRightIds(const std::vector<WayPoint>& path);
 

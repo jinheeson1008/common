@@ -132,7 +132,8 @@ double PlannerH::PlanUsingDPRandom(const WayPoint& start,
 
 double PlannerH::PlanUsingDP(const WayPoint& start,
 		const WayPoint& goalPos,
-		const double& maxPlanningDistance,
+		const double& maxSearchDistance,
+		const double& planning_distance,
 		const bool bEnableLaneChange,
 		const std::vector<int>& globalPath,
 		RoadNetwork& map,
@@ -196,9 +197,9 @@ double PlannerH::PlanUsingDP(const WayPoint& start,
 	char bPlan = 'A';
 
 	if(all_cell_to_delete)
-		pLaneCell =  PlanningHelpers::BuildPlanningSearchTreeV2(pStart, *pGoal, globalPath, maxPlanningDistance,bEnableLaneChange, *all_cell_to_delete);
+		pLaneCell =  PlanningHelpers::BuildPlanningSearchTreeV2(pStart, *pGoal, globalPath, maxSearchDistance,bEnableLaneChange, *all_cell_to_delete);
 	else
-		pLaneCell =  PlanningHelpers::BuildPlanningSearchTreeV2(pStart, *pGoal, globalPath, maxPlanningDistance,bEnableLaneChange, local_cell_to_delete);
+		pLaneCell =  PlanningHelpers::BuildPlanningSearchTreeV2(pStart, *pGoal, globalPath, maxSearchDistance,bEnableLaneChange, local_cell_to_delete);
 
 	if(!pLaneCell)
 	{
@@ -206,9 +207,9 @@ double PlannerH::PlanUsingDP(const WayPoint& start,
 		cout << endl << "PlannerH -> Plan (A) Failed, Trying Plan (B)." << endl;
 
 		if(all_cell_to_delete)
-			pLaneCell =  PlanningHelpers::BuildPlanningSearchTreeStraight(pStart, BACKUP_STRAIGHT_PLAN_DISTANCE, *all_cell_to_delete);
+			pLaneCell =  PlanningHelpers::BuildPlanningSearchTreeStraight(pStart, planning_distance, *all_cell_to_delete);
 		else
-			pLaneCell =  PlanningHelpers::BuildPlanningSearchTreeStraight(pStart, BACKUP_STRAIGHT_PLAN_DISTANCE, local_cell_to_delete);
+			pLaneCell =  PlanningHelpers::BuildPlanningSearchTreeStraight(pStart, planning_distance, local_cell_to_delete);
 
 		if(!pLaneCell)
 		{
@@ -227,7 +228,7 @@ double PlannerH::PlanUsingDP(const WayPoint& start,
 
 	if(bPlan == 'A')
 	{
-		PlanningHelpers::ExtractPlanAlernatives(path, paths);
+		PlanningHelpers::ExtractPlanAlernatives(path, planning_distance, paths);
 	}
 	else if (bPlan == 'B')
 	{

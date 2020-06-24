@@ -365,7 +365,7 @@ BehaviorStateMachine* ForwardStateII::GetNextState()
 	else if(m_pParams->enableSwerving
 			&& (pCParams->distanceToNext <= m_pParams->minDistanceToAvoid || pCParams->distanceToNext == m_pParams->horizonDistance)
 			&& !pCParams->bFullyBlock
-			&& pCParams->iCurrSafeTrajectory != pCParams->iPrevSafeTrajectory)
+			&& (pCParams->iCurrSafeTrajectory != pCParams->iPrevSafeTrajectory || pCParams->iCurrSafeLane != pCParams->iPrevSafeLane))
 		return FindBehaviorState(OBSTACLE_AVOIDANCE_STATE);
 
 	else if(pCParams->bFinalLocalTrajectory
@@ -412,6 +412,7 @@ BehaviorStateMachine* SwerveStateII::GetNextState()
 	PreCalculatedConditions* pCParams = GetCalcParams();
 
 	pCParams->iPrevSafeTrajectory = pCParams->iCurrSafeTrajectory;
+	pCParams->iPrevSafeLane = pCParams->iCurrSafeLane;
 	pCParams->bRePlan = true;
 
 	return FindBehaviorState(FORWARD_STATE);

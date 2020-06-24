@@ -16,6 +16,7 @@ namespace PlannerHNS
 
 DecisionMaker::DecisionMaker()
 {
+	m_CurrGlobalId = -1;
 	m_iCurrentTotalPathId = 0;
 	pLane = nullptr;
 	m_pCurrentBehaviorState = nullptr;
@@ -163,7 +164,7 @@ void DecisionMaker::InitBehaviorStates()
 		 const int& goalID, const bool& bEmergencyStop, const std::vector<TrafficLight>& detectedLights,
 		 const TrajectoryCost& bestTrajectory)
  {
-	 if(m_TotalPath.size() == 0) return;
+	 if(m_TotalPaths.size() == 0) return;
 
  	PreCalculatedConditions* pValues = m_pCurrentBehaviorState->GetCalcParams();
 
@@ -189,32 +190,67 @@ void DecisionMaker::InitBehaviorStates()
  	pValues->distanceToNext = bestTrajectory.closest_obj_distance;
  	pValues->velocityOfNext = bestTrajectory.closest_obj_velocity;
 
- 	if(bestTrajectory.index >=0 &&  bestTrajectory.index < (int)m_RollOuts.size())
- 		pValues->iCurrSafeTrajectory = bestTrajectory.index;
- 	else
- 		pValues->iCurrSafeTrajectory = pValues->iCentralTrajectory;
 
-	pValues->bFullyBlock = bestTrajectory.bBlocked;
-
- 	if(bestTrajectory.lane_index >=0)
+	/**
+	 * Global Lanes section, set global path index and ID
+	 */
+ 	if(bestTrajectory.lane_index >= 0)
+ 	{
  		pValues->iCurrSafeLane = bestTrajectory.lane_index;
+ 	}
  	else
  	{
  		PlannerHNS::RelativeInfo info;
- 		PlannerHNS::PlanningHelpers::GetRelativeInfoRange(m_TotalPath, state, m_params.rollOutDensity*m_params.rollOutNumber/2.0 + 0.1, info);
+ 		PlannerHNS::PlanningHelpers::GetRelativeInfoRange(m_TotalPaths, state, m_params.rollOutDensity*m_params.rollOutNumber/2.0 + 0.1, info);
  		pValues->iCurrSafeLane = info.iGlobalPath;
  	}
 
+ 	m_iCurrentTotalPathId = pValues->iCurrSafeLane;
+
+	for(unsigned int ig=0; ig < m_TotalPaths.size(); ig++)
+	{
+		if(ig == m_iCurrentTotalPathId && m_TotalPaths.at(ig).size() > 0)
+		{
+			m_CurrGlobalId = m_TotalPaths.at(ig).at(0).gid;
+		}
+	}
+
+	/**
+	 * ---------------------------------------------------------------------
+	 */
+
+
+	/**
+	 * Local Trajectory section, set local trajectory index
+	 */
+ 	if(bestTrajectory.index >=0 &&  bestTrajectory.index < (int)m_LanesRollOuts.at(m_iCurrentTotalPathId).size())
+ 	{
+ 		pValues->iCurrSafeTrajectory = bestTrajectory.index;
+ 	}
+ 	else
+ 	{
+ 		pValues->iCurrSafeTrajectory = pValues->iCentralTrajectory;
+ 	}
+ 	/**
+ 	 * --------------------------------------------------------------------
+ 	 */
+
+	pValues->bFullyBlock = bestTrajectory.bBlocked;
+
  	double critical_long_front_distance =  m_params.additionalBrakingDistance + m_params.verticalSafetyDistance;
 
- 	pValues->distanceToGoal = PlannerHNS::PlanningHelpers::GetDistanceFromPoseToEnd(state, m_TotalPath.at(pValues->iCurrSafeLane));
+ 	pValues->distanceToGoal = PlannerHNS::PlanningHelpers::GetDistanceFromPoseToEnd(state, m_TotalPaths.at(pValues->iCurrSafeLane));
 	//if(ReachEndOfGlobalPath(pValues->minStoppingDistance + critical_long_front_distance, pValues->iCurrSafeLane)) //deprecated 27-August-2018
  	if(pValues->distanceToGoal < m_params.goalDiscoveryDistance)
+ 	{
  		pValues->currentGoalID = -1;
+ 	}
 	else
+	{
 		pValues->currentGoalID = goalID;
+	}
 
- 	m_iCurrentTotalPathId = pValues->iCurrSafeLane;
+
 
  	int stopLineID = -1;
  	int stopSignID = -1;
@@ -222,9 +258,7 @@ void DecisionMaker::InitBehaviorStates()
  	double distanceToClosestStopLine = 0;
  	bool bGreenTrafficLight = true;
 
-
-  	distanceToClosestStopLine = PlanningHelpers::GetDistanceToClosestStopLineAndCheck(m_TotalPath.at(pValues->iCurrSafeLane), state, m_params.giveUpDistance, stopLineID, stopSignID, trafficLightID) - critical_long_front_distance;
-
+  	distanceToClosestStopLine = PlanningHelpers::GetDistanceToClosestStopLineAndCheck(m_TotalPaths.at(pValues->iCurrSafeLane), state, m_params.giveUpDistance, stopLineID, stopSignID, trafficLightID) - critical_long_front_distance;
 
  	if(distanceToClosestStopLine > m_params.giveUpDistance && distanceToClosestStopLine < (pValues->minStoppingDistance + 1.0))
  	{
@@ -247,7 +281,6 @@ void DecisionMaker::InitBehaviorStates()
  		}
  	}
 
-
  	//std::cout << "Distance To Closest: " << distanceToClosestStopLine << ", Stop LineID: " << stopLineID << ", Stop SignID: " << stopSignID << ", TFID: " << trafficLightID << std::endl;
 
  	pValues->bTrafficIsRed = !bGreenTrafficLight;
@@ -259,9 +292,9 @@ void DecisionMaker::InitBehaviorStates()
 		pValues->velocityOfNext = 0;
 	}
 
- 	if(m_RollOuts.size() > 0 && m_TotalPath.size() > 0)
+ 	if(m_LanesRollOuts.at(m_iCurrentTotalPathId).size() > 0 && m_TotalPaths.size() > 0)
 	{
-		double d_between_ends = hypot(m_TotalPath.at(m_iCurrentTotalPathId).back().pos.y - m_RollOuts.at(pValues->iCentralTrajectory).back().pos.y, m_TotalPath.at(m_iCurrentTotalPathId).back().pos.x - m_RollOuts.at(pValues->iCentralTrajectory).back().pos.x);
+		double d_between_ends = hypot(m_TotalPaths.at(m_iCurrentTotalPathId).back().pos.y - m_LanesRollOuts.at(m_iCurrentTotalPathId).at(pValues->iCentralTrajectory).back().pos.y, m_TotalPaths.at(m_iCurrentTotalPathId).back().pos.x - m_LanesRollOuts.at(m_iCurrentTotalPathId).at(pValues->iCentralTrajectory).back().pos.x);
 		if(d_between_ends < m_params.pathDensity)
 		{
 			pValues->bFinalLocalTrajectory = true;
@@ -279,7 +312,7 @@ void DecisionMaker::InitBehaviorStates()
  {
 	 PlannerHNS::Lane* pMapLane = 0;
 	PlannerHNS::Lane* pPathLane = 0;
-	pPathLane = MappingHelpers::GetLaneFromPath(state, m_TotalPath.at(m_iCurrentTotalPathId));
+	pPathLane = MappingHelpers::GetLaneFromPath(state, m_TotalPaths.at(m_iCurrentTotalPathId));
 	if(!pPathLane)
 	{
 		//std::cout << "Performance Alert: Can't Find Lane Information in Global Path, Searching the Map :( " << std::endl;
@@ -296,15 +329,15 @@ void DecisionMaker::InitBehaviorStates()
 
  bool DecisionMaker::ReachEndOfGlobalPath(const double& min_distance, const int& iGlobalPathIndex)
  {
-	 if(m_TotalPath.size()==0) return false;
+	 if(m_TotalPaths.size()==0) return false;
 
 	 PlannerHNS::RelativeInfo info;
-	 PlanningHelpers::GetRelativeInfo(m_TotalPath.at(iGlobalPathIndex), state, info);
+	 PlanningHelpers::GetRelativeInfo(m_TotalPaths.at(iGlobalPathIndex), state, info);
 
 	 double d = 0;
-	 for(unsigned int i = info.iFront; i < m_TotalPath.at(iGlobalPathIndex).size()-1; i++)
+	 for(unsigned int i = info.iFront; i < m_TotalPaths.at(iGlobalPathIndex).size()-1; i++)
 	 {
-		 d+= hypot(m_TotalPath.at(iGlobalPathIndex).at(i+1).pos.y - m_TotalPath.at(iGlobalPathIndex).at(i).pos.y, m_TotalPath.at(iGlobalPathIndex).at(i+1).pos.x - m_TotalPath.at(iGlobalPathIndex).at(i).pos.x);
+		 d+= hypot(m_TotalPaths.at(iGlobalPathIndex).at(i+1).pos.y - m_TotalPaths.at(iGlobalPathIndex).at(i).pos.y, m_TotalPaths.at(iGlobalPathIndex).at(i+1).pos.x - m_TotalPaths.at(iGlobalPathIndex).at(i).pos.x);
 		 if(d > min_distance)
 			 return false;
 	 }
@@ -317,7 +350,7 @@ void DecisionMaker::InitBehaviorStates()
 	 if(m_pCurrentBehaviorState)
 	 {
 		 m_pCurrentBehaviorState->GetCalcParams()->bNewGlobalPath = true;
-		 m_TotalOriginalPath = globalPath;
+		 m_TotalOriginalPaths = globalPath;
 		 m_prev_index.clear();
 		 for(unsigned int i=0; i < globalPath.size(); i++)
 		 {
@@ -331,7 +364,7 @@ void DecisionMaker::InitBehaviorStates()
 	 bool bNewTrajectory = false;
 	 PlannerHNS::PreCalculatedConditions *preCalcPrams = m_pCurrentBehaviorState->GetCalcParams();
 
-	 if(!preCalcPrams || m_RollOuts.size() == 0) return bNewTrajectory;
+	 if(!preCalcPrams || m_LanesRollOuts.at(m_iCurrentTotalPathId).size() == 0) return bNewTrajectory;
 
 	int currIndex = PlannerHNS::PlanningHelpers::GetClosestNextPointIndexFast(m_Path, state);
 	int index_limit = m_Path.size()/2.0 + 1;
@@ -341,7 +374,8 @@ void DecisionMaker::InitBehaviorStates()
 			|| preCalcPrams->bNewGlobalPath)
 	{
 		//std::cout << "New Local Plan !! " << currIndex << ", "<< preCalcPrams->bRePlan << ", " << preCalcPrams->bNewGlobalPath  << ", " <<  m_TotalPath.at(0).size() << ", PrevLocal: " << m_Path.size();
-		m_Path = m_RollOuts.at(preCalcPrams->iCurrSafeTrajectory);
+
+		m_Path = m_LanesRollOuts.at(m_iCurrentTotalPathId).at(preCalcPrams->iCurrSafeTrajectory);
 		//std::cout << ", NewLocal: " << m_Path.size() << std::endl;
 
 		preCalcPrams->bNewGlobalPath = false;
@@ -368,10 +402,16 @@ void DecisionMaker::InitBehaviorStates()
 	currentBehavior.minVelocity		= 0;
 	currentBehavior.stopDistance 	= preCalcPrams->distanceToStop();
 	currentBehavior.followVelocity 	= preCalcPrams->velocityOfNext;
-	if(preCalcPrams->iPrevSafeTrajectory<0 || preCalcPrams->iPrevSafeTrajectory >= m_RollOuts.size())
+	if(preCalcPrams->iPrevSafeTrajectory<0 || preCalcPrams->iPrevSafeTrajectory >= m_LanesRollOuts.at(m_iCurrentTotalPathId).size())
+	{
 		currentBehavior.iTrajectory		= preCalcPrams->iCurrSafeTrajectory;
+	}
 	else
+	{
 		currentBehavior.iTrajectory		= preCalcPrams->iPrevSafeTrajectory;
+	}
+
+	currentBehavior.iLane = m_iCurrentTotalPathId;
 
 	//double average_braking_distance = -pow(vehicleState.speed, 2)/(m_CarInfo.max_deceleration) + m_params.additionalBrakingDistance; // average_braking_distance replaced by minStoppingDistance on 28th August 2018
 	double indication_distance = preCalcPrams->minStoppingDistance;
@@ -391,13 +431,13 @@ void DecisionMaker::InitBehaviorStates()
 	 PlannerHNS::PreCalculatedConditions *preCalcPrams = m_pCurrentBehaviorState->GetCalcParams();
 	 double desiredVelocity = 0;
 
-	if(preCalcPrams && m_TotalPath.size() > 0)
+	if(preCalcPrams && m_TotalPaths.size() > 0)
 	{
 
 		RelativeInfo info, total_info;
-		PlanningHelpers::GetRelativeInfo(m_TotalPath.at(m_iCurrentTotalPathId), state, total_info);
+		PlanningHelpers::GetRelativeInfo(m_TotalPaths.at(m_iCurrentTotalPathId), state, total_info);
 		PlanningHelpers::GetRelativeInfo(m_Path, state, info);
-		double max_velocity	= PlannerHNS::PlanningHelpers::GetVelocityAhead(m_TotalPath.at(m_iCurrentTotalPathId), total_info, total_info.iBack, preCalcPrams->minStoppingDistance);
+		double max_velocity	= PlannerHNS::PlanningHelpers::GetVelocityAhead(m_TotalPaths.at(m_iCurrentTotalPathId), total_info, total_info.iBack, preCalcPrams->minStoppingDistance);
 		if(max_velocity > m_params.maxSpeed)
 		{
 			max_velocity = m_params.maxSpeed;
@@ -538,12 +578,12 @@ void DecisionMaker::InitBehaviorStates()
 
 	 PlannerHNS::PreCalculatedConditions *preCalcPrams = m_pCurrentBehaviorState->GetCalcParams();
 
-	if(!preCalcPrams || m_TotalPath.size() == 0) return 0;
+	if(!preCalcPrams || m_TotalPaths.size() == 0) return 0;
 
 	RelativeInfo info, total_info;
-	PlanningHelpers::GetRelativeInfo(m_TotalPath.at(m_iCurrentTotalPathId), state, total_info);
+	PlanningHelpers::GetRelativeInfo(m_TotalPaths.at(m_iCurrentTotalPathId), state, total_info);
 	PlanningHelpers::GetRelativeInfo(m_Path, state, info);
-	double max_velocity	= PlannerHNS::PlanningHelpers::GetVelocityAhead(m_TotalPath.at(m_iCurrentTotalPathId), total_info, total_info.iBack, preCalcPrams->minStoppingDistance);
+	double max_velocity	= PlannerHNS::PlanningHelpers::GetVelocityAhead(m_TotalPaths.at(m_iCurrentTotalPathId), total_info, total_info.iBack, preCalcPrams->minStoppingDistance);
 	if(max_velocity > m_params.maxSpeed)
 		max_velocity = m_params.maxSpeed;
 
@@ -655,18 +695,18 @@ void DecisionMaker::InitBehaviorStates()
 {
 	 PlannerHNS::BehaviorState beh;
 	 state = currPose;
-	 m_TotalPath.clear();
-	for(unsigned int i = 0; i < m_TotalOriginalPath.size(); i++)
+	 m_TotalPaths.clear();
+	for(unsigned int i = 0; i < m_TotalOriginalPaths.size(); i++)
 	{
 		t_centerTrajectorySmoothed.clear();
-		m_prev_index.at(i) = PlannerHNS::PlanningHelpers::ExtractPartFromPointToDistanceDirectionFast(m_TotalOriginalPath.at(i), state, m_params.horizonDistance ,	m_params.pathDensity , t_centerTrajectorySmoothed, m_prev_index.at(i));
+		m_prev_index.at(i) = PlannerHNS::PlanningHelpers::ExtractPartFromPointToDistanceDirectionFast(m_TotalOriginalPaths.at(i), state, m_params.horizonDistance ,	m_params.pathDensity , t_centerTrajectorySmoothed, m_prev_index.at(i));
 
 		if(m_prev_index.at(i) > 0 ) m_prev_index.at(i) = m_prev_index.at(i) -1;
 
-		m_TotalPath.push_back(t_centerTrajectorySmoothed);
+		m_TotalPaths.push_back(t_centerTrajectorySmoothed);
 	}
 
-	if(m_TotalPath.size()==0) return beh;
+	if(m_TotalPaths.size()==0) return beh;
 
 	UpdateCurrentLane(m_params.maxLaneSearchDistance);
 

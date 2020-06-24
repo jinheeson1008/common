@@ -26,7 +26,7 @@ public:
   EvaluationParams()
   {
     priority_weight_ = 0.3;
-    transition_weight_ = 0.25;
+    transition_weight_ = 0.2;
     longitudinal_weight_ = 0.2;
     lateral_weight_ = 0.3;
     lane_change_weight_ = 0;
@@ -58,6 +58,13 @@ public:
                            const bool& b_static_only = false,
                            const int& prev_curr_index = -1,
 						   const bool& b_keep_curr = false);
+
+  void SetEvalParams(const EvaluationParams& eval_param);
+
+  static bool sortCosts(const TrajectoryCost& c1, const TrajectoryCost& c2)
+  {
+    return c1.cost < c2.cost;
+  }
 
 public:
   std::vector<WayPoint> all_contour_points_;
@@ -94,11 +101,6 @@ private:
   void calculateDistanceCosts(const PlanningParams& params, const double& c_lateral_d, const std::vector<std::vector<WayPoint> >& roll_outs, const std::vector<WayPoint>& contour_points, const std::vector<WayPoint>& trajectory_points, std::vector<TrajectoryCost>& trajectory_costs, std::vector<WayPoint>& collision_points);
 
   TrajectoryCost findBestTrajectory(const PlanningParams& params, const int& prev_curr_index, const bool& b_keep_curr, std::vector<TrajectoryCost> trajectory_costs);
-
-  static bool sortCosts(const TrajectoryCost& c1, const TrajectoryCost& c2)
-  {
-    return c1.cost < c2.cost;
-  }
 
 };
 

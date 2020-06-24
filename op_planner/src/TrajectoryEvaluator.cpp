@@ -22,6 +22,12 @@ TrajectoryEvaluator::~TrajectoryEvaluator()
 {
 }
 
+void TrajectoryEvaluator::SetEvalParams(const EvaluationParams& eval_param)
+{
+	eval_params_ = eval_param;
+}
+
+
 TrajectoryCost TrajectoryEvaluator::doOneStep(const std::vector<std::vector<WayPoint> >& roll_outs,
                                               const std::vector<WayPoint>& total_paths, const WayPoint& curr_state,
                                               const PlanningParams& params, const CAR_BASIC_INFO& car_info,
@@ -192,7 +198,7 @@ void TrajectoryEvaluator::collectContoursAndTrajectories(const std::vector<Plann
 void TrajectoryEvaluator::normalizeCosts(std::vector<TrajectoryCost>& trajectory_costs)
 {
   double total_priorities_costs = 0;
- // double total_change = 0;
+  double total_lane_change_costs = 0;
   double total_transition_costs = 0;
   double total_lon_costs = 0;
   double total_lat_costs = 0;
@@ -206,7 +212,6 @@ void TrajectoryEvaluator::normalizeCosts(std::vector<TrajectoryCost>& trajectory
 
   for (unsigned int ic = 0; ic < trajectory_costs.size(); ic++)
   {
-    //total_change += trajectory_costs.at(ic).lane_change_cost;
     if(trajectory_costs.at(ic).lateral_cost > max_lat_cost)
       max_lat_cost = trajectory_costs.at(ic).lateral_cost;
 
@@ -242,6 +247,7 @@ void TrajectoryEvaluator::normalizeCosts(std::vector<TrajectoryCost>& trajectory
       total_transition_costs += trajectory_costs.at(ic).transition_cost;
       total_lon_costs += trajectory_costs.at(ic).longitudinal_cost;
       total_lat_costs += trajectory_costs.at(ic).lateral_cost;
+      total_lane_change_costs += trajectory_costs.at(ic).lane_change_cost;
     }
 
   for (unsigned int ic = 0; ic < trajectory_costs.size(); ic++)
@@ -266,16 +272,18 @@ void TrajectoryEvaluator::normalizeCosts(std::vector<TrajectoryCost>& trajectory
       else
 	trajectory_costs.at(ic).longitudinal_cost = 0;
 
-//    if (total_change != 0)
-//      trajectory_costs.at(ic).lane_change_cost = trajectory_costs.at(ic).lane_change_cost / total_change;
-//    else
-//      trajectory_costs.at(ic).lane_change_cost = 0;
-
+    if (total_lane_change_costs != 0)
+      trajectory_costs.at(ic).lane_change_cost = trajectory_costs.at(ic).lane_change_cost / total_lane_change_costs;
+    else
+      trajectory_costs.at(ic).lane_change_cost = 0;
 
     trajectory_costs.at(ic).cost = (eval_params_.priority_weight_ * trajectory_costs.at(ic).priority_cost
         + eval_params_.transition_weight_ * trajectory_costs.at(ic).transition_cost
         + eval_params_.lateral_weight_ * trajectory_costs.at(ic).lateral_cost
-        + eval_params_.longitudinal_weight_ * trajectory_costs.at(ic).longitudinal_cost);
+        + eval_params_.longitudinal_weight_ * trajectory_costs.at(ic).longitudinal_cost
+		+ eval_params_.lane_change_weight_ * trajectory_costs.at(ic).lane_change_cost);
+
+   // std::cout << std::endl << "Lane Change Cost: " << trajectory_costs.at(ic).lane_change_cost << ", Total Cost: " << trajectory_costs.at(ic).cost << std::endl << std::endl;
   }
 }
 
@@ -327,7 +335,9 @@ void TrajectoryEvaluator::initializeCosts(const std::vector<std::vector<WayPoint
       tc.priority_cost = fabs(tc.distance_from_center);
       tc.closest_obj_distance = params.horizonDistance;
       if (roll_outs.at(it).size() > 0)
+      {
         tc.lane_change_cost = roll_outs.at(it).at(0).laneChangeCost;
+      }
       trajectory_costs.push_back(tc);
     }
   }

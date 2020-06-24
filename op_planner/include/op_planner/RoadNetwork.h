@@ -417,7 +417,7 @@ public:
 	double  	totalReward;
 	double  	collisionCost;
 	double 		laneChangeCost;
-	double      	width;
+	double      width;
 	int 		laneId;
 	int 		id;
 	int 		LeftPointId;
@@ -934,6 +934,7 @@ public:
 	LIGHT_INDICATOR indicator;
 	bool bNewPlan;
 	int iTrajectory;
+	int iLane;
 
 
 	BehaviorState()
@@ -947,7 +948,7 @@ public:
 		indicator  = INDICATOR_NONE;
 		bNewPlan = false;
 		iTrajectory = -1;
-
+		iLane = -1;
 	}
 
 };
