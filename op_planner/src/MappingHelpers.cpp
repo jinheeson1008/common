@@ -225,7 +225,7 @@ void MappingHelpers::LinkTrafficLightsIntoGroups(RoadNetwork& map)
 				if(c.groupID == 0)
 				{
 					double d = hypot(x.pose.pos.y - c.pose.pos.y, x.pose.pos.x - c.pose.pos.x);
-					if(d < 1.0 && x.vertical_angle == c.vertical_angle && x.horizontal_angle == c.horizontal_angle)
+					if(d < 1.0 && fabs(x.vertical_angle - c.vertical_angle) < 10 && fabs(x.horizontal_angle - c.horizontal_angle) < 10)
 					{
 						c.groupID = max_group_id;
 					}
@@ -1270,6 +1270,15 @@ void MappingHelpers::LinkTrafficLightsAndStopLinesV2(RoadNetwork& map)
 							{
 								map.trafficLights.at(itl).laneIds.push_back(pWP->laneId);
 								map.trafficLights.at(itl).pLanes.push_back(pWP->pLane);
+
+								for(auto& tl_item:map.trafficLights)
+								{
+									if(tl_item.id != map.trafficLights.at(itl).id && tl_item.groupID == map.trafficLights.at(itl).groupID)
+									{
+										tl_item.laneIds.push_back(pWP->laneId);
+										tl_item.pLanes.push_back(pWP->pLane);
+									}
+								}
 							}
 						}
 						break;

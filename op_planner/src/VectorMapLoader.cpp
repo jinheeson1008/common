@@ -159,7 +159,7 @@ void VectorMapLoader::ConstructRoadNetworkFromROSMessage(UtilityHNS::MapRaw& map
 	//Link StopLines and Traffic Lights
 	std::cout << " >> Link StopLines and Traffic Lights ... " << std::endl;
 	MappingHelpers::LinkTrafficLightsAndStopLinesV2(map);
-	MappingHelpers::LinkTrafficLightsIntoGroups(map);
+//	MappingHelpers::LinkTrafficLightsIntoGroups(map); // will use pole ID as group ID
 	MappingHelpers::ConnectTrafficLightsAndStopLines(map);
 	MappingHelpers::ConnectTrafficSignsAndStopLines(map);
 
@@ -534,6 +534,7 @@ void VectorMapLoader::ExtractSignalDataV2(const std::vector<UtilityHNS::AisanSig
 			tl.id = signal_data.at(is).ID;
 			tl.linkID = signal_data.at(is).LinkID;
 			tl.stoppingDistance = 0;
+			tl.groupID = signal_data.at(is).PLID;
 			switch(signal_data.at(is).Type)
 			{
 			case 1:
