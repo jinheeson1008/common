@@ -1452,8 +1452,8 @@ public:
 public:
 	std::vector<PassiveDecisionMaker*> m_d_makers;
 	double m_PredictionHorizon;
-	double m_MaxLaneDetectionDistance;
-	double m_MaxPredictionDistance;
+	double m_LaneDetectionDistance;
+	double m_MinPredictionDistance;
 	bool m_bGenerateBranches;
 	bool m_bStepByStep;
 	bool m_bParticleFilter;
@@ -1478,7 +1478,7 @@ protected:
 	double CalcIndicatorWeight(int p_ind, int obj_ind);
 	double CalcAccelerationWeight(int p_acl, int obj_acl);
 
-	void CalPredictionTimeForObject(ObjParticles* pCarPart, const double& max_pre_distance);
+	void CalPredictionTimeForObject(ObjParticles* pCarPart, const double& min_pred_distance);
 	void PredictCurrentTrajectory(RoadNetwork& map, ObjParticles* pCarPart);
 	void ExtractTrajectoriesFromMap(const std::vector<DetectedObject>& obj_list, RoadNetwork& map, std::vector<ObjParticles*>& old_list);
 	void CalculateCollisionTimes(const double& minSpeed);

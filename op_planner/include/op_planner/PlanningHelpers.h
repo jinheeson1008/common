@@ -12,6 +12,7 @@
 #include "op_utility/DataRW.h"
 #include "tinyxml.h"
 
+#define DISABLE_CARLA_SPECIAL_CODE
 
 namespace PlannerHNS {
 
@@ -71,6 +72,8 @@ public:
 	static void CreateManualBranchFromTwoPoints(WayPoint& p1,WayPoint& p2 , const double& distance, const DIRECTION_TYPE& direction, std::vector<WayPoint>& path);
 
 	static void FixPathDensity(std::vector<WayPoint>& path, const double& distanceDensity);
+
+	static void FixPathDensity(std::vector<GPSPoint>& path, const double& distanceDensity);
 
 	static void SmoothPath(std::vector<WayPoint>& path, double weight_data =0.25,double weight_smooth = 0.25,double tolerance = 0.01);
 
@@ -162,8 +165,6 @@ public:
 	static std::vector<int> GetUniqueLeftRightIds(const std::vector<WayPoint>& path);
 
 	static bool FindInList(const std::vector<int>& list,const int& x);
-
-	static void RemoveWithValue(std::vector<int>& list,const int& x);
 
 	static ACTION_TYPE GetBranchingDirection(WayPoint& currWP, WayPoint& nextWP);
 

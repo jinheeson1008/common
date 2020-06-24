@@ -417,7 +417,8 @@ TrajectoryCost TrajectoryEvaluator::findBestTrajectory(const PlanningParams& par
 	}
 
   //new approach, in b_keep_curr branch
-  //1. remove blocked trajectories
+  //1. remove blocked trajectories, also remove all trajectory in the same side after the blocked trajectory,
+	//if center is blocked one side is selected according to general drive direction
   //2. find average diff between the non blocked trajectories
   //3. find diff between previous trajectory cost and the current best cost
   //4. change best if only diff > avg_diff
@@ -433,14 +434,14 @@ TrajectoryCost TrajectoryEvaluator::findBestTrajectory(const PlanningParams& par
 		avg_diff = avg_diff/(double)trajectory_costs.size();
 
 	  //Remove blocked
-	  for(int i=0; i < trajectory_costs.size(); i++)
-	  {
+		for(int i=0; i < trajectory_costs.size(); i++)
+		{
 		  if(trajectory_costs.at(i).bBlocked)
 		  {
 			  trajectory_costs.erase(trajectory_costs.begin()+i);
 			  i--;
 		  }
-	  }
+		}
 
 	  if(trajectory_costs.size() == 0)
 	  {
@@ -524,8 +525,13 @@ void TrajectoryEvaluator::calculateDistanceCosts(const PlanningParams& params, c
 		{
 			RelativeInfo info;
 			int prev_index = 0;
-			PlanningHelpers::GetRelativeInfoLimited(roll_outs.at(center_index), contour_points.at(j), info, prev_index);
-			info.perp_distance = fabs( info.perp_distance - trajectory_costs.at(i).distance_from_center);
+
+			//Using the center trajectory to calculate collision distances
+			//PlanningHelpers::GetRelativeInfoLimited(roll_outs.at(center_index), contour_points.at(j), info, prev_index);
+			//info.perp_distance = fabs( info.perp_distance - trajectory_costs.at(i).distance_from_center);
+
+			//use each trajectory to calculate specific collision for each tollout trajectory
+			PlanningHelpers::GetRelativeInfoLimited(roll_outs.at(i), contour_points.at(j), info, prev_index);
 
 			double actual_lateral_distance = fabs(info.perp_distance) - 0.05; //add small distance so this never become zero
 			double actual_longitudinal_distance = info.from_back_distance + roll_outs.at(i).at(info.iBack).cost - 0.05; //add small distance so this never become zero
@@ -536,7 +542,19 @@ void TrajectoryEvaluator::calculateDistanceCosts(const PlanningParams& params, c
 				bBefore = false;
 			}
 
-			//std::cout << "Traj: " <<  trajectory_costs.at(i).relative_index << ", LateralD: " << actual_lateral_distance << ", CriticD: " << c_lateral_d << ", LongD: " <<  actual_longitudinal_distance  << ", Before: " << bBefore << std::endl;
+//			prev_index = 0;
+//			int closest_wp_index =  PlanningHelpers::GetClosestNextPointIndexFast(roll_outs.at(i), contour_points.at(j), prev_index);
+//			WayPoint closest_wp = roll_outs.at(i).at(closest_wp_index);
+//
+//			double distance_between_points = hypot(closest_wp.pos.y - info.perp_point.pos.y, closest_wp.pos.x - info.perp_point.pos.x);
+//
+//			if(distance_between_points > 2.0)
+//				std::cout << "###### >>> Tooo Large Distance: " << distance_between_points << ", closest_index: " <<  closest_wp_index << std::endl;
+
+//			std::cout << "Traj: " <<  trajectory_costs.at(i).relative_index << ", LateralD: " << actual_lateral_distance
+//					<< ", CriticD: " << c_lateral_d << ", LongD: " <<  actual_longitudinal_distance
+//					<< ", (" << info.from_back_distance << ", " << roll_outs.at(i).at(info.iBack).cost << ")"
+//					<< ", Before: " << bBefore << std::endl;
 
 			if(actual_lateral_distance < g_lateral_skip_value && !info.bAfter && !bBefore)
 			{

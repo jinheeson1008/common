@@ -1191,6 +1191,57 @@ void PlanningHelpers::FixPathDensity(vector<WayPoint>& path, const double& dista
 	path = fixedPath;
 }
 
+void PlanningHelpers::FixPathDensity(vector<GPSPoint>& path, const double& distanceDensity)
+{
+	if(path.size() == 0 || distanceDensity==0) return;
+
+	double d = 0, a = 0;
+	double margin = distanceDensity*0.01;
+	double remaining = 0;
+	int nPoints = 0;
+	vector<GPSPoint> fixedPath;
+	fixedPath.push_back(path.at(0));
+	for(unsigned int si = 0, ei=1; ei < path.size(); )
+	{
+		d += hypot(path.at(ei).x- path.at(ei-1).x, path.at(ei).y- path.at(ei-1).y) + remaining;
+		a = atan2(path.at(ei).y - path.at(si).y, path.at(ei).x - path.at(si).x);
+		double z = path.at(ei).z;
+
+		if(d < distanceDensity - margin ) // skip
+		{
+			ei++;
+			remaining = 0;
+		}
+		else if(d > (distanceDensity +  margin)) // skip
+		{
+			GPSPoint pm = path.at(si);
+			nPoints = d  / distanceDensity;
+			for(int k = 0; k < nPoints; k++)
+			{
+				pm.x = pm.x + distanceDensity * cos(a);
+				pm.y = pm.y + distanceDensity * sin(a);
+				pm.z = z;
+				fixedPath.push_back(pm);
+			}
+			remaining = d - nPoints*distanceDensity;
+			si++;
+			path.at(si) = pm;
+			d = 0;
+			ei++;
+		}
+		else
+		{
+			d = 0;
+			remaining = 0;
+			fixedPath.push_back(path.at(ei));
+			ei++;
+			si = ei - 1;
+		}
+	}
+
+	path = fixedPath;
+}
+
 void PlanningHelpers::SmoothPath(vector<WayPoint>& path, double weight_data,
 		double weight_smooth, double tolerance)
 {
@@ -1672,7 +1723,7 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 		std::vector<WayPoint>& sampledPoints)
 {
 	WayPoint p;
-	double dummyd = 0;
+	//double dummyd = 0;
 
 	int iLimitIndex = (carTipMargin/0.3)/pathDensity;
 	if(iLimitIndex >= originalCenter.size())
@@ -1694,26 +1745,31 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 
 	vector<WayPoint> RollOutStratPath;
 	///***   Smoothing From Car Heading Section ***///
-//	if(bHeadingSmooth)
-//	{
-//		unsigned int num_of_strait_points = carTipMargin / pathDensity;
-//		int closest_for_each_iteration = 0;
-//		WayPoint np = GetPerpendicularOnTrajectory_obsolete(originalCenter, carPos, dummyd, closest_for_each_iteration);
-//		np.pos = carPos.pos;
-//
-//		RollOutStratPath.push_back(np);
-//		for(unsigned int i = 0; i < num_of_strait_points; i++)
-//		{
-//			p = RollOutStratPath.at(i);
-//			p.pos.x = p.pos.x +  pathDensity*cos(p.pos.a);
-//			p.pos.y = p.pos.y +  pathDensity*sin(p.pos.a);
-//			np = GetPerpendicularOnTrajectory_obsolete(originalCenter, p, dummyd, closest_for_each_iteration);
-//			np.pos = p.pos;
-//			RollOutStratPath.push_back(np);
-//		}
-//
-//		initial_roll_in_distance = GetPerpDistanceToTrajectorySimple_obsolete(originalCenter, RollOutStratPath.at(RollOutStratPath.size()-1), close_index);
-//	}
+	if(bHeadingSmooth)
+	{
+		unsigned int num_of_strait_points = carTipMargin*0.5 / pathDensity;
+		int closest_for_each_iteration = 0;
+		RelativeInfo ret_inf;
+		//WayPoint np = GetPerpendicularOnTrajectory_obsolete()(originalCenter, carPos, dummyd, closest_for_each_iteration);
+		GetRelativeInfo(originalCenter, carPos, ret_inf, closest_for_each_iteration);
+		ret_inf.perp_point.pos = carPos.pos;
+
+		RollOutStratPath.push_back(ret_inf.perp_point);
+		for(unsigned int i = 0; i < num_of_strait_points; i++)
+		{
+			p = RollOutStratPath.at(i);
+			p.pos.x = p.pos.x +  pathDensity*cos(p.pos.a);
+			p.pos.y = p.pos.y +  pathDensity*sin(p.pos.a);
+			//np = GetPerpendicularOnTrajectory_obsolete(originalCenter, p, dummyd, closest_for_each_iteration);
+			GetRelativeInfo(originalCenter, p, ret_inf, closest_for_each_iteration);
+			ret_inf.perp_point.pos = p.pos;
+			RollOutStratPath.push_back(ret_inf.perp_point);
+		}
+
+		GetRelativeInfo(originalCenter, RollOutStratPath.at(RollOutStratPath.size()-1), ret_inf, close_index);
+		initial_roll_in_distance = ret_inf.perp_distance;
+		//initial_roll_in_distance = GetPerpDistanceToTrajectorySimple_obsolete(originalCenter, RollOutStratPath.at(RollOutStratPath.size()-1), close_index);
+	}
 	///***   -------------------------------- ***///
 
 
@@ -1869,15 +1925,15 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 		rollInPaths.at(i).insert(rollInPaths.at(i).begin(), execluded_from_smoothing.at(i).begin(), execluded_from_smoothing.at(i).end());
 
 	///***   Smoothing From Car Heading Section ***///
-//	if(bHeadingSmooth)
-//	{
-//		for(unsigned int i=0; i< rollOutNumber+1 ; i++)
-//		{
-//			unsigned int cut_index = GetClosestNextPointIndex(rollInPaths.at(i), RollOutStratPath.at(RollOutStratPath.size()-1));
-//			rollInPaths.at(i).erase(rollInPaths.at(i).begin(), rollInPaths.at(i).begin()+cut_index);
-//			rollInPaths.at(i).insert(rollInPaths.at(i).begin(), RollOutStratPath.begin(), RollOutStratPath.end());
-//		}
-//	}
+	if(bHeadingSmooth)
+	{
+		for(unsigned int i=0; i< rollOutNumber+1 ; i++)
+		{
+			unsigned int cut_index = GetClosestNextPointIndexFastV2(rollInPaths.at(i), RollOutStratPath.at(RollOutStratPath.size()-1));
+			rollInPaths.at(i).erase(rollInPaths.at(i).begin(), rollInPaths.at(i).begin()+cut_index);
+			rollInPaths.at(i).insert(rollInPaths.at(i).begin(), RollOutStratPath.begin(), RollOutStratPath.end());
+		}
+	}
 	///***   -------------------------------- ***///
 
 
@@ -1929,17 +1985,6 @@ bool PlanningHelpers::FindInList(const std::vector<int>& list,const int& x)
 	return false;
 }
 
-void PlanningHelpers::RemoveWithValue(std::vector<int>& list,const int& x)
-{
-	for(unsigned int i = 0 ; i < list.size(); i++)
-	{
-		if(list.at(i) == x)
-		{
-			list.erase(list.begin()+i);
-		}
-	}
-}
-
 std::vector<int> PlanningHelpers::GetUniqueLeftRightIds(const std::vector<WayPoint>& path)
 {
 	 vector<int> sideLanes;
@@ -1976,8 +2021,6 @@ std::vector<int> PlanningHelpers::GetUniqueLeftRightIds(const std::vector<WayPoi
 			 if(!bFound)
 				 sideLanes.push_back(path.at(iwp).RightPointId);
 		 }
-
-		 //RemoveWithValue(sideLanes, path.at(iwp).laneId);
 	 }
 	return sideLanes;
 }
