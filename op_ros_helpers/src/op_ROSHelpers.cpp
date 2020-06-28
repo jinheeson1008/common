@@ -116,6 +116,12 @@ visualization_msgs::Marker ROSHelpers::CreateGenMarker(const double& x, const do
 	{
 		mkr.scale.z = scale;
 	}
+
+	if(type == visualization_msgs::Marker::CYLINDER)
+	{
+		mkr.scale.z = 0.01;
+	}
+
 	mkr.color.a = 0.8;
 	mkr.color.r = r;
 	mkr.color.g = g;
@@ -353,31 +359,31 @@ int ROSHelpers::ConvertTrackedObjectsMarkers(const PlannerHNS::WayPoint& currSta
 		}
 	}
 
-	if(text_info_i>0) text_info_i--;
+	//if(text_info_i>0) text_info_i--;
 	if(text_info_i < text_info.markers.size())
 	{
 		text_info.markers.erase(text_info.markers.begin()+text_info_i, text_info.markers.end());
 	}
 
-	if(polygons_i>0) polygons_i--;
+	//if(polygons_i>0) polygons_i--;
 	if(polygons_i < polygons.markers.size())
 	{
 		polygons.markers.erase(polygons.markers.begin()+polygons_i, polygons.markers.end());
 	}
 
-	if(dirs_i>0) dirs_i--;
+	//if(dirs_i>0) dirs_i--;
 	if(dirs_i < dirs.markers.size())
 	{
 		dirs.markers.erase(dirs.markers.begin()+dirs_i, dirs.markers.end());
 	}
 
-	if(centers_i>0) centers_i--;
+	//if(centers_i>0) centers_i--;
 	if(centers_i < centers.markers.size())
 	{
 		centers.markers.erase(centers.markers.begin()+centers_i, centers.markers.end());
 	}
 
-	if(tracked_traj_i>0) tracked_traj_i--;
+	//if(tracked_traj_i>0) tracked_traj_i--;
 	if(tracked_traj_i < tracked_traj.markers.size())
 	{
 		tracked_traj.markers.erase(tracked_traj.markers.begin()+tracked_traj_i, tracked_traj.markers.end());
@@ -428,7 +434,7 @@ void ROSHelpers::ConvertPredictedTrqajectoryMarkers(std::vector<std::vector<Plan
 	{
 		if(paths.at(i).size() < 2) continue;
 
-		double additional_z = 1.0;
+		double additional_z = 0.1;
 		double prop = 1.0;
 		bool bCurrent = false;
 		if(paths.at(i).size()>0)

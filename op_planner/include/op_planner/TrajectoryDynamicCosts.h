@@ -41,9 +41,6 @@ public:
 	double m_WeightLat;
 	double m_LateralSkipDistance;
 
-
-
-
 private:
 	void NormalizeCosts(vector<TrajectoryCost>& trajectoryCosts);
 	void CalculateLateralAndLongitudinalCostsStatic(vector<TrajectoryCost>& trajectoryCosts, const vector<vector<WayPoint> >& rollOuts, const vector<WayPoint>& totalPaths, const WayPoint& currState, const vector<WayPoint>& contourPoints, const PlanningParams& params, const CAR_BASIC_INFO& carInfo, const VehicleState& vehicleState);

@@ -96,6 +96,13 @@ void SimuDecisionMaker::FirstLocalizeMe(const WayPoint& initCarPos)
 	state.pos.a = m_OdometryState.pos.a;
 	state.pos.x = m_OdometryState.pos.x	 - (m_CurrentVelocity*dt* (m_CarInfo.wheel_base) * cos (m_OdometryState.pos.a));
 	state.pos.y = m_OdometryState.pos.y	 - (m_CurrentVelocity*dt* (m_CarInfo.wheel_base/2.0) * sin (m_OdometryState.pos.a));
+
+	int currIndex = PlannerHNS::PlanningHelpers::GetClosestNextPointIndexFast(m_Path, state);
+	if(currIndex >=0 && currIndex < m_Path.size())
+	{
+		state.pos.z = m_Path.at(currIndex).pos.z;
+	}
+
 }
 
  void SimuDecisionMaker::UpdateState(const PlannerHNS::VehicleState& state, const bool& bUseDelay)
@@ -235,7 +242,17 @@ void SimuDecisionMaker::FirstLocalizeMe(const WayPoint& initCarPos)
 
 	UpdateCurrentLane(m_params.maxLaneSearchDistance);
 
-	PlannerHNS::TrajectoryCost tc = m_TrajectoryCostsCalculator.DoOneStepStatic(m_LanesRollOuts.at(0), m_TotalPaths.at(m_iCurrentTotalPathId), state,	m_params, m_CarInfo, vehicleState, objects);
+	if(m_LanesRollOuts.size() == 0)
+	{
+		GenerateLocalRollOuts();
+	}
+
+	PlannerHNS::TrajectoryCost tc;
+
+	if(m_LanesRollOuts.size() > 0)
+	{
+		tc = m_TrajectoryCostsCalculator.DoOneStepStatic(m_LanesRollOuts.at(0), m_TotalPaths.at(m_iCurrentTotalPathId), state,	m_params, m_CarInfo, vehicleState, objects);
+	}
 
 	//std::cout << "Detected Objects Distance: " << tc.closest_obj_distance << ", N RollOuts: " << m_RollOuts.size() << std::endl;
 
