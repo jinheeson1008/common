@@ -22,19 +22,7 @@ using namespace std;
 namespace PlannerHNS
 {
 
-//int MappingHelpers::g_max_point_id = 0;
-//int MappingHelpers::g_max_lane_id = 0;
-//int MappingHelpers::g_max_line_id = 0;
-//int MappingHelpers::g_max_stop_line_id = 0;
-//int MappingHelpers::g_max_traffic_light_id = 0;
-//int MappingHelpers::g_max_traffic_sign_id = 0;
-//int MappingHelpers::g_max_boundary_area_id = 0;
-//int MappingHelpers::g_max_marking_id = 0;
-//int MappingHelpers::g_max_curb_id = 0;
-//int MappingHelpers::g_max_crossing_id = 0;
-//double MappingHelpers::m_USING_VER_ZERO = 0;
-
-constexpr int ANGLE_MAX_FOR_DIRECTION_CHECK = 30;
+constexpr int ANGLE_MAX_FOR_DIRECTION_CHECK = 15;
 constexpr double MAX_DISTANCE_TO_START_LANE_DETECTION = 100;
 
 MappingHelpers::MappingHelpers() {
@@ -45,13 +33,7 @@ MappingHelpers::~MappingHelpers() {
 
 GPSPoint MappingHelpers::GetTransformationOrigin(const int& bToyotaCityMap)
 {
-//	if(bToyotaCityMap == 1)
-//		return GPSPoint(-3700, 99427, -88,0); //toyota city
-//	else if(bToyotaCityMap == 2)
-//		return GPSPoint(14805.945, 84680.211, -39.59, 0); // for moriyama map
-//	else
-		return GPSPoint();
-	//return GPSPoint(18221.1, 93546.1, -36.19, 0);
+	return GPSPoint();
 }
 
 void MappingHelpers::ConvertVelocityToMeterPerSecond(RoadNetwork& map)

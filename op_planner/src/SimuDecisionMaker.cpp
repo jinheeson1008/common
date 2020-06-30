@@ -64,7 +64,7 @@ void SimuDecisionMaker::SetSimulatedTargetOdometryReadings(const double& velocit
 
 void SimuDecisionMaker::FirstLocalizeMe(const WayPoint& initCarPos)
  {
-	pLane = initCarPos.pLane;
+	//pLane = initCarPos.pLane;
 	state = initCarPos;
 	m_OdometryState.pos.a = initCarPos.pos.a;
 	m_OdometryState.pos.x = initCarPos.pos.x + (m_CarInfo.wheel_base/2.0 * cos(initCarPos.pos.a));
@@ -183,12 +183,17 @@ void SimuDecisionMaker::FirstLocalizeMe(const WayPoint& initCarPos)
 	 bool bNewTrajectory = false;
 	 PlannerHNS::PreCalculatedConditions *preCalcPrams = m_pCurrentBehaviorState->GetCalcParams();
 
-	 if(!preCalcPrams || m_TotalPaths.size() == 0 || preCalcPrams->bFinalLocalTrajectory) return bNewTrajectory;
+	 if(!preCalcPrams || m_TotalPaths.size() == 0 || preCalcPrams->bFinalLocalTrajectory)
+	{
+		 return bNewTrajectory;
+	}
 
 	int currIndex = PlannerHNS::PlanningHelpers::GetClosestNextPointIndexFast(m_Path, state);
 	int index_limit = 0;
 	if(index_limit<=0)
+	{
 		index_limit =  m_Path.size()/2.0;
+	}
 	if(currIndex > index_limit
 			|| preCalcPrams->bRePlan
 			|| preCalcPrams->bNewGlobalPath)
@@ -197,7 +202,7 @@ void SimuDecisionMaker::FirstLocalizeMe(const WayPoint& initCarPos)
 		if(m_LanesRollOuts.size() > 0 && m_LanesRollOuts.at(0).size() <= preCalcPrams->iCurrSafeTrajectory)
 			return false;
 
-		std::cout << "New Local Plan !! " << currIndex << ", "<< preCalcPrams->bRePlan << ", " << preCalcPrams->bNewGlobalPath  << ", " <<  m_TotalOriginalPaths.at(0).size() << ", PrevLocal: " << m_Path.size();
+		std::cout << "New Local Plan !! " << currIndex << ", "<< preCalcPrams->bRePlan << ", " << preCalcPrams->bNewGlobalPath  << ", " <<  m_TotalOriginalPaths.at(0).size() << ", PrevLocal: " << m_Path.size() << std::endl;
 		std::cout << ", NewLocal: " << m_Path.size() << std::endl;
 
 		m_Path = m_LanesRollOuts.at(0).at(preCalcPrams->iCurrSafeTrajectory);
@@ -231,16 +236,30 @@ void SimuDecisionMaker::FirstLocalizeMe(const WayPoint& initCarPos)
 	 PlannerHNS::BehaviorState beh;
 	 state.v = vehicleState.speed;
 	 m_TotalPaths.clear();
+
+	 if(m_prev_index.size() != m_TotalOriginalPaths.size())
+	 {
+		 m_prev_index.clear();
+		 for(unsigned int i = 0; i < m_TotalOriginalPaths.size(); i++)
+		 {
+			 m_prev_index.push_back(0);
+		 }
+
+	 }
+
 	for(unsigned int i = 0; i < m_TotalOriginalPaths.size(); i++)
 	{
 		t_centerTrajectorySmoothed.clear();
-		PlannerHNS::PlanningHelpers::ExtractPartFromPointToDistanceDirectionFast(m_TotalOriginalPaths.at(i), state, m_params.horizonDistance ,	m_params.pathDensity , t_centerTrajectorySmoothed);
+		m_prev_index.at(i) = PlannerHNS::PlanningHelpers::ExtractPartFromPointToDistanceDirectionFast(m_TotalOriginalPaths.at(i), state, m_params.horizonDistance ,	m_params.pathDensity , t_centerTrajectorySmoothed, m_prev_index.at(i));
+
+		if(m_prev_index.at(i) > 0 ) m_prev_index.at(i) = m_prev_index.at(i) -1;
+
 		m_TotalPaths.push_back(t_centerTrajectorySmoothed);
 	}
 
 	if(m_TotalPaths.size()==0) return beh;
 
-	UpdateCurrentLane(m_params.maxLaneSearchDistance);
+	//UpdateCurrentLane(m_params.maxLaneSearchDistance);
 
 	if(m_LanesRollOuts.size() == 0)
 	{

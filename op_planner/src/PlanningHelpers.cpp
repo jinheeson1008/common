@@ -2776,9 +2776,25 @@ void PlanningHelpers::ExtractPlanAlernatives(const std::vector<WayPoint>& single
 				PlanningHelpers::TraversePathTreeBackwards(pLaneCell, pStart, globalPathIds, straight_path, tempCurrentForwardPathss);
 				if(straight_path.size() > 2)
 				{
+					//std::cout << "Generated Parallel Path : " << straight_path.size() << std::endl;
+					double avg_cost_distance = 0;
+ 					for(auto& p: straight_path)
+					{
+						RelativeInfo change_inf;
+						int dummy_index = 0;
+						GetRelativeInfo(singlePath, p, change_inf, dummy_index);
+						avg_cost_distance += change_inf.perp_distance;
+						//std::cout << "Distance to Side Path: " << change_inf.perp_distance << std::endl;
+					}
+
+ 					avg_cost_distance = avg_cost_distance/straight_path.size();
+ 					//std::cout << "Generated Parallel Path Cost: " << fabs(avg_cost_distance) << std::endl;
+
 					straight_path.insert(straight_path.begin(), path.begin(), path.end());
 					for(unsigned int ic = 0; ic < straight_path.size(); ic++)
-						straight_path.at(ic).laneChangeCost = 1;
+					{
+						straight_path.at(ic).laneChangeCost = fabs(avg_cost_distance);
+					}
 					allPaths.push_back(straight_path);
 				}
 			}
@@ -2795,7 +2811,9 @@ void PlanningHelpers::ExtractPlanAlernatives(const std::vector<WayPoint>& single
 		}
 
 		if(!bStartSkip)
+		{
 			path.push_back(singlePath.at(i));
+		}
 	}
 
 	allPaths.push_back(path);

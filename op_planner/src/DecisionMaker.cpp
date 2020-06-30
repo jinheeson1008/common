@@ -18,7 +18,7 @@ DecisionMaker::DecisionMaker()
 {
 	m_CurrGlobalId = -1;
 	m_iCurrentTotalPathId = 0;
-	pLane = nullptr;
+	//pLane = nullptr;
 	m_pCurrentBehaviorState = nullptr;
 	m_pGoToGoalState = nullptr;
 	m_pWaitState= nullptr;
@@ -37,6 +37,7 @@ DecisionMaker::DecisionMaker()
 	m_pFollowState = nullptr;
 	m_pAvoidObstacleState = nullptr;
 	m_pStopState = nullptr;
+	m_bRequestNewGlobalPlan = false;
 }
 
 DecisionMaker::~DecisionMaker()
@@ -194,7 +195,7 @@ void DecisionMaker::InitBehaviorStates()
 	/**
 	 * Global Lanes section, set global path index and ID
 	 */
- 	if(bestTrajectory.lane_index >= 0)
+ 	if(bestTrajectory.lane_index >= 0 && m_bRequestNewGlobalPlan == false)
  	{
  		pValues->iCurrSafeLane = bestTrajectory.lane_index;
  	}
@@ -301,6 +302,22 @@ void DecisionMaker::InitBehaviorStates()
 		}
 	}
 
+
+ 	if(m_TotalPaths.size() > 1)
+ 	{
+		for(unsigned int i=0; i < m_TotalPaths.size(); i++)
+		{
+			RelativeInfo curr_total_path_inf;
+			int dummy_index = 0;
+			PlanningHelpers::GetRelativeInfo(m_TotalPaths.at(i), state, curr_total_path_inf, dummy_index);
+			pValues->distanceToChangeLane = m_TotalPaths.at(i).back().cost - curr_total_path_inf.perp_point.cost;
+			if(pValues->distanceToChangeLane < m_params.microPlanDistance*0.75)
+			{
+				m_bRequestNewGlobalPlan = true;
+			}
+		}
+ 	}
+
 // 	if(m_RollOuts.size() > 2)
 // 	{
 // 		std::cout << "From Decision Maker, RollIndex: " << bestTrajectory.index << ", SafeTraj: " << pValues->iCurrSafeTrajectory << ", PrevTraj: " <<pValues->iPrevSafeTrajectory << ", Blocked: " << bestTrajectory.bBlocked
@@ -308,24 +325,24 @@ void DecisionMaker::InitBehaviorStates()
 // 	}
  }
 
- void DecisionMaker::UpdateCurrentLane(const double& search_distance)
- {
-	 PlannerHNS::Lane* pMapLane = 0;
-	PlannerHNS::Lane* pPathLane = 0;
-	pPathLane = MappingHelpers::GetLaneFromPath(state, m_TotalPaths.at(m_iCurrentTotalPathId));
-	if(!pPathLane)
-	{
-		//std::cout << "Performance Alert: Can't Find Lane Information in Global Path, Searching the Map :( " << std::endl;
-		pMapLane  = MappingHelpers::GetClosestLaneFromMap(state, m_Map, search_distance);
-	}
-
-	if(pPathLane)
-		pLane = pPathLane;
-	else if(pMapLane)
-		pLane = pMapLane;
-	else
-		pLane = 0;
- }
+// void DecisionMaker::UpdateCurrentLane(const double& search_distance)
+// {
+////	 PlannerHNS::Lane* pMapLane = 0;
+////	PlannerHNS::Lane* pPathLane = 0;
+////	pPathLane = MappingHelpers::GetLaneFromPath(state, m_TotalPaths.at(m_iCurrentTotalPathId));
+////	if(!pPathLane)
+////	{
+////		//std::cout << "Performance Alert: Can't Find Lane Information in Global Path, Searching the Map :( " << std::endl;
+////		pMapLane  = MappingHelpers::GetClosestLaneFromMap(state, m_Map, search_distance);
+////	}
+////
+////	if(pPathLane)
+////		pLane = pPathLane;
+////	else if(pMapLane)
+////		pLane = pMapLane;
+////	else
+////		pLane = 0;
+// }
 
  bool DecisionMaker::ReachEndOfGlobalPath(const double& min_distance, const int& iGlobalPathIndex)
  {
@@ -350,6 +367,7 @@ void DecisionMaker::InitBehaviorStates()
 	 if(m_pCurrentBehaviorState)
 	 {
 		 m_pCurrentBehaviorState->GetCalcParams()->bNewGlobalPath = true;
+		 m_bRequestNewGlobalPlan = false;
 		 m_TotalOriginalPaths = globalPath;
 		 m_prev_index.clear();
 		 for(unsigned int i=0; i < globalPath.size(); i++)
@@ -696,6 +714,16 @@ void DecisionMaker::InitBehaviorStates()
 	 PlannerHNS::BehaviorState beh;
 	 state = currPose;
 	 m_TotalPaths.clear();
+
+	 if(m_prev_index.size() != m_TotalOriginalPaths.size())
+	 {
+		 m_prev_index.clear();
+		 for(unsigned int i = 0; i < m_TotalOriginalPaths.size(); i++)
+		 {
+			 m_prev_index.push_back(0);
+		 }
+
+	 }
 	for(unsigned int i = 0; i < m_TotalOriginalPaths.size(); i++)
 	{
 		t_centerTrajectorySmoothed.clear();
@@ -708,7 +736,7 @@ void DecisionMaker::InitBehaviorStates()
 
 	if(m_TotalPaths.size()==0) return beh;
 
-	UpdateCurrentLane(m_params.maxLaneSearchDistance);
+	//UpdateCurrentLane(m_params.maxLaneSearchDistance);
 
 	CalculateImportantParameterForDecisionMaking(vehicleState, goalID, bEmergencyStop, trafficLight, tc);
 

@@ -41,7 +41,12 @@ TrajectoryCost TrajectoryEvaluator::doOneStep(const std::vector<std::vector<WayP
 //  timespec _t;
 //  UtilityHNS::UtilityH::GetTickCount(_t);
 
-  double critical_lateral_distance = car_info.width / 2.0 + params.horizontalSafetyDistancel;
+	if(g_enable_debug == true)
+	{
+		std::cout << "Received paths: " <<  roll_outs.size() << ", Points: " << total_paths.size() << std::endl;
+	}
+
+	double critical_lateral_distance = car_info.width / 2.0 + params.horizontalSafetyDistancel;
   double critical_long_front_distance = car_info.wheel_base / 2.0 + car_info.length / 2.0
       + params.verticalSafetyDistance;
   double critical_long_back_distance = car_info.length / 2.0 + params.verticalSafetyDistance
@@ -71,7 +76,7 @@ TrajectoryCost TrajectoryEvaluator::doOneStep(const std::vector<std::vector<WayP
 //  collision_points_.insert(collision_points_.begin(), all_contour_points_.begin(), all_contour_points_.end());
 //  collision_points_.insert(collision_points_.begin(), all_trajectories_points_.begin(), all_trajectories_points_.end());
 
-  normalizeCosts(trajectory_costs_);
+  normalizeCosts(eval_params_, trajectory_costs_);
 
   TrajectoryCost best_trajectory = findBestTrajectory(params, prev_curr_index, b_keep_curr, trajectory_costs_);
 //	cout << "------------------------------------------------------------- " << endl;
@@ -195,7 +200,7 @@ void TrajectoryEvaluator::collectContoursAndTrajectories(const std::vector<Plann
   }
 }
 
-void TrajectoryEvaluator::normalizeCosts(std::vector<TrajectoryCost>& trajectory_costs)
+void TrajectoryEvaluator::normalizeCosts(const EvaluationParams& eval_param, std::vector<TrajectoryCost>& trajectory_costs)
 {
   double total_priorities_costs = 0;
   double total_lane_change_costs = 0;
@@ -277,11 +282,11 @@ void TrajectoryEvaluator::normalizeCosts(std::vector<TrajectoryCost>& trajectory
     else
       trajectory_costs.at(ic).lane_change_cost = 0;
 
-    trajectory_costs.at(ic).cost = (eval_params_.priority_weight_ * trajectory_costs.at(ic).priority_cost
-        + eval_params_.transition_weight_ * trajectory_costs.at(ic).transition_cost
-        + eval_params_.lateral_weight_ * trajectory_costs.at(ic).lateral_cost
-        + eval_params_.longitudinal_weight_ * trajectory_costs.at(ic).longitudinal_cost
-		+ eval_params_.lane_change_weight_ * trajectory_costs.at(ic).lane_change_cost);
+    trajectory_costs.at(ic).cost = (eval_param.priority_weight_ * trajectory_costs.at(ic).priority_cost
+        + eval_param.transition_weight_ * trajectory_costs.at(ic).transition_cost
+        + eval_param.lateral_weight_ * trajectory_costs.at(ic).lateral_cost
+        + eval_param.longitudinal_weight_ * trajectory_costs.at(ic).longitudinal_cost
+		+ eval_param.lane_change_weight_ * trajectory_costs.at(ic).lane_change_cost);
 
    // std::cout << std::endl << "Lane Change Cost: " << trajectory_costs.at(ic).lane_change_cost << ", Total Cost: " << trajectory_costs.at(ic).cost << std::endl << std::endl;
   }

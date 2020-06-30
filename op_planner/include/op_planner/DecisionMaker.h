@@ -28,7 +28,7 @@ public:
 	int m_CurrGlobalId;
 	std::vector<std::vector<std::vector<WayPoint> > > m_LanesRollOuts;
 	std::vector<int> m_prev_index;
-	Lane* pLane;
+	//Lane* pLane;
 
 	BehaviorStateMachine* m_pCurrentBehaviorState;
 	WaitState* m_pWaitState;
@@ -52,6 +52,8 @@ public:
 	UtilityHNS::PIDController m_pidStopping;
 	UtilityHNS::PIDController m_pidFollowing;
 
+	bool m_bRequestNewGlobalPlan;
+
 public:
 
 	DecisionMaker();
@@ -74,7 +76,7 @@ public:
 
 protected:
 	bool GetNextTrafficLight(const int& prevTrafficLightId, const std::vector<TrafficLight>& trafficLights, TrafficLight& trafficL);
-	void UpdateCurrentLane(const double& search_distance);
+	//void UpdateCurrentLane(const double& search_distance);
 	bool SelectSafeTrajectory();
 	BehaviorState GenerateBehaviorState(const VehicleState& vehicleState);
 	double UpdateVelocityDirectlyToTrajectory(const BehaviorState& beh, const VehicleState& CurrStatus, const double& dt);
@@ -87,6 +89,7 @@ protected:
 	std::vector<std::vector<WayPoint> > m_TotalOriginalPaths;
 	std::vector<std::vector<WayPoint> > m_TotalPaths;
 	PlannerHNS::PlanningParams m_params;
+
 
 };
 
