@@ -357,7 +357,7 @@ void TrajectoryEvaluator::initializeSafetyPolygon(const WayPoint& curr_state, co
   PlannerHNS::Mat3 inv_translation_mat(curr_state.pos.x, curr_state.pos.y);
 
   double corner_slide_distance = c_lateral_d / 2.0;
-  double ratio_to_angle = corner_slide_distance / car_info.max_steer_angle;
+  double ratio_to_angle = corner_slide_distance / car_info.max_wheel_angle;
   double slide_distance = vehicle_state.steer * ratio_to_angle;
 
   GPSPoint bottom_left(-c_lateral_d, -c_long_back_d, curr_state.pos.z, 0);

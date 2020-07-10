@@ -487,8 +487,7 @@ void BehaviorPrediction::MoveParticles(ObjParticles* pParts)
 	carInfo.max_deceleration = -1.5;
 	carInfo.max_speed_forward = 6;
 	carInfo.min_speed_forward = 0;
-	carInfo.max_steer_angle = 0.4;
-	carInfo.min_steer_angle = -0.4;
+	carInfo.max_wheel_angle = 0.4;
 	carInfo.turning_radius = 7.2;
 	carInfo.wheel_base = carInfo.length*0.75;
 

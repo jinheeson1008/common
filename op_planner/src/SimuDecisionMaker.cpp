@@ -228,7 +228,6 @@ void SimuDecisionMaker::FirstLocalizeMe(const WayPoint& initCarPos)
 
  PlannerHNS::BehaviorState SimuDecisionMaker::DoOneStep(const double& dt,
 		const PlannerHNS::VehicleState& vehicleState,
-		const int& goalID,
 		const std::vector<TrafficLight>& trafficLight,
 		const std::vector<PlannerHNS::DetectedObject>& objects,
 		const bool& bEmergencyStop)
@@ -275,7 +274,7 @@ void SimuDecisionMaker::FirstLocalizeMe(const WayPoint& initCarPos)
 
 	//std::cout << "Detected Objects Distance: " << tc.closest_obj_distance << ", N RollOuts: " << m_RollOuts.size() << std::endl;
 
-	CalculateImportantParameterForDecisionMaking(vehicleState, goalID, bEmergencyStop, trafficLight, tc);
+	CalculateImportantParameterForDecisionMaking(vehicleState, bEmergencyStop, trafficLight, tc);
 
 	beh = GenerateBehaviorState(vehicleState);
 

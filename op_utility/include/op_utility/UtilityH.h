@@ -58,9 +58,10 @@ public:
 	void Setlimit(const double& upper,const double& lower);
 	double getPID(const double& currValue, const double& targetValue);
 	double getPID(const double& e);
+	double getTimeDependentPID(const double& e, const double& dt);
 	void ResetD();
 	void ResetI();
-	std::string ToString();
+	std::string ToString(const double& dt = 0);
 	std::string ToStringHeader();
 
 
@@ -80,7 +81,7 @@ private:
 	double prevErr;
 	bool bResetD;
 	bool bResetI;
-
+	double m_dt;
 };
 
 class LowpassFilter
@@ -90,7 +91,7 @@ public:
 	virtual ~LowpassFilter();
 
 	LowpassFilter(const int& filterOrder, const double& sampleFreq, const double& cutOffFreq);
-	void Init(const int& filterOrder, const double& sampleFreq, const double& cutOffFreq);
+	void Init(const double& sampleFreq, const double& cutOffFreq, const int& filterOrder = 4);
 	double getFilter(const double& value);
 
 

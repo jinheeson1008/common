@@ -1595,87 +1595,135 @@ void ROSHelpers::ConvertFromAutowareCloudClusterObstaclesToPlannerH(const Planne
 	nContourPoints =  nPoints;
 }
 
-PlannerHNS::SHIFT_POS ROSHelpers::ConvertShiftFromAutowareToPlannerH(const PlannerHNS::AUTOWARE_SHIFT_POS& shift)
-{
-	if(shift == PlannerHNS::AW_SHIFT_POS_DD)
-		return PlannerHNS::SHIFT_POS_DD;
-	else if(shift == PlannerHNS::AW_SHIFT_POS_RR)
-		return PlannerHNS::SHIFT_POS_RR;
-	else if(shift == PlannerHNS::AW_SHIFT_POS_NN)
-		return PlannerHNS::SHIFT_POS_NN;
-	else if(shift == PlannerHNS::AW_SHIFT_POS_PP)
-		return PlannerHNS::SHIFT_POS_PP;
-	else if(shift == PlannerHNS::AW_SHIFT_POS_BB)
-		return PlannerHNS::SHIFT_POS_BB;
-	else if(shift == PlannerHNS::AW_SHIFT_POS_SS)
-		return PlannerHNS::SHIFT_POS_SS;
-	else
-		return PlannerHNS::SHIFT_POS_UU;
-}
+//PlannerHNS::SHIFT_POS ROSHelpers::ConvertShiftFromAutowareToPlannerH(const PlannerHNS::AUTOWARE_SHIFT_POS& shift)
+//{
+//	if(shift == PlannerHNS::AW_SHIFT_POS_DD)
+//		return PlannerHNS::SHIFT_POS_DD;
+//	else if(shift == PlannerHNS::AW_SHIFT_POS_RR)
+//		return PlannerHNS::SHIFT_POS_RR;
+//	else if(shift == PlannerHNS::AW_SHIFT_POS_NN)
+//		return PlannerHNS::SHIFT_POS_NN;
+//	else if(shift == PlannerHNS::AW_SHIFT_POS_PP)
+//		return PlannerHNS::SHIFT_POS_PP;
+//	else if(shift == PlannerHNS::AW_SHIFT_POS_BB)
+//		return PlannerHNS::SHIFT_POS_BB;
+//	else if(shift == PlannerHNS::AW_SHIFT_POS_SS)
+//		return PlannerHNS::SHIFT_POS_SS;
+//	else
+//		return PlannerHNS::SHIFT_POS_UU;
+//}
+//
+//PlannerHNS::AUTOWARE_SHIFT_POS ROSHelpers::ConvertShiftFromPlannerHToAutoware(const PlannerHNS::SHIFT_POS& shift)
+//{
+//	if(shift == PlannerHNS::SHIFT_POS_DD)
+//		return PlannerHNS::AW_SHIFT_POS_DD;
+//	else if(shift == PlannerHNS::SHIFT_POS_RR)
+//		return PlannerHNS::AW_SHIFT_POS_RR;
+//	else if(shift == PlannerHNS::SHIFT_POS_NN)
+//		return PlannerHNS::AW_SHIFT_POS_NN;
+//	else if(shift == PlannerHNS::SHIFT_POS_PP)
+//		return PlannerHNS::AW_SHIFT_POS_PP;
+//	else if(shift == PlannerHNS::SHIFT_POS_BB)
+//		return PlannerHNS::AW_SHIFT_POS_BB;
+//	else if(shift == PlannerHNS::SHIFT_POS_SS)
+//		return PlannerHNS::AW_SHIFT_POS_SS;
+//	else
+//		return PlannerHNS::AW_SHIFT_POS_UU;
+//}
 
-PlannerHNS::AUTOWARE_SHIFT_POS ROSHelpers::ConvertShiftFromPlannerHToAutoware(const PlannerHNS::SHIFT_POS& shift)
-{
-	if(shift == PlannerHNS::SHIFT_POS_DD)
-		return PlannerHNS::AW_SHIFT_POS_DD;
-	else if(shift == PlannerHNS::SHIFT_POS_RR)
-		return PlannerHNS::AW_SHIFT_POS_RR;
-	else if(shift == PlannerHNS::SHIFT_POS_NN)
-		return PlannerHNS::AW_SHIFT_POS_NN;
-	else if(shift == PlannerHNS::SHIFT_POS_PP)
-		return PlannerHNS::AW_SHIFT_POS_PP;
-	else if(shift == PlannerHNS::SHIFT_POS_BB)
-		return PlannerHNS::AW_SHIFT_POS_BB;
-	else if(shift == PlannerHNS::SHIFT_POS_SS)
-		return PlannerHNS::AW_SHIFT_POS_SS;
-	else
-		return PlannerHNS::AW_SHIFT_POS_UU;
-}
+//PlannerHNS::AutowareBehaviorState ROSHelpers::ConvertBehaviorStateFromPlannerHToAutoware(const PlannerHNS::BehaviorState& beh)
+//{
+//	PlannerHNS::AutowareBehaviorState arw_state;
+//	arw_state.followDistance = beh.followDistance;
+//	arw_state.followVelocity = beh.followVelocity;
+//	arw_state.maxVelocity = beh.maxVelocity;
+//	arw_state.minVelocity = beh.minVelocity;
+//	arw_state.stopDistance = beh.stopDistance;
+//
+//	if(beh.indicator == PlannerHNS::LIGHT_INDICATOR::INDICATOR_LEFT)
+//		arw_state.indicator = PlannerHNS::AW_INDICATOR_LEFT;
+//	else if(beh.indicator == PlannerHNS::LIGHT_INDICATOR::INDICATOR_RIGHT)
+//		arw_state.indicator = PlannerHNS::AW_INDICATOR_RIGHT;
+//	else if(beh.indicator == PlannerHNS::LIGHT_INDICATOR::INDICATOR_BOTH)
+//		arw_state.indicator = PlannerHNS::AW_INDICATOR_BOTH;
+//	else if(beh.indicator == PlannerHNS::LIGHT_INDICATOR::INDICATOR_NONE)
+//		arw_state.indicator = PlannerHNS::AW_INDICATOR_NONE;
+//
+//	if(beh.state == PlannerHNS::INITIAL_STATE)
+//		arw_state.state = PlannerHNS::AW_INITIAL_STATE;
+//	else if(beh.state == PlannerHNS::WAITING_STATE)
+//		arw_state.state = PlannerHNS::AW_WAITING_STATE;
+//	else if(beh.state == PlannerHNS::FORWARD_STATE)
+//		arw_state.state = PlannerHNS::AW_FORWARD_STATE;
+//	else if(beh.state == PlannerHNS::STOPPING_STATE)
+//		arw_state.state = PlannerHNS::AW_STOPPING_STATE;
+//	else if(beh.state == PlannerHNS::EMERGENCY_STATE)
+//		arw_state.state = PlannerHNS::AW_EMERGENCY_STATE;
+//	else if(beh.state == PlannerHNS::TRAFFIC_LIGHT_STOP_STATE)
+//		arw_state.state = PlannerHNS::AW_TRAFFIC_LIGHT_STOP_STATE;
+//	else if(beh.state == PlannerHNS::STOP_SIGN_STOP_STATE)
+//		arw_state.state = PlannerHNS::AW_STOP_SIGN_STOP_STATE;
+//	else if(beh.state == PlannerHNS::FOLLOW_STATE)
+//		arw_state.state = PlannerHNS::AW_FOLLOW_STATE;
+//	else if(beh.state == PlannerHNS::LANE_CHANGE_STATE)
+//		arw_state.state = PlannerHNS::AW_LANE_CHANGE_STATE;
+//	else if(beh.state == PlannerHNS::OBSTACLE_AVOIDANCE_STATE)
+//		arw_state.state = PlannerHNS::AW_OBSTACLE_AVOIDANCE_STATE;
+//	else if(beh.state == PlannerHNS::FINISH_STATE)
+//		arw_state.state = PlannerHNS::AW_FINISH_STATE;
+//
+//
+//	return arw_state;
+//
+//}
 
-PlannerHNS::AutowareBehaviorState ROSHelpers::ConvertBehaviorStateFromPlannerHToAutoware(const PlannerHNS::BehaviorState& beh)
-{
-	PlannerHNS::AutowareBehaviorState arw_state;
-	arw_state.followDistance = beh.followDistance;
-	arw_state.followVelocity = beh.followVelocity;
-	arw_state.maxVelocity = beh.maxVelocity;
-	arw_state.minVelocity = beh.minVelocity;
-	arw_state.stopDistance = beh.stopDistance;
-
-	if(beh.indicator == PlannerHNS::LIGHT_INDICATOR::INDICATOR_LEFT)
-		arw_state.indicator = PlannerHNS::AW_INDICATOR_LEFT;
-	else if(beh.indicator == PlannerHNS::LIGHT_INDICATOR::INDICATOR_RIGHT)
-		arw_state.indicator = PlannerHNS::AW_INDICATOR_RIGHT;
-	else if(beh.indicator == PlannerHNS::LIGHT_INDICATOR::INDICATOR_BOTH)
-		arw_state.indicator = PlannerHNS::AW_INDICATOR_BOTH;
-	else if(beh.indicator == PlannerHNS::LIGHT_INDICATOR::INDICATOR_NONE)
-		arw_state.indicator = PlannerHNS::AW_INDICATOR_NONE;
-
-	if(beh.state == PlannerHNS::INITIAL_STATE)
-		arw_state.state = PlannerHNS::AW_INITIAL_STATE;
-	else if(beh.state == PlannerHNS::WAITING_STATE)
-		arw_state.state = PlannerHNS::AW_WAITING_STATE;
-	else if(beh.state == PlannerHNS::FORWARD_STATE)
-		arw_state.state = PlannerHNS::AW_FORWARD_STATE;
-	else if(beh.state == PlannerHNS::STOPPING_STATE)
-		arw_state.state = PlannerHNS::AW_STOPPING_STATE;
-	else if(beh.state == PlannerHNS::EMERGENCY_STATE)
-		arw_state.state = PlannerHNS::AW_EMERGENCY_STATE;
-	else if(beh.state == PlannerHNS::TRAFFIC_LIGHT_STOP_STATE)
-		arw_state.state = PlannerHNS::AW_TRAFFIC_LIGHT_STOP_STATE;
-	else if(beh.state == PlannerHNS::STOP_SIGN_STOP_STATE)
-		arw_state.state = PlannerHNS::AW_STOP_SIGN_STOP_STATE;
-	else if(beh.state == PlannerHNS::FOLLOW_STATE)
-		arw_state.state = PlannerHNS::AW_FOLLOW_STATE;
-	else if(beh.state == PlannerHNS::LANE_CHANGE_STATE)
-		arw_state.state = PlannerHNS::AW_LANE_CHANGE_STATE;
-	else if(beh.state == PlannerHNS::OBSTACLE_AVOIDANCE_STATE)
-		arw_state.state = PlannerHNS::AW_OBSTACLE_AVOIDANCE_STATE;
-	else if(beh.state == PlannerHNS::FINISH_STATE)
-		arw_state.state = PlannerHNS::AW_FINISH_STATE;
-
-
-	return arw_state;
-
-}
+//PlannerHNS::BehaviorState ROSHelpers::ConvertBehaviorStateFromAutowareToPlannerH(const geometry_msgs::TwistStampedConstPtr& msg)
+//{
+//	PlannerHNS::BehaviorState behavior;
+//	behavior.followDistance = msg->twist.linear.x;
+//	behavior.stopDistance = msg->twist.linear.y;
+//	behavior.followVelocity = msg->twist.angular.x;
+//	behavior.maxVelocity = msg->twist.angular.y;
+//
+//
+//	if(msg->twist.linear.z == PlannerHNS::LIGHT_INDICATOR::INDICATOR_LEFT)
+//		behavior.indicator = PlannerHNS::LIGHT_INDICATOR::INDICATOR_LEFT;
+//	else if(msg->twist.linear.z == PlannerHNS::LIGHT_INDICATOR::INDICATOR_RIGHT)
+//		behavior.indicator = PlannerHNS::LIGHT_INDICATOR::INDICATOR_RIGHT;
+//	else if(msg->twist.linear.z == PlannerHNS::LIGHT_INDICATOR::INDICATOR_BOTH)
+//		behavior.indicator = PlannerHNS::LIGHT_INDICATOR::INDICATOR_BOTH;
+//	else if(msg->twist.linear.z == PlannerHNS::LIGHT_INDICATOR::INDICATOR_NONE)
+//		behavior.indicator = PlannerHNS::LIGHT_INDICATOR::INDICATOR_NONE;
+//
+//	if(msg->twist.angular.z == PlannerHNS::INITIAL_STATE)
+//		behavior.state = PlannerHNS::INITIAL_STATE;
+//	else if(msg->twist.angular.z == PlannerHNS::WAITING_STATE)
+//		behavior.state = PlannerHNS::WAITING_STATE;
+//	else if(msg->twist.angular.z == PlannerHNS::FORWARD_STATE)
+//		behavior.state = PlannerHNS::FORWARD_STATE;
+//	else if(msg->twist.angular.z == PlannerHNS::STOPPING_STATE)
+//		behavior.state = PlannerHNS::STOPPING_STATE;
+//	else if(msg->twist.angular.z == PlannerHNS::EMERGENCY_STATE)
+//		behavior.state = PlannerHNS::EMERGENCY_STATE;
+//	else if(msg->twist.angular.z == PlannerHNS::TRAFFIC_LIGHT_STOP_STATE)
+//		behavior.state = PlannerHNS::TRAFFIC_LIGHT_STOP_STATE;
+//	else if(msg->twist.angular.z == PlannerHNS::STOP_SIGN_STOP_STATE)
+//		behavior.state = PlannerHNS::STOP_SIGN_STOP_STATE;
+//	else if(msg->twist.angular.z == PlannerHNS::STOP_SIGN_WAIT_STATE)
+//		behavior.state = PlannerHNS::STOP_SIGN_WAIT_STATE;
+//	else if(msg->twist.angular.z == PlannerHNS::FOLLOW_STATE)
+//		behavior.state = PlannerHNS::FOLLOW_STATE;
+//	else if(msg->twist.angular.z == PlannerHNS::LANE_CHANGE_STATE)
+//		behavior.state = PlannerHNS::LANE_CHANGE_STATE;
+//	else if(msg->twist.angular.z == PlannerHNS::OBSTACLE_AVOIDANCE_STATE)
+//		behavior.state = PlannerHNS::OBSTACLE_AVOIDANCE_STATE;
+//	else if(msg->twist.angular.z == PlannerHNS::FINISH_STATE)
+//		behavior.state = PlannerHNS::FINISH_STATE;
+//
+//
+//	return behavior;
+//
+//}
 
 void ROSHelpers::ConvertFromLocalLaneToAutowareLane(const std::vector<PlannerHNS::WayPoint>& path, autoware_msgs::Lane& trajectory , const unsigned int& iStart)
 {
@@ -2056,6 +2104,73 @@ void ROSHelpers::ConvertFromOpenPlannerDetectedObjectToAutowareDetectedObject(co
 		pred_traj.lane_index = 0;
 		obj.candidate_trajectories.lanes.push_back(pred_traj);
 	}
+}
+
+autoware_msgs::Waypoint ROSHelpers::ConvertBehaviorStateToAutowareWaypoint(const PlannerHNS::BehaviorState& beh)
+{
+	autoware_msgs::Waypoint wp;
+	wp.change_flag = beh.bNewPlan;
+	wp.lid = beh.iTrajectory;
+	wp.gid = beh.iLane;
+	wp.cost = beh.followDistance;
+	wp.time_cost = beh.followVelocity;
+	wp.twist.twist.linear.x = beh.maxVelocity;
+	wp.twist.twist.linear.y = beh.minVelocity;
+	wp.pose.pose.position.x = beh.stopDistance;
+	wp.direction = beh.indicator;
+	wp.wpstate.event_state = beh.state;
+
+	return wp;
+}
+
+PlannerHNS::BehaviorState ROSHelpers::ConvertAutowareWaypointToBehaviorState(const autoware_msgs::Waypoint& state_point)
+{
+	PlannerHNS::BehaviorState behavior;
+	behavior.bNewPlan = state_point.change_flag;
+	behavior.iTrajectory = state_point.lid;
+	behavior.iLane = state_point.gid;
+	behavior.followDistance = state_point.cost;
+	behavior.followVelocity = state_point.time_cost;
+	behavior.maxVelocity = state_point.twist.twist.linear.x;
+	behavior.minVelocity = state_point.twist.twist.linear.y;
+	behavior.stopDistance = state_point.pose.pose.position.x;
+
+	if(state_point.direction == PlannerHNS::LIGHT_INDICATOR::INDICATOR_LEFT)
+		behavior.indicator = PlannerHNS::LIGHT_INDICATOR::INDICATOR_LEFT;
+	else if(state_point.direction == PlannerHNS::LIGHT_INDICATOR::INDICATOR_RIGHT)
+		behavior.indicator = PlannerHNS::LIGHT_INDICATOR::INDICATOR_RIGHT;
+	else if(state_point.direction == PlannerHNS::LIGHT_INDICATOR::INDICATOR_BOTH)
+		behavior.indicator = PlannerHNS::LIGHT_INDICATOR::INDICATOR_BOTH;
+	else if(state_point.direction == PlannerHNS::LIGHT_INDICATOR::INDICATOR_NONE)
+		behavior.indicator = PlannerHNS::LIGHT_INDICATOR::INDICATOR_NONE;
+
+	if(state_point.wpstate.event_state == PlannerHNS::INITIAL_STATE)
+		behavior.state = PlannerHNS::INITIAL_STATE;
+	else if(state_point.wpstate.event_state == PlannerHNS::WAITING_STATE)
+		behavior.state = PlannerHNS::WAITING_STATE;
+	else if(state_point.wpstate.event_state == PlannerHNS::FORWARD_STATE)
+		behavior.state = PlannerHNS::FORWARD_STATE;
+	else if(state_point.wpstate.event_state == PlannerHNS::STOPPING_STATE)
+		behavior.state = PlannerHNS::STOPPING_STATE;
+	else if(state_point.wpstate.event_state == PlannerHNS::EMERGENCY_STATE)
+		behavior.state = PlannerHNS::EMERGENCY_STATE;
+	else if(state_point.wpstate.event_state == PlannerHNS::TRAFFIC_LIGHT_STOP_STATE)
+		behavior.state = PlannerHNS::TRAFFIC_LIGHT_STOP_STATE;
+	else if(state_point.wpstate.event_state == PlannerHNS::STOP_SIGN_STOP_STATE)
+		behavior.state = PlannerHNS::STOP_SIGN_STOP_STATE;
+	else if(state_point.wpstate.event_state == PlannerHNS::STOP_SIGN_WAIT_STATE)
+		behavior.state = PlannerHNS::STOP_SIGN_WAIT_STATE;
+	else if(state_point.wpstate.event_state == PlannerHNS::FOLLOW_STATE)
+		behavior.state = PlannerHNS::FOLLOW_STATE;
+	else if(state_point.wpstate.event_state == PlannerHNS::LANE_CHANGE_STATE)
+		behavior.state = PlannerHNS::LANE_CHANGE_STATE;
+	else if(state_point.wpstate.event_state == PlannerHNS::OBSTACLE_AVOIDANCE_STATE)
+		behavior.state = PlannerHNS::OBSTACLE_AVOIDANCE_STATE;
+	else if(state_point.wpstate.event_state == PlannerHNS::FINISH_STATE)
+		behavior.state = PlannerHNS::FINISH_STATE;
+
+
+	return behavior;
 }
 
 void ROSHelpers::GetIndicatorArrows(const PlannerHNS::WayPoint& center, const double& width,const double& length, const PlannerHNS::LIGHT_INDICATOR& indicator, const int& id, visualization_msgs::MarkerArray& markerArray)

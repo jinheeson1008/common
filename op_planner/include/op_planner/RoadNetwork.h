@@ -909,17 +909,9 @@ public:
 class VehicleState : public ObjTimeStamp
 {
 public:
-	double speed;
-	double steer;
-	SHIFT_POS shift;
-
-	VehicleState()
-	{
-		speed = 0;
-		steer = 0;
-		shift = SHIFT_POS_NN;
-	}
-
+	double speed = 0;
+	double steer = 0;
+	SHIFT_POS shift = SHIFT_POS_NN;
 };
 
 class BehaviorState
@@ -1169,7 +1161,9 @@ public:
 		for(unsigned int i=0; i< stoppingDistances.size(); i++)
 		{
 			if(stoppingDistances.at(i) < minS)
+			{
 				minS = stoppingDistances.at(i);
+			}
 		}
 		return minS;
 	}

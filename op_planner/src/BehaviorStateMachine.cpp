@@ -422,7 +422,7 @@ BehaviorStateMachine* InitStateII::GetNextState()
 {
 	PreCalculatedConditions* pCParams = GetCalcParams();
 
-	if(pCParams->currentGoalID > 0)
+	if(pCParams->currentGoalID == 1)
 		return FindBehaviorState(FORWARD_STATE);
 	else
 		return FindBehaviorState(this->m_Behavior);
@@ -433,8 +433,9 @@ BehaviorStateMachine* GoalStateII::GetNextState()
 	PreCalculatedConditions* pCParams = GetCalcParams();
 
 	if(pCParams->currentGoalID == -1)
+	{
 		return FindBehaviorState(FINISH_STATE);
-
+	}
 	else
 	{
 		pCParams->prevGoalID = pCParams->currentGoalID;
@@ -522,13 +523,17 @@ BehaviorStateMachine* StopStateII::GetNextState()
 	PreCalculatedConditions* pCParams = GetCalcParams();
 
 	if(pCParams->currentGoalID != pCParams->prevGoalID)
+	{
 		return FindBehaviorState(GOAL_STATE);
-
-	else if((pCParams->distanceToGoal - pCParams->minStoppingDistance) > 1.0)
-		return FindBehaviorState(FORWARD_STATE);
-
+	}
+//	else if((pCParams->distanceToGoal - pCParams->minStoppingDistance) > 1.0 && pCParams->currentVelocity <= m_zero_velocity)
+//	{
+//		return FindBehaviorState(FORWARD_STATE);
+//	}
 	else
+	{
 		return FindBehaviorState(this->m_Behavior);
+	}
 }
 
 } /* namespace PlannerHNS */

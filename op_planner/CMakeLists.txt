@@ -59,6 +59,7 @@ set(PLANNERH_SRC
 	src/Lanelet2MapLoader.cpp
 	src/RoadNetwork.cpp
 	src/hmi/HMIMSG.cpp
+	src/control/op_controller.cpp
 )
 
 ## Declare a cpp library
