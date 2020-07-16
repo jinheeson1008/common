@@ -48,6 +48,9 @@ public:
 				const std::vector<PlannerHNS::WayPoint>& path, const PlannerHNS::WayPoint& currPose,
 				const PlannerHNS::VehicleState& vehicleState, const bool& bNewTrajectory);
 
+	void ResetLogTime(const double& v0, const double& v1);
+	void SetCruiseSpeedRange(const double& speed_range = 2.0); // when the velocity error drops below this value , vehicle start braking
+
 	//Testing Points
 	PlannerHNS::WayPoint m_ForwardSimulation;
 	PlannerHNS::WayPoint m_PerpendicularPoint; // on track point, parallel to vehicle
@@ -57,6 +60,8 @@ public:
 	double m_TargetSpeed;
 	double m_PrevAngleError;
 	double m_PrevSpeedError;
+	double m_PrevSpeed;
+	double m_InstantAcceleration;
 	double m_FollowingDistance;
 	int m_iCalculatedIndex;
 	std::string m_ExperimentFolderName;
@@ -71,6 +76,13 @@ private:
 	double m_PrevDesiredBrakeStroke;
 	double m_FollowAcceleration;
 	int m_iPrevWayPoint;
+	double m_CruseSpeedRange;
+
+	double m_AverageAcceleration;
+	double m_TotalAcceleration;
+	double m_AccelerationSum;
+	int m_nAccelerations;
+
 
 	UtilityHNS::PIDController m_pidSteer;
 	UtilityHNS::LowpassFilter m_lowpassSteer;
@@ -97,6 +109,7 @@ private:
 	PlannerHNS::VehicleState m_prevDesiredState_vel;
 	struct timespec m_SteerDelayTimer;
 	struct timespec m_VelocityDelayTimer;
+	struct timespec m_LogTimer;
 	std::vector<std::pair<double, double> > m_CalibrationRunList;
 
 	bool FindNextWayPoint(const std::vector<PlannerHNS::WayPoint>& path, const PlannerHNS::WayPoint& state,
