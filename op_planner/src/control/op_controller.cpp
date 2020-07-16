@@ -315,9 +315,12 @@ int MotionControl::VeclocityControllerUpdateTwoPID(const double& dt, const Plann
 {
 
 	double desired_velocity = CalculateVelocityDesired(dt, CurrStatus, CurrBehavior);
+	double deceleration_critical = (desired_velocity - CurrStatus.speed) / dt;
 
 	desiredShift = PlannerHNS::SHIFT_POS_DD;
 	double e = (desired_velocity - CurrStatus.speed);
+
+
 
 //	if((e > 0 && m_PrevSpeedError < 0) || (e < 0 && m_PrevSpeedError > 0))
 //	{
@@ -333,27 +336,27 @@ int MotionControl::VeclocityControllerUpdateTwoPID(const double& dt, const Plann
 //		m_pidBrake.ResetI();
 //		m_pidBrake.ResetD();
 //	}
-	if(desired_velocity > 0 && e > -m_CruseSpeedRange) //accelerate , cruise, small decelerate
+	if(desired_velocity > 0 && deceleration_critical > -1.0) //accelerate , cruise, small decelerate
 	{
 		m_pidBrake.ResetI();
 		m_pidBrake.ResetD();
 		desiredAccel = m_pidAccel.getTimeDependentPID(e, dt);
 		desiredBrake = 0;
 	}
-	else if(e < -m_CruseSpeedRange) // use engine brake
+	else if(deceleration_critical > -2.5) // use engine brake
 	{
 		desiredAccel = 0;
 		desiredBrake = 0;
 		m_pidAccel.ResetI();
 		m_pidAccel.ResetD();
 	}
-//	else if(e < -2) // braking
-//	{
-//		m_pidAccel.ResetI();
-//		m_pidAccel.ResetD();
-//		desiredBrake = m_pidBrake.getTimeDependentPID(-e, dt);
-//		desiredAccel = 0;
-//	}
+	else  // braking
+	{
+		m_pidAccel.ResetI();
+		m_pidAccel.ResetD();
+		desiredBrake = m_pidBrake.getTimeDependentPID(-e, dt);
+		desiredAccel = 0;
+	}
 
 	m_PrevDesiredAccelStroke = desiredAccel;
 	m_PrevDesiredBrakeStroke = desiredBrake;
