@@ -1786,7 +1786,14 @@ void ROSHelpers::ConvertFromAutowareLaneToLocalLane(const autoware_msgs::Lane& t
 		wp.pos.x = trajectory.waypoints.at(i).pose.pose.position.x;
 		wp.pos.y = trajectory.waypoints.at(i).pose.pose.position.y;
 		wp.pos.z = trajectory.waypoints.at(i).pose.pose.position.z;
-		wp.pos.a = tf::getYaw(trajectory.waypoints.at(i).pose.pose.orientation);
+		try
+		{
+			wp.pos.a = tf::getYaw(trajectory.waypoints.at(i).pose.pose.orientation);
+		}
+		catch (exception& ex)
+		{
+			ROS_ERROR("%s", ex.what());
+		}
 
 		wp.v = trajectory.waypoints.at(i).twist.twist.linear.x;
 
@@ -2006,7 +2013,14 @@ void ROSHelpers::ConvertFromAutowareDetectedObjectToOpenPlannerDetectedObject(co
 	obj.center.pos.x = det_obj.pose.position.x;
 	obj.center.pos.y = det_obj.pose.position.y;
 	obj.center.pos.z = det_obj.pose.position.z;
-	obj.center.pos.a = tf::getYaw(det_obj.pose.orientation);
+	try
+	{
+		obj.center.pos.a = tf::getYaw(det_obj.pose.orientation);
+	}
+	catch (exception& ex)
+	{
+		ROS_ERROR("%s", ex.what());
+	}
 
 	obj.center.v = det_obj.velocity.linear.x;
 	obj.acceleration_raw = det_obj.velocity.linear.y;
@@ -2040,9 +2054,11 @@ void ROSHelpers::ConvertFromAutowareDetectedObjectToOpenPlannerDetectedObject(co
 	for(unsigned int j = 0 ; j < det_obj.candidate_trajectories.lanes.size(); j++)
 	{
 		std::vector<PlannerHNS::WayPoint> _traj;
-		PlannerHNS::ROSHelpers::ConvertFromAutowareLaneToLocalLane(det_obj.candidate_trajectories.lanes.at(j), _traj);
+		ConvertFromAutowareLaneToLocalLane(det_obj.candidate_trajectories.lanes.at(j), _traj);
 		for(unsigned int k=0; k < _traj.size(); k++)
+		{
 			_traj.at(k).collisionCost = det_obj.candidate_trajectories.lanes.at(j).cost;
+		}
 
 		obj.predTrajectories.push_back(_traj);
 	}

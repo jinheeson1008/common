@@ -49,39 +49,45 @@ public:
 				const PlannerHNS::VehicleState& vehicleState, const bool& bNewTrajectory);
 
 	void ResetLogTime(const double& v0, const double& v1);
-	void SetCruiseSpeedRange(const double& speed_range = 2.0); // when the velocity error drops below this value , vehicle start braking
 
 	//Testing Points
-	PlannerHNS::WayPoint m_ForwardSimulation;
 	PlannerHNS::WayPoint m_PerpendicularPoint; // on track point, parallel to vehicle
 	PlannerHNS::WayPoint m_FollowMePoint;
-	double m_LateralError;
-	double m_TargetAngle;
-	double m_TargetSpeed;
-	double m_PrevAngleError;
-	double m_PrevSpeedError;
-	double m_PrevSpeed;
-	double m_InstantAcceleration;
 	double m_FollowingDistance;
-	int m_iCalculatedIndex;
 	std::string m_ExperimentFolderName;
-
 
 private:
 	PlannerHNS::ControllerParams m_Params;
 	PlannerHNS::CAR_BASIC_INFO m_VehicleInfo;
 	std::vector<PlannerHNS::WayPoint> m_Path;
 	double m_PrevDesiredTorque; // control output
-	double m_PrevDesiredAccelStroke;
-	double m_PrevDesiredBrakeStroke;
-	double m_FollowAcceleration;
-	int m_iPrevWayPoint;
-	double m_CruseSpeedRange;
+	PlannerHNS::BehaviorState m_PrevBehaviorStatus;
+	double m_PrevFollowDistance;
+	std::vector<double> m_RelativeSpeeds;
+	double m_AverageRelativeSpeed;
+	double m_PrevAngleError;
 
+	/**
+	 * Log Information
+	 */
+	int m_iPrevWayPoint;
+	double m_LateralError;
+	double m_TargetAngle;
+	double m_TargetSpeed;
+	double m_PrevSpeedError;
+	double m_PrevDistanceError;
+	double m_PrevSpeed;
+	double m_InstantAcceleration;
+	double m_DesiredDistance;
+	double m_DesiredSafeDistance;
 	double m_AverageAcceleration;
 	double m_TotalAcceleration;
 	double m_AccelerationSum;
 	int m_nAccelerations;
+	double m_PredictedRelativeSpeed;
+	double m_TargetAcceleration;
+
+
 
 
 	UtilityHNS::PIDController m_pidSteer;
@@ -89,6 +95,7 @@ private:
 
 	UtilityHNS::PIDController m_pidAccelBrake;
 	UtilityHNS::PIDController m_pidAccel;
+	UtilityHNS::PIDController m_pidFollow;
 	UtilityHNS::PIDController m_pidBrake;
 
 	bool m_bEnableLog;
@@ -124,13 +131,14 @@ private:
 
 	double GetPID_LinearChange(double minVal, double maxVal, double speedMax, double currSpeed);
 
-	double CalculateVelocityDesired(const double& dt, const PlannerHNS::VehicleState& CurrStatus,
-			const PlannerHNS::BehaviorState& CurrBehavior);
+	void CalculateVelocityDesired(const double& dt, const PlannerHNS::VehicleState& CurrStatus,
+			const PlannerHNS::BehaviorState& CurrBehavior, double& vel_d, double& acc_d, double& distance_d, double& safe_d);
 
 	void LogCalibrationData(const PlannerHNS::VehicleState& currState,const PlannerHNS::VehicleState& desiredState);
 	void InitCalibration();
 	void CalibrationStep(const double& dt, const PlannerHNS::VehicleState& CurrStatus, double& desiredSteer, double& desiredVelocity);
 	void CoordinateAscent(double tolerance, PID_CONST& pOut);
+	bool CalcAvgRelativeSpeedFromDistance(const double& dt, const PlannerHNS::BehaviorState& CurrBehavior, double avg_relative_speed);
 };
 
 } /* namespace PlannerHNS */

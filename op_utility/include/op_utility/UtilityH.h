@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <string>
 #include <math.h>
+#include <vector>
 
 
 namespace UtilityHNS
@@ -61,6 +62,7 @@ public:
 	double getTimeDependentPID(const double& e, const double& dt);
 	void ResetD();
 	void ResetI();
+	void Reset();
 	std::string ToString(const double& dt = 0);
 	std::string ToStringHeader();
 
@@ -82,6 +84,8 @@ private:
 	bool bResetD;
 	bool bResetI;
 	double m_dt;
+	double m_LastValidErrorDiff;
+	std::vector<double> m_edot_list;
 };
 
 class LowpassFilter

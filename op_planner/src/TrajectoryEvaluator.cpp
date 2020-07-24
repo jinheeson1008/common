@@ -153,6 +153,7 @@ void TrajectoryEvaluator::collectContoursAndTrajectories(const std::vector<Plann
       for (unsigned int i_p = 0; i_p < obj_list.at(i).predTrajectories.at(i_trj).size(); i_p++)
       {
         p = obj_list.at(i).predTrajectories.at(i_trj).at(i_p);
+        p.v = obj_list.at(i).center.v;
 
         if(hypot(obj_list.at(i).center.pos.y-p.pos.y, obj_list.at(i).center.pos.x-p.pos.x) < obj_list.at(i).l/2.0)
         {
@@ -592,6 +593,7 @@ void TrajectoryEvaluator::calculateDistanceCosts(const PlanningParams& params, c
 					if(trajectory_costs.at(i).closest_obj_distance > actual_longitudinal_distance)
 					{
 						trajectory_costs.at(i).closest_obj_distance = actual_longitudinal_distance;
+						trajectory_costs.at(i).closest_obj_velocity = contour_points.at(j).v;
 					}
 				}
 				else
@@ -631,6 +633,7 @@ void TrajectoryEvaluator::calculateDistanceCosts(const PlanningParams& params, c
 					if(trajectory_costs.at(i).closest_obj_distance > actual_longitudinal_distance)
 					{
 						trajectory_costs.at(i).closest_obj_distance = actual_longitudinal_distance;
+						trajectory_costs.at(i).closest_obj_velocity = trajectory_points.at(j).v;
 					}
 				}
 				else

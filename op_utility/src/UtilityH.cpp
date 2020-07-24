@@ -236,6 +236,7 @@ PIDController::PIDController()
 	bResetD = true;
 	bResetI = false;
 	m_dt = 0;
+	m_LastValidErrorDiff = 0;
 }
 
 PIDController::PIDController(const double& kp, const double& ki, const double& kd)
@@ -247,7 +248,7 @@ PIDController::PIDController(const double& kp, const double& ki, const double& k
 	prevErr  = 0;
 	bResetD = true;
 	bResetI = false;
-
+	m_LastValidErrorDiff = 0;
 }
 
 void PIDController::Setlimit(const double& upper,const double& lower)
@@ -286,14 +287,28 @@ double PIDController::getTimeDependentPID(const double& e, const double& dt)
 
 
 	double edot = (e - prevErr);
-	if(dt > 0)
+	if(dt > 0 && fabs(edot) > 0)
 	{
-		edot = (e - prevErr)/dt;
+		m_LastValidErrorDiff = edot/dt;
+	}
+
+	m_edot_list.push_back(m_LastValidErrorDiff);
+
+	if(m_edot_list.size() > 5)
+	{
+		double _sum = 0;
+		for(auto& v: m_edot_list)
+		{
+			_sum += v;
+		}
+
+		m_LastValidErrorDiff = _sum/m_edot_list.size();
+		m_edot_list.erase(m_edot_list.begin()+0);
 	}
 
 	kp_v = kp * e;
 	ki_v = ki * accumErr;
-	kd_v = kd * edot;
+	kd_v = kd * m_LastValidErrorDiff;
 
 	pid_v = kp_v + ki_v + kd_v;
 	pid_lim = pid_v;
@@ -399,6 +414,12 @@ void PIDController::ResetD()
 void PIDController::ResetI()
 {
 	bResetI = true;
+}
+
+void PIDController::Reset()
+{
+	bResetI = true;
+	bResetD = true;
 }
 
 void PIDController::Init(const double& kp, const double& ki, const double& kd)

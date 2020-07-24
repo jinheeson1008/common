@@ -26,15 +26,17 @@ MotionControl::MotionControl()
 	m_FollowingDistance = 0;
 	m_LateralError 		= 0;
 	m_PrevDesiredTorque	= 0;
-	m_PrevDesiredAccelStroke = 0;
-	m_PrevDesiredBrakeStroke = 0;
-	m_FollowAcceleration= 0;
-	m_iPrevWayPoint 	= -1;
-	m_iCalculatedIndex = 0;
-	m_CruseSpeedRange = -2;
+	m_iPrevWayPoint = -1;
 	m_AccelerationSum = 0;
 	m_nAccelerations = 0;
 	m_AverageAcceleration = 0;
+	m_PrevFollowDistance = 0;
+	m_AverageRelativeSpeed = 0;
+	m_PredictedRelativeSpeed = 0;
+	m_TargetAcceleration = 0;
+	m_DesiredDistance = 0;
+	m_DesiredSafeDistance = 0;
+	m_PrevDistanceError = 0;
 
 	UtilityHNS::UtilityH::GetTickCount(m_SteerDelayTimer);
 	UtilityHNS::UtilityH::GetTickCount(m_VelocityDelayTimer);
@@ -61,6 +63,11 @@ void MotionControl::Init(const ControllerParams& params, const CAR_BASIC_INFO& v
 
 	m_pidAccel.Init(m_Params.Accel_Gain.kP, m_Params.Accel_Gain.kI, m_Params.Accel_Gain.kD);
 	m_pidAccel.Setlimit(m_VehicleInfo.max_accel_value, 0);
+
+	double pid_follow_ratio = 0.5;
+	m_pidFollow.Init(m_Params.Accel_Gain.kP*pid_follow_ratio, m_Params.Accel_Gain.kI*pid_follow_ratio, m_Params.Accel_Gain.kD*pid_follow_ratio);
+	m_pidFollow.Setlimit(m_VehicleInfo.max_accel_value, 0);
+
 	m_pidBrake.Init(m_Params.Brake_Gain.kP, m_Params.Brake_Gain.kI, m_Params.Brake_Gain.kD);
 	m_pidBrake.Setlimit(m_VehicleInfo.max_brake_value, 0);
 }
@@ -78,8 +85,8 @@ MotionControl::~MotionControl()
 		UtilityHNS::DataRW::WriteLogData(fileName.str(), "ControlLog",
 				"dt,t,X,Y,"
 				"heading,target_angle,angle_err,torque,"
-				"state,stop_distance,acceleration,"
-				"speed,target_speed,speed_err,accel_stroke,"
+				"state,stop_distance,acceleration,avg_relative_speed,pred_relative_speed,"
+				"speed,target_speed,target_accel,speed_err,distance_err,target_distance,safe_distance,accel_stroke,"
 				"brake_stroke,lateral_error,iIndex,pathSize,avg_accel,total_accel",
 				m_LogData);
 
@@ -112,11 +119,6 @@ void MotionControl::ResetLogTime(const double& v0, const double& v1)
 	UtilityHNS::UtilityH::GetTickCount(m_LogTimer);
 }
 
-void MotionControl::SetCruiseSpeedRange(const double& speed_range)
-{
-	m_CruseSpeedRange = speed_range;
-}
-
 void MotionControl::UpdateCurrentPath(const std::vector<PlannerHNS::WayPoint>& path)
 {
 	m_Path = path;
@@ -128,7 +130,7 @@ bool MotionControl::FindNextWayPoint(const std::vector<PlannerHNS::WayPoint>& pa
 {
 	if(path.size()==0) return false;
 
-	follow_distance = fabs(velocity*1.5);
+	follow_distance = fabs(velocity*1.2);
 
 	if(follow_distance < m_Params.minPursuiteDistance)
 	{
@@ -214,154 +216,169 @@ void MotionControl::PredictMotion(double& x, double &y, double& heading, double 
 	heading = heading + ((velocity*time_elapsed*tan(steering))  / (wheelbase) );
 }
 
-double MotionControl::CalculateVelocityDesired(const double& dt, const PlannerHNS::VehicleState& CurrStatus,
-			const PlannerHNS::BehaviorState& CurrBehavior)
+void MotionControl::CalculateVelocityDesired(const double& dt, const PlannerHNS::VehicleState& CurrStatus,
+			const PlannerHNS::BehaviorState& CurrBehavior, double& vel_d, double& acc_d, double& distance_d, double& safe_d)
 {
-	double desired_velocity = CurrBehavior.maxVelocity;
-	if(desired_velocity > m_VehicleInfo.max_speed_forward)
+	double desired_acceleration = 0, desired_velocity = 0;
+
+	/**
+	 * Forward State, No obstacle, just try to follow general max speed profile for the trajectory
+	 */
+	if(CurrBehavior.state == FORWARD_STATE || CurrBehavior.state == OBSTACLE_AVOIDANCE_STATE )
 	{
-		desired_velocity = m_VehicleInfo.max_speed_forward;
-	}
+		if(CurrStatus.speed <= CurrBehavior.maxVelocity) //accelerate with half the max accel
+		{
+			desired_acceleration = m_VehicleInfo.max_acceleration;
+		}
+		else //brake with half the max decel
+		{
+			desired_acceleration = m_VehicleInfo.max_deceleration/2.0;
+		}
 
-	//calculate acceleration
-	double dv = CurrStatus.speed - m_PrevSpeed;
-	if(dv != 0 && dt != 0)
+		desired_velocity = CurrBehavior.maxVelocity;
+	}
+	/**
+	 * Follow State, try to keep safe distance to the object in front, the faster the car in from goinf the larget this safe distance
+	 */
+	else if(CurrBehavior.state == FOLLOW_STATE) // maintain
 	{
-		m_InstantAcceleration = dv/dt;
+		distance_d = CurrBehavior.followDistance;
+		safe_d = m_Params.min_safe_follow_distance;
+
+		if(distance_d > safe_d) // maintain distance
+		{
+			desired_acceleration = m_VehicleInfo.max_acceleration;
+		}
+		else if(distance_d < safe_d*0.75) // too close , brake hard
+		{
+			desired_acceleration = m_VehicleInfo.max_deceleration;
+		}
+		else if(distance_d < safe_d) // use engine brake
+		{
+			desired_acceleration = m_VehicleInfo.max_deceleration/2.0;
+		}
+
+		desired_velocity = CurrBehavior.maxVelocity;
+
+		/**
+		 * TODO Add more safe follow distance according to the lead vehicle velocity
+		 * safe_d += ~desired_velocity
+		 */
 	}
-
-	m_AccelerationSum += m_InstantAcceleration;
-	m_nAccelerations++;
-
-	if(CurrBehavior.state == TRAFFIC_LIGHT_STOP_STATE || CurrBehavior.state == STOP_SIGN_STOP_STATE || CurrBehavior.state == STOPPING_STATE)
+	/**
+	 * Stop With distance , in these state the vehicle should stop within a designated distance "stopDistance". and should go to complete stop, speed = 0
+	 */
+	else if(CurrBehavior.state == TRAFFIC_LIGHT_STOP_STATE || CurrBehavior.state == STOP_SIGN_STOP_STATE || CurrBehavior.state == STOPPING_STATE)
 	{
 		if(CurrBehavior.stopDistance > 0)
 		{
-			double deceleration_critical = (-CurrStatus.speed*CurrStatus.speed)/(2.0*CurrBehavior.stopDistance);
-			if(deceleration_critical > m_VehicleInfo.max_deceleration)
-			{
-				deceleration_critical = m_VehicleInfo.max_deceleration;
-			}
-
-			desired_velocity = CurrStatus.speed + (deceleration_critical * dt);
-
-			std::cout << "Deceleration : " <<  deceleration_critical << std::endl;
+			desired_acceleration = (-CurrStatus.speed*CurrStatus.speed)/(2.0*CurrBehavior.stopDistance);
+			desired_velocity = CurrStatus.speed + (desired_acceleration * dt);
 		}
 		else
 		{
 			desired_velocity = 0;
 		}
 	}
-	else if(CurrBehavior.state == FORWARD_STATE || CurrBehavior.state == OBSTACLE_AVOIDANCE_STATE )
-	{
-//		double v_desired = CurrStatus.speed + (m_VehicleInfo.max_acceleration * dt);
-	}
-	else if(CurrBehavior.state == FINISH_STATE)
+	/**
+	 * No other supported state, vehicle should stop if unknown state is sent
+	 */
+	else
 	{
 		desired_velocity = 0;
+		desired_acceleration = m_VehicleInfo.max_deceleration;
 	}
-	else if(CurrBehavior.state == FOLLOW_STATE)
+
+	/**
+	 * Never target velocity higher than the one assigned to OpenPlanner in op_common_params
+	 */
+	if(desired_velocity > m_VehicleInfo.max_speed_forward)
 	{
+		desired_velocity = m_VehicleInfo.max_speed_forward;
 	}
-	else
+	else if(desired_velocity < 0)
 	{
+		std::cout << "Desired velocity shouldn't be Zero !! check op_controller !!!! " << std::endl;
+		desired_velocity = 0;
 	}
 
-	return desired_velocity;
-}
-
-int MotionControl::VeclocityControllerUpdateOnePID(const double& dt, const PlannerHNS::VehicleState& CurrStatus,
-		const PlannerHNS::BehaviorState& CurrBehavior, double& desiredAccel, double& desiredBrake, PlannerHNS::SHIFT_POS& desiredShift)
-{
-
-	double desired_velocity = CalculateVelocityDesired(dt, CurrStatus, CurrBehavior);
-
-	desiredShift = PlannerHNS::SHIFT_POS_DD;
-	double e = (desired_velocity - CurrStatus.speed);
-
-//	if((e > 0 && m_PrevSpeedError < 0) || (e < 0 && m_PrevSpeedError > 0))
-//	{
-//		m_pidAccelBrake.ResetI();
-//	}
-
-	double desiredStroke = m_pidAccelBrake.getTimeDependentPID(e, dt);
-
-	if(desiredStroke > 0)
-	{
-		desiredAccel = desiredStroke;
-		desiredBrake = 0;
-	}
-	else
-	{
-		desiredBrake = -desiredStroke;
-		desiredAccel = 0;
-	}
-
-	if(m_bEnableLog)
-	{
-		m_LogLinearPIDData.push_back(m_pidAccelBrake.ToString());
-	}
-
-	m_PrevDesiredBrakeStroke = desiredBrake;
-	m_PrevDesiredAccelStroke = desiredAccel;
-	m_TargetSpeed = desired_velocity;
-	m_PrevSpeedError = e;
-
-	return 1;
+	vel_d = desired_velocity;
+	acc_d = desired_acceleration;
 }
 
 int MotionControl::VeclocityControllerUpdateTwoPID(const double& dt, const PlannerHNS::VehicleState& CurrStatus,
 		const PlannerHNS::BehaviorState& CurrBehavior, double& desiredAccel, double& desiredBrake, PlannerHNS::SHIFT_POS& desiredShift)
 {
 
-	double desired_velocity = CalculateVelocityDesired(dt, CurrStatus, CurrBehavior);
-	double deceleration_critical = (desired_velocity - CurrStatus.speed) / dt;
+	double e_d = 0, e_v = 0;
+	double desired_velocity = 0, desired_acceleration = 0, desired_distance = 0, safe_follow_distance = 0;
 
-	desiredShift = PlannerHNS::SHIFT_POS_DD;
-	double e = (desired_velocity - CurrStatus.speed);
+	CalculateVelocityDesired(dt, CurrStatus, CurrBehavior, desired_velocity, desired_acceleration, desired_distance, safe_follow_distance);
 
+	e_d = (desired_distance - safe_follow_distance); //Follow distance error
+	e_v = (desired_velocity - CurrStatus.speed); //Target max velocity error
 
-
-//	if((e > 0 && m_PrevSpeedError < 0) || (e < 0 && m_PrevSpeedError > 0))
-//	{
-//		m_pidAccel.ResetI();
-//		m_pidBrake.ResetI();
-//	}
-
-
-//	if( e <= 0.25 && e >= -0.25) //cruise
-//	{
-//		desiredAccel = m_PrevDesiredAccelStroke;
-//		desiredBrake = m_PrevDesiredBrakeStroke;
-//		m_pidBrake.ResetI();
-//		m_pidBrake.ResetD();
-//	}
-	if(desired_velocity > 0 && deceleration_critical > -1.0) //accelerate , cruise, small decelerate
+	/**
+	 * Reset PID controller of switching from follow state to any other state other vice versa.
+	 */
+	if(CurrBehavior.state != m_PrevBehaviorStatus.state && (CurrBehavior.state == FOLLOW_STATE || m_PrevBehaviorStatus.state == FOLLOW_STATE))
 	{
-		m_pidBrake.ResetI();
-		m_pidBrake.ResetD();
-		desiredAccel = m_pidAccel.getTimeDependentPID(e, dt);
-		desiredBrake = 0;
+		m_pidFollow.Reset();
+		m_pidAccel.Reset();
+		m_pidBrake.Reset();
 	}
-	else if(deceleration_critical > -2.5) // use engine brake
+
+	double accel_d = 0, accel_v = 0, brake_v = 0;
+	if(desired_acceleration >= m_Params.avg_engine_brake_accel) //accelerate , cruise, small decelerate
 	{
-		desiredAccel = 0;
-		desiredBrake = 0;
-		m_pidAccel.ResetI();
-		m_pidAccel.ResetD();
+		m_pidBrake.Reset();
+		accel_v = m_pidAccel.getTimeDependentPID(e_v, dt);
+		accel_d = m_pidFollow.getTimeDependentPID(e_d, dt);
+		brake_v = 0;
 	}
 	else  // braking
 	{
-		m_pidAccel.ResetI();
-		m_pidAccel.ResetD();
-		desiredBrake = m_pidBrake.getTimeDependentPID(-e, dt);
+		m_pidAccel.Reset();
+		m_pidFollow.Reset();
+		if(CurrBehavior.state == FOLLOW_STATE)
+		{
+			brake_v = m_pidBrake.getTimeDependentPID(-e_d, dt);
+		}
+		else
+		{
+			brake_v = m_pidBrake.getTimeDependentPID(-e_v, dt);
+		}
 		desiredAccel = 0;
 	}
 
-	m_PrevDesiredAccelStroke = desiredAccel;
-	m_PrevDesiredBrakeStroke = desiredBrake;
+	/**
+	 * In case of follow state, use the minimum from follow PID and Accel PID. to be able to not exceed the max target velocity
+	 */
+	if(CurrBehavior.state == FOLLOW_STATE)
+	{
+		if(accel_d < accel_v)
+		{
+			desiredAccel = accel_d;
+		}
+		else
+		{
+			desiredAccel = accel_v;
+		}
+	}
+	else
+	{
+		desiredAccel = accel_v;
+	}
+
+	desiredBrake = brake_v;
+	desiredShift = PlannerHNS::SHIFT_POS_DD;
+
 	m_TargetSpeed = desired_velocity;
-	m_PrevSpeedError = e;
+	m_TargetAcceleration = desired_acceleration;
+	m_PrevSpeedError = e_v;
+	m_PrevDistanceError = e_d;
+	m_DesiredDistance = desired_distance;
+	m_DesiredSafeDistance = safe_follow_distance;
 
 	if(m_bEnableLog)
 	{
@@ -376,13 +393,23 @@ PlannerHNS::ExtendedVehicleState MotionControl::DoOneStep(const double& dt, cons
 		const std::vector<PlannerHNS::WayPoint>& path, const PlannerHNS::WayPoint& currPose,
 		const PlannerHNS::VehicleState& vehicleState, const bool& bNewTrajectory)
 {
+	PlannerHNS::ExtendedVehicleState desiredState;
+
 	if(bNewTrajectory && path.size() > 0)
 	{
 		UpdateCurrentPath(path);
 		m_iPrevWayPoint = -1;
 	}
 
-	PlannerHNS::ExtendedVehicleState desiredState;
+	//calculate acceleration for logging and tuning
+	double dv = vehicleState.speed - m_PrevSpeed;
+	if(dv != 0 && dt != 0)
+	{
+		m_InstantAcceleration = dv/dt;
+	}
+
+	m_AccelerationSum += m_InstantAcceleration;
+	m_nAccelerations++;
 
 	if(m_bCalibrationMode)
 	{
@@ -391,9 +418,11 @@ PlannerHNS::ExtendedVehicleState MotionControl::DoOneStep(const double& dt, cons
 	}
 	else if(m_Path.size()>0 && behavior.state != INITIAL_STATE )
 	{
-		FindNextWayPoint(m_Path, currPose, vehicleState.speed, m_FollowMePoint, m_PerpendicularPoint, m_LateralError, m_FollowingDistance);
+		double lateral_err = 0;
+		FindNextWayPoint(m_Path, currPose, vehicleState.speed, m_FollowMePoint, m_PerpendicularPoint, lateral_err, m_FollowingDistance);
 		VeclocityControllerUpdateTwoPID(dt, vehicleState, behavior, desiredState.accel_stroke, desiredState.brake_stroke, desiredState.shift);
-		SteerControllerUpdate(dt, currPose, m_FollowMePoint, vehicleState, behavior, m_LateralError, desiredState.steer_torque);
+		SteerControllerUpdate(dt, currPose, m_FollowMePoint, vehicleState, behavior, lateral_err, desiredState.steer_torque);
+		m_LateralError = lateral_err;
 	}
 	else
 	{
@@ -403,10 +432,8 @@ PlannerHNS::ExtendedVehicleState MotionControl::DoOneStep(const double& dt, cons
 		desiredState.steer_torque = 0;
 		desiredState.accel_stroke = 0;
 		desiredState.brake_stroke = 0;
-		std::cout << "$$$$$ Error, Very Dangerous, Following No Path !!." << std::endl;
+		//std::cout << "$$$$$ Error, Very Dangerous, Following No Path !!." << std::endl;
 	}
-
-	//std::cout << "Planner: State: " << behavior.state << ", stop_distance: " << behavior.stopDistance << ", followD: " << behavior.followDistance << std::endl;
 
 	if(m_bEnableLog)
 	{
@@ -419,16 +446,61 @@ PlannerHNS::ExtendedVehicleState MotionControl::DoOneStep(const double& dt, cons
 		std::ostringstream dataLine;
 		dataLine << dt << "," << time_str.str() << "," << currPose.pos.x << "," << currPose.pos.y << "," <<
 				currPose.pos.a << "," << m_TargetAngle << "," << m_PrevAngleError << "," << desiredState.steer_torque << "," <<
-				behavior.state << "," << behavior.stopDistance << "," << m_InstantAcceleration << "," <<
-				vehicleState.speed << "," << m_TargetSpeed << "," << m_PrevSpeedError << "," <<  desiredState.accel_stroke << "," <<
-				desiredState.brake_stroke <<  "," << m_LateralError << "," << m_iPrevWayPoint << "," << m_Path.size() << "," << m_AverageAcceleration <<"," << m_TotalAcceleration << ",";
+				behavior.state << "," << behavior.stopDistance << "," << m_InstantAcceleration << "," << m_AverageRelativeSpeed << "," << m_PredictedRelativeSpeed << "," <<
+				vehicleState.speed << "," << m_TargetSpeed << "," << m_TargetAcceleration << "," << m_PrevSpeedError << "," << m_PrevDistanceError << "," << m_DesiredDistance << "," << m_DesiredSafeDistance << "," <<
+				desiredState.accel_stroke << "," <<	desiredState.brake_stroke <<  "," << m_LateralError << "," << m_iPrevWayPoint << "," << m_Path.size() << "," << m_AverageAcceleration <<"," << m_TotalAcceleration << ",";
 		m_LogData.push_back(dataLine.str());
 		LogCalibrationData(vehicleState, desiredState);
 	}
 
+	m_PrevBehaviorStatus = behavior;
+
+	/**
+	 * These variable used in the logs
+	 */
+	m_PredictedRelativeSpeed = behavior.followVelocity - vehicleState.speed;
 	m_PrevSpeed = vehicleState.speed;
+	bool bEnoughEvidence = CalcAvgRelativeSpeedFromDistance(dt, behavior, m_AverageRelativeSpeed);
 
 	return desiredState;
+}
+
+bool MotionControl::CalcAvgRelativeSpeedFromDistance(const double& dt, const PlannerHNS::BehaviorState& CurrBehavior, double avg_relative_speed)
+{
+	bool bEnoughEvidence = false;
+	if(CurrBehavior.state == FOLLOW_STATE)
+	{
+		if(m_RelativeSpeeds.size() > 0)
+		{
+			double relative_instant_velocity = (CurrBehavior.followDistance - m_PrevFollowDistance)/dt;
+			m_RelativeSpeeds.push_back(relative_instant_velocity);
+
+			if(m_RelativeSpeeds.size() > 10)
+			{
+				double vel_sum = 0;
+				for(auto& v: m_RelativeSpeeds)
+				{
+					vel_sum += v;
+				}
+				avg_relative_speed = vel_sum / m_RelativeSpeeds.size();
+				m_RelativeSpeeds.erase(m_RelativeSpeeds.begin()+0);
+				bEnoughEvidence = true;
+			}
+		}
+		else
+		{
+			m_RelativeSpeeds.push_back(0);
+		}
+
+		m_PrevFollowDistance = CurrBehavior.followDistance;
+	}
+	else
+	{
+		m_PrevFollowDistance = 0;
+		m_RelativeSpeeds.clear();
+	}
+
+	return bEnoughEvidence;
 }
 
 void MotionControl::CalibrationStep(const double& dt, const PlannerHNS::VehicleState& CurrStatus, double& desiredSteer, double& desiredVelocity)
@@ -811,6 +883,48 @@ void MotionControl::InitCalibration()
 	m_CalibrationRunList.push_back(std::make_pair(15,0.0));
 	m_CalibrationRunList.push_back(std::make_pair(15,-m_VehicleInfo.max_wheel_angle/10.0));
 	m_CalibrationRunList.push_back(std::make_pair(0,0));
+}
+
+int MotionControl::VeclocityControllerUpdateOnePID(const double& dt, const PlannerHNS::VehicleState& CurrStatus,
+		const PlannerHNS::BehaviorState& CurrBehavior, double& desiredAccel, double& desiredBrake, PlannerHNS::SHIFT_POS& desiredShift)
+{
+
+//	double desired_velocity = 0, desired_acceleration = 0, desired_distance = 0, safe_follow_distance = 0;
+//	CalculateVelocityDesired(dt, CurrStatus, CurrBehavior, desired_velocity, desired_acceleration, desired_distance, safe_follow_distance);
+//
+//	desiredShift = PlannerHNS::SHIFT_POS_DD;
+//	double e = (desired_velocity - CurrStatus.speed);
+//
+////	if((e > 0 && m_PrevSpeedError < 0) || (e < 0 && m_PrevSpeedError > 0))
+////	{
+////		m_pidAccelBrake.ResetI();
+////	}
+//
+//	double desiredStroke = m_pidAccelBrake.getTimeDependentPID(e, dt);
+//
+//	if(desiredStroke > 0)
+//	{
+//		desiredAccel = desiredStroke;
+//		desiredBrake = 0;
+//	}
+//	else
+//	{
+//		desiredBrake = -desiredStroke;
+//		desiredAccel = 0;
+//	}
+//
+//	if(m_bEnableLog)
+//	{
+//		m_LogLinearPIDData.push_back(m_pidAccelBrake.ToString());
+//	}
+//
+//	m_PrevDesiredBrakeStroke = desiredBrake;
+//	m_PrevDesiredAccelStroke = desiredAccel;
+//	m_TargetSpeed = desired_velocity;
+//	m_TargetAcceleration = desiredAccel;
+//	m_PrevSpeedError = e;
+
+	return 1;
 }
 
 } /* namespace SimulationNS */

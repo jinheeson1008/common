@@ -44,6 +44,8 @@ public:
 	double minPursuiteDistance;
 	double LowpassSteerCutoff;
 	int ControlFrequency;
+	double avg_engine_brake_accel; // also could work as general friction or drag
+	double min_safe_follow_distance; // in follow mode, keep this distance to the object in front
 	PID_CONST Steering_Gain;
 	PID_CONST Velocity_Gain;
 	PID_CONST Accel_Gain;
@@ -56,6 +58,8 @@ public:
 		LowpassSteerCutoff = 5.0;
 		minPursuiteDistance = 2.0;
 		ControlFrequency = 25;
+		avg_engine_brake_accel = -0.5;
+		min_safe_follow_distance = 2.0;
 	}
 };
 
