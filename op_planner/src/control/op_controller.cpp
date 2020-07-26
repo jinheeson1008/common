@@ -58,8 +58,6 @@ void MotionControl::Init(const ControllerParams& params, const CAR_BASIC_INFO& v
 	m_lowpassSteer.Init(m_Params.ControlFrequency, m_Params.LowpassSteerCutoff);
 	m_pidSteer.Init(m_Params.Steering_Gain.kP, m_Params.Steering_Gain.kI, m_Params.Steering_Gain.kD); // for 3 m/s
 	m_pidSteer.Setlimit(m_VehicleInfo.max_steer_torque, m_VehicleInfo.min_steer_torque);
-	m_pidAccelBrake.Init(m_Params.Accel_Gain.kP, m_Params.Accel_Gain.kI, m_Params.Accel_Gain.kD);
-	m_pidAccelBrake.Setlimit(m_VehicleInfo.max_accel_value, -m_VehicleInfo.max_brake_value);
 
 	m_pidAccel.Init(m_Params.Accel_Gain.kP, m_Params.Accel_Gain.kI, m_Params.Accel_Gain.kD);
 	m_pidAccel.Setlimit(m_VehicleInfo.max_accel_value, 0);
@@ -99,7 +97,7 @@ MotionControl::~MotionControl()
 		UtilityHNS::DataRW::WriteLogData(fileName.str(), "SteeringPIDLog",m_pidSteer.ToStringHeader(), m_LogSteerPIDData );
 		UtilityHNS::DataRW::WriteLogData(fileName.str(), "AccelPIDLog",m_pidAccel.ToStringHeader(), m_LogAccelerationPIDData );
 		UtilityHNS::DataRW::WriteLogData(fileName.str(), "BrakePIDLog",m_pidBrake.ToStringHeader(), m_LogBrakingPIDData );
-		UtilityHNS::DataRW::WriteLogData(fileName.str(), "LinearPIDLog",m_pidAccelBrake.ToStringHeader(), m_LogLinearPIDData );
+		UtilityHNS::DataRW::WriteLogData(fileName.str(), "FollowPIDLog",m_pidFollow.ToStringHeader(), m_LogFollowPIDData );
 	}
 }
 
@@ -202,10 +200,6 @@ int MotionControl::SteerControllerPart(const double& dt, const PlannerHNS::WayPo
 	m_TargetAngle = target_a;
 	m_PrevAngleError = e;
 
-	if(m_bEnableLog)
-	{
-		m_LogSteerPIDData.push_back(m_pidSteer.ToString());
-	}
 	return 1;
 }
 
@@ -380,12 +374,6 @@ int MotionControl::VeclocityControllerUpdateTwoPID(const double& dt, const Plann
 	m_DesiredDistance = desired_distance;
 	m_DesiredSafeDistance = safe_follow_distance;
 
-	if(m_bEnableLog)
-	{
-		m_LogAccelerationPIDData.push_back(m_pidAccel.ToString());
-		m_LogBrakingPIDData.push_back(m_pidBrake.ToString());
-	}
-
 	return 1;
 }
 
@@ -435,7 +423,7 @@ PlannerHNS::ExtendedVehicleState MotionControl::DoOneStep(const double& dt, cons
 		//std::cout << "$$$$$ Error, Very Dangerous, Following No Path !!." << std::endl;
 	}
 
-	if(m_bEnableLog)
+	if(m_bEnableLog == true && (m_bCalibrationMode == true || m_Path.size() > 0))
 	{
 		timespec t;
 		UtilityHNS::UtilityH::GetTickCount(t);
@@ -450,7 +438,13 @@ PlannerHNS::ExtendedVehicleState MotionControl::DoOneStep(const double& dt, cons
 				vehicleState.speed << "," << m_TargetSpeed << "," << m_TargetAcceleration << "," << m_PrevSpeedError << "," << m_PrevDistanceError << "," << m_DesiredDistance << "," << m_DesiredSafeDistance << "," <<
 				desiredState.accel_stroke << "," <<	desiredState.brake_stroke <<  "," << m_LateralError << "," << m_iPrevWayPoint << "," << m_Path.size() << "," << m_AverageAcceleration <<"," << m_TotalAcceleration << ",";
 		m_LogData.push_back(dataLine.str());
+
 		LogCalibrationData(vehicleState, desiredState);
+
+		m_LogSteerPIDData.push_back(m_pidSteer.ToString());
+		m_LogAccelerationPIDData.push_back(m_pidAccel.ToString());
+		m_LogBrakingPIDData.push_back(m_pidBrake.ToString());
+		m_LogFollowPIDData.push_back(m_pidFollow.ToString());
 	}
 
 	m_PrevBehaviorStatus = behavior;
@@ -883,48 +877,6 @@ void MotionControl::InitCalibration()
 	m_CalibrationRunList.push_back(std::make_pair(15,0.0));
 	m_CalibrationRunList.push_back(std::make_pair(15,-m_VehicleInfo.max_wheel_angle/10.0));
 	m_CalibrationRunList.push_back(std::make_pair(0,0));
-}
-
-int MotionControl::VeclocityControllerUpdateOnePID(const double& dt, const PlannerHNS::VehicleState& CurrStatus,
-		const PlannerHNS::BehaviorState& CurrBehavior, double& desiredAccel, double& desiredBrake, PlannerHNS::SHIFT_POS& desiredShift)
-{
-
-//	double desired_velocity = 0, desired_acceleration = 0, desired_distance = 0, safe_follow_distance = 0;
-//	CalculateVelocityDesired(dt, CurrStatus, CurrBehavior, desired_velocity, desired_acceleration, desired_distance, safe_follow_distance);
-//
-//	desiredShift = PlannerHNS::SHIFT_POS_DD;
-//	double e = (desired_velocity - CurrStatus.speed);
-//
-////	if((e > 0 && m_PrevSpeedError < 0) || (e < 0 && m_PrevSpeedError > 0))
-////	{
-////		m_pidAccelBrake.ResetI();
-////	}
-//
-//	double desiredStroke = m_pidAccelBrake.getTimeDependentPID(e, dt);
-//
-//	if(desiredStroke > 0)
-//	{
-//		desiredAccel = desiredStroke;
-//		desiredBrake = 0;
-//	}
-//	else
-//	{
-//		desiredBrake = -desiredStroke;
-//		desiredAccel = 0;
-//	}
-//
-//	if(m_bEnableLog)
-//	{
-//		m_LogLinearPIDData.push_back(m_pidAccelBrake.ToString());
-//	}
-//
-//	m_PrevDesiredBrakeStroke = desiredBrake;
-//	m_PrevDesiredAccelStroke = desiredAccel;
-//	m_TargetSpeed = desired_velocity;
-//	m_TargetAcceleration = desiredAccel;
-//	m_PrevSpeedError = e;
-
-	return 1;
 }
 
 } /* namespace SimulationNS */

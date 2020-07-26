@@ -39,9 +39,6 @@ public:
 	int VeclocityControllerUpdateTwoPID(const double& dt, const PlannerHNS::VehicleState& CurrStatus,
 			const PlannerHNS::BehaviorState& CurrBehavior, double& desiredAccel, double& desiredBrake, PlannerHNS::SHIFT_POS& desiredShift);
 
-	int VeclocityControllerUpdateOnePID(const double& dt, const PlannerHNS::VehicleState& CurrStatus,
-			const PlannerHNS::BehaviorState& CurrBehavior, double& desiredAccel, double& desiredBrake, PlannerHNS::SHIFT_POS& desiredShift);
-
 	void Init(const PlannerHNS::ControllerParams& params, const PlannerHNS::CAR_BASIC_INFO& vehicleInfo, bool bEnableLogs = false, bool bCalibration = false);
 
 	PlannerHNS::ExtendedVehicleState DoOneStep(const double& dt, const PlannerHNS::BehaviorState& behavior,
@@ -87,13 +84,9 @@ private:
 	double m_PredictedRelativeSpeed;
 	double m_TargetAcceleration;
 
-
-
-
 	UtilityHNS::PIDController m_pidSteer;
 	UtilityHNS::LowpassFilter m_lowpassSteer;
 
-	UtilityHNS::PIDController m_pidAccelBrake;
 	UtilityHNS::PIDController m_pidAccel;
 	UtilityHNS::PIDController m_pidFollow;
 	UtilityHNS::PIDController m_pidBrake;
@@ -101,7 +94,7 @@ private:
 	bool m_bEnableLog;
 	std::vector<std::string> m_LogData;
 	std::vector<std::string> m_LogSteerPIDData;
-	std::vector<std::string> m_LogLinearPIDData;
+	std::vector<std::string> m_LogFollowPIDData;
 	std::vector<std::string> m_LogAccelerationPIDData;
 	std::vector<std::string> m_LogBrakingPIDData;
 
