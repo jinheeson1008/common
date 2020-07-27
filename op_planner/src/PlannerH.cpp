@@ -161,7 +161,7 @@ double PlannerH::PlanUsingDP(const WayPoint& start,
 	PlanningHelpers::GetRelativeInfo(pStart->pLane->points, start, start_info);
 	PlanningHelpers::GetRelativeInfo(pGoal->pLane->points, goalPos, goal_info);
 
-	vector<WayPoint> start_path, goal_path;
+	vector<WayPoint> goal_path;
 
 	if(fabs(start_info.perp_distance) > START_POINT_MAX_DISTANCE)
 	{
@@ -236,26 +236,27 @@ double PlannerH::PlanUsingDP(const WayPoint& start,
 	}
 
 	//attach start path to beginning of all paths, but goal path to only the path connected to the goal path.
-	for(unsigned int i=0; i< paths.size(); i++ )
-	{
-		paths.at(i).insert(paths.at(i).begin(), start_path.begin(), start_path.end());
-		if(paths.at(i).size() > 0)
-		{
-			//if(hypot(paths.at(i).at(paths.at(i).size()-1).pos.y-goal_info.perp_point.pos.y, paths.at(i).at(paths.at(i).size()-1).pos.x-goal_info.perp_point.pos.x) < 1.5)
-			{
-
-				if(paths.at(i).size() > 0 && goal_path.size() > 0)
-				{
-					goal_path.insert(goal_path.begin(), paths.at(i).end()-5, paths.at(i).end());
-					PlanningHelpers::SmoothPath(goal_path, 0.25, 0.25);
-					PlanningHelpers::FixPathDensity(goal_path, 0.75);
-					PlanningHelpers::SmoothPath(goal_path, 0.25, 0.35);
-					paths.at(i).erase(paths.at(i).end()-5, paths.at(i).end());
-					paths.at(i).insert(paths.at(i).end(), goal_path.begin(), goal_path.end());
-				}
-			}
-		}
-	}
+//	vector<WayPoint> dummy_path;
+//	for(unsigned int i=0; i< paths.size(); i++ )
+//	{
+//		paths.at(i).insert(paths.at(i).begin(), dummy_path.begin(), dummy_path.end());
+//		if(paths.at(i).size() > 0)
+//		{
+//			//if(hypot(paths.at(i).at(paths.at(i).size()-1).pos.y-goal_info.perp_point.pos.y, paths.at(i).at(paths.at(i).size()-1).pos.x-goal_info.perp_point.pos.x) < 1.5)
+//			{
+//
+//				if(paths.at(i).size() > 0 && goal_path.size() > 0)
+//				{
+//					goal_path.insert(goal_path.begin(), paths.at(i).end()-5, paths.at(i).end());
+//					PlanningHelpers::SmoothPath(goal_path, 0.25, 0.25);
+//					PlanningHelpers::FixPathDensity(goal_path, 0.75);
+//					PlanningHelpers::SmoothPath(goal_path, 0.25, 0.35);
+//					paths.at(i).erase(paths.at(i).end()-5, paths.at(i).end());
+//					paths.at(i).insert(paths.at(i).end(), goal_path.begin(), goal_path.end());
+//				}
+//			}
+//		}
+//	}
 
 	cout << endl <<"Info: PlannerH -> Plan (" << bPlan << ") Path With Size (" << (int)path.size() << "), MultiPaths No(" << paths.size() << ") Extraction Time : " << endl;
 

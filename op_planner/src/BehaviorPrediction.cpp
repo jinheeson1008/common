@@ -29,6 +29,7 @@ BehaviorPrediction::BehaviorPrediction()
 	m_PredictionHorizon = 100;
 	m_LaneDetectionDistance = 0.5;
 	m_MinPredictionDistance = 2.0;
+	m_MinPredictionTime = 1;
 	m_bGenerateBranches = false;
 	//m_bUseFixedPrediction = true;
 	m_bStepByStep = false;
@@ -486,8 +487,7 @@ void BehaviorPrediction::MoveParticles(ObjParticles* pParts)
 	carInfo.max_deceleration = -1.5;
 	carInfo.max_speed_forward = 6;
 	carInfo.min_speed_forward = 0;
-	carInfo.max_steer_angle = 0.4;
-	carInfo.min_steer_angle = -0.4;
+	carInfo.max_wheel_angle = 0.4;
 	carInfo.turning_radius = 7.2;
 	carInfo.wheel_base = carInfo.length*0.75;
 
@@ -922,7 +922,7 @@ void BehaviorPrediction::FindBest(ObjParticles* pParts)
 
 void BehaviorPrediction::CalPredictionTimeForObject(ObjParticles* pCarPart, const double& min_pred_distance)
 {
-	double d = (MIN_PREDICTION_TIME * pCarPart->obj.center.v) + pCarPart->obj.l;
+	double d = (m_MinPredictionTime * pCarPart->obj.center.v) + pCarPart->obj.l;
 	if(d > min_pred_distance)
 		pCarPart->m_PredictionDistance = d;
 	else

@@ -41,7 +41,12 @@ TrajectoryCost TrajectoryEvaluator::doOneStep(const std::vector<std::vector<WayP
 //  timespec _t;
 //  UtilityHNS::UtilityH::GetTickCount(_t);
 
-  double critical_lateral_distance = car_info.width / 2.0 + params.horizontalSafetyDistancel;
+	if(g_enable_debug == true)
+	{
+		std::cout << "Received paths: " <<  roll_outs.size() << ", Points: " << total_paths.size() << std::endl;
+	}
+
+	double critical_lateral_distance = car_info.width / 2.0 + params.horizontalSafetyDistancel;
   double critical_long_front_distance = car_info.wheel_base / 2.0 + car_info.length / 2.0
       + params.verticalSafetyDistance;
   double critical_long_back_distance = car_info.length / 2.0 + params.verticalSafetyDistance
@@ -71,7 +76,7 @@ TrajectoryCost TrajectoryEvaluator::doOneStep(const std::vector<std::vector<WayP
 //  collision_points_.insert(collision_points_.begin(), all_contour_points_.begin(), all_contour_points_.end());
 //  collision_points_.insert(collision_points_.begin(), all_trajectories_points_.begin(), all_trajectories_points_.end());
 
-  normalizeCosts(trajectory_costs_);
+  normalizeCosts(eval_params_, trajectory_costs_);
 
   TrajectoryCost best_trajectory = findBestTrajectory(params, prev_curr_index, b_keep_curr, trajectory_costs_);
 //	cout << "------------------------------------------------------------- " << endl;
@@ -148,6 +153,7 @@ void TrajectoryEvaluator::collectContoursAndTrajectories(const std::vector<Plann
       for (unsigned int i_p = 0; i_p < obj_list.at(i).predTrajectories.at(i_trj).size(); i_p++)
       {
         p = obj_list.at(i).predTrajectories.at(i_trj).at(i_p);
+        p.v = obj_list.at(i).center.v;
 
         if(hypot(obj_list.at(i).center.pos.y-p.pos.y, obj_list.at(i).center.pos.x-p.pos.x) < obj_list.at(i).l/2.0)
         {
@@ -195,7 +201,7 @@ void TrajectoryEvaluator::collectContoursAndTrajectories(const std::vector<Plann
   }
 }
 
-void TrajectoryEvaluator::normalizeCosts(std::vector<TrajectoryCost>& trajectory_costs)
+void TrajectoryEvaluator::normalizeCosts(const EvaluationParams& eval_param, std::vector<TrajectoryCost>& trajectory_costs)
 {
   double total_priorities_costs = 0;
   double total_lane_change_costs = 0;
@@ -277,11 +283,11 @@ void TrajectoryEvaluator::normalizeCosts(std::vector<TrajectoryCost>& trajectory
     else
       trajectory_costs.at(ic).lane_change_cost = 0;
 
-    trajectory_costs.at(ic).cost = (eval_params_.priority_weight_ * trajectory_costs.at(ic).priority_cost
-        + eval_params_.transition_weight_ * trajectory_costs.at(ic).transition_cost
-        + eval_params_.lateral_weight_ * trajectory_costs.at(ic).lateral_cost
-        + eval_params_.longitudinal_weight_ * trajectory_costs.at(ic).longitudinal_cost
-		+ eval_params_.lane_change_weight_ * trajectory_costs.at(ic).lane_change_cost);
+    trajectory_costs.at(ic).cost = (eval_param.priority_weight_ * trajectory_costs.at(ic).priority_cost
+        + eval_param.transition_weight_ * trajectory_costs.at(ic).transition_cost
+        + eval_param.lateral_weight_ * trajectory_costs.at(ic).lateral_cost
+        + eval_param.longitudinal_weight_ * trajectory_costs.at(ic).longitudinal_cost
+		+ eval_param.lane_change_weight_ * trajectory_costs.at(ic).lane_change_cost);
 
    // std::cout << std::endl << "Lane Change Cost: " << trajectory_costs.at(ic).lane_change_cost << ", Total Cost: " << trajectory_costs.at(ic).cost << std::endl << std::endl;
   }
@@ -352,7 +358,7 @@ void TrajectoryEvaluator::initializeSafetyPolygon(const WayPoint& curr_state, co
   PlannerHNS::Mat3 inv_translation_mat(curr_state.pos.x, curr_state.pos.y);
 
   double corner_slide_distance = c_lateral_d / 2.0;
-  double ratio_to_angle = corner_slide_distance / car_info.max_steer_angle;
+  double ratio_to_angle = corner_slide_distance / car_info.max_wheel_angle;
   double slide_distance = vehicle_state.steer * ratio_to_angle;
 
   GPSPoint bottom_left(-c_lateral_d, -c_long_back_d, curr_state.pos.z, 0);
@@ -587,6 +593,7 @@ void TrajectoryEvaluator::calculateDistanceCosts(const PlanningParams& params, c
 					if(trajectory_costs.at(i).closest_obj_distance > actual_longitudinal_distance)
 					{
 						trajectory_costs.at(i).closest_obj_distance = actual_longitudinal_distance;
+						trajectory_costs.at(i).closest_obj_velocity = contour_points.at(j).v;
 					}
 				}
 				else
@@ -626,6 +633,7 @@ void TrajectoryEvaluator::calculateDistanceCosts(const PlanningParams& params, c
 					if(trajectory_costs.at(i).closest_obj_distance > actual_longitudinal_distance)
 					{
 						trajectory_costs.at(i).closest_obj_distance = actual_longitudinal_distance;
+						trajectory_costs.at(i).closest_obj_velocity = trajectory_points.at(j).v;
 					}
 				}
 				else

@@ -39,7 +39,7 @@ void SimulatedTrajectoryFollower::Init(const ControllerParams& params, const CAR
 	m_Params = params;
 	m_VehicleInfo = vehicleInfo;
 	m_pidSteer.Init(params.Steering_Gain.kP, params.Steering_Gain.kI, params.Steering_Gain.kD); // for 3 m/s
-	m_pidSteer.Setlimit(vehicleInfo.max_steer_angle, -vehicleInfo.max_steer_angle);
+	m_pidSteer.Setlimit(vehicleInfo.max_wheel_angle, -vehicleInfo.max_wheel_angle);
 	m_pidVelocity.Init(params.Velocity_Gain.kP, params.Velocity_Gain.kI, params.Velocity_Gain.kD);
 }
 

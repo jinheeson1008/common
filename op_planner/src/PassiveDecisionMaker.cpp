@@ -115,10 +115,15 @@ PassiveDecisionMaker::~PassiveDecisionMaker()
 	//double planning_velocity = GetExpectedVelocity(path, currPose, beh, carInfo, dt);
 	double steer = GetSteerAngle(currPose, path, m_RelativeInfo);
 
-	if(steer > carInfo.max_steer_angle)
-		steer = carInfo.max_steer_angle;
-	if(steer < carInfo.min_steer_angle)
-		steer = carInfo.min_steer_angle;
+	if(steer > carInfo.max_wheel_angle)
+	{
+		steer = carInfo.max_wheel_angle;
+	}
+
+	if(steer < -carInfo.max_wheel_angle)
+	{
+		steer = -carInfo.max_wheel_angle;
+	}
 
 //	PlannerHNS::Mat3 rotationMat(-transPose.pos.a);
 //	PlannerHNS::Mat3 translationMat(-transPose.pos.x, -transPose.pos.y);

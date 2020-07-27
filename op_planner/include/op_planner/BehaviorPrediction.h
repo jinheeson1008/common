@@ -71,7 +71,7 @@ namespace PlannerHNS
 
 #define FIXED_MIN_PLANNING_DISTANCE 10
 
-#define MIN_PREDICTION_TIME 5
+//#define MIN_PREDICTION_TIME 2.5
 #define USE_OPEN_PLANNER_MOVE 0
 
 
@@ -1454,6 +1454,7 @@ public:
 	double m_PredictionHorizon;
 	double m_LaneDetectionDistance;
 	double m_MinPredictionDistance;
+	double m_MinPredictionTime;
 	bool m_bGenerateBranches;
 	bool m_bStepByStep;
 	bool m_bParticleFilter;

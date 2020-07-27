@@ -144,7 +144,7 @@ void TrajectoryDynamicCosts::CalculateLateralAndLongitudinalCostsStatic(vector<T
 	PlannerHNS::Mat3 invTranslationMat(currState.pos.x, currState.pos.y);
 
 	double corner_slide_distance = critical_lateral_distance/2.0;
-	double ratio_to_angle = corner_slide_distance/carInfo.max_steer_angle;
+	double ratio_to_angle = corner_slide_distance/carInfo.max_wheel_angle;
 	double slide_distance = vehicleState.steer * ratio_to_angle;
 
 	GPSPoint bottom_left(-critical_lateral_distance ,-critical_long_back_distance,  currState.pos.z, 0);

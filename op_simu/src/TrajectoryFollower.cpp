@@ -52,7 +52,7 @@ void TrajectoryFollower::Init(const ControllerParams& params, const CAR_BASIC_IN
 	m_lowpassSteer.Init(2, 100, 4);
 
 	m_pidSteer.Init(params.Steering_Gain.kP, params.Steering_Gain.kI, params.Steering_Gain.kD); // for 3 m/s
-	m_pidSteer.Setlimit(m_VehicleInfo.max_steer_angle, -m_VehicleInfo.max_steer_angle);
+	m_pidSteer.Setlimit(m_VehicleInfo.max_wheel_angle, -m_VehicleInfo.max_wheel_angle);
 	m_pidVelocity.Init(params.Velocity_Gain.kP, params.Velocity_Gain.kI, params.Velocity_Gain.kD);
 }
 
@@ -431,191 +431,191 @@ void TrajectoryFollower::LogCalibrationData(const PlannerHNS::VehicleState& curr
 void TrajectoryFollower::InitCalibration()
 {
 	m_CalibrationRunList.push_back(make_pair(0,0));
-	m_CalibrationRunList.push_back(make_pair(0,m_VehicleInfo.max_steer_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(0,m_VehicleInfo.max_wheel_angle/4.0));
 	m_CalibrationRunList.push_back(make_pair(0,0.0));
-	m_CalibrationRunList.push_back(make_pair(0,-m_VehicleInfo.max_steer_angle/4.0));
-	m_CalibrationRunList.push_back(make_pair(0,m_VehicleInfo.max_steer_angle/2.0));
+	m_CalibrationRunList.push_back(make_pair(0,-m_VehicleInfo.max_wheel_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(0,m_VehicleInfo.max_wheel_angle/2.0));
 	m_CalibrationRunList.push_back(make_pair(0,0.0));
-	m_CalibrationRunList.push_back(make_pair(0,-m_VehicleInfo.max_steer_angle/2.0));
-	m_CalibrationRunList.push_back(make_pair(0,m_VehicleInfo.max_steer_angle/1.5));
+	m_CalibrationRunList.push_back(make_pair(0,-m_VehicleInfo.max_wheel_angle/2.0));
+	m_CalibrationRunList.push_back(make_pair(0,m_VehicleInfo.max_wheel_angle/1.5));
 	m_CalibrationRunList.push_back(make_pair(0,0.0));
-	m_CalibrationRunList.push_back(make_pair(0,-m_VehicleInfo.max_steer_angle/1.5));
-	m_CalibrationRunList.push_back(make_pair(0,m_VehicleInfo.max_steer_angle/1.0));
+	m_CalibrationRunList.push_back(make_pair(0,-m_VehicleInfo.max_wheel_angle/1.5));
+	m_CalibrationRunList.push_back(make_pair(0,m_VehicleInfo.max_wheel_angle/1.0));
 	m_CalibrationRunList.push_back(make_pair(0,0.0));
-	m_CalibrationRunList.push_back(make_pair(0,-m_VehicleInfo.max_steer_angle/1.0));
+	m_CalibrationRunList.push_back(make_pair(0,-m_VehicleInfo.max_wheel_angle/1.0));
 
 	m_CalibrationRunList.push_back(make_pair(1,0));
-	m_CalibrationRunList.push_back(make_pair(1,m_VehicleInfo.max_steer_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(1,m_VehicleInfo.max_wheel_angle/4.0));
 	m_CalibrationRunList.push_back(make_pair(1,0.0));
-	m_CalibrationRunList.push_back(make_pair(1,-m_VehicleInfo.max_steer_angle/4.0));
-	m_CalibrationRunList.push_back(make_pair(1,m_VehicleInfo.max_steer_angle/2.0));
+	m_CalibrationRunList.push_back(make_pair(1,-m_VehicleInfo.max_wheel_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(1,m_VehicleInfo.max_wheel_angle/2.0));
 	m_CalibrationRunList.push_back(make_pair(1,0.0));
-	m_CalibrationRunList.push_back(make_pair(1,-m_VehicleInfo.max_steer_angle/2.0));
-	m_CalibrationRunList.push_back(make_pair(1,m_VehicleInfo.max_steer_angle/1.5));
+	m_CalibrationRunList.push_back(make_pair(1,-m_VehicleInfo.max_wheel_angle/2.0));
+	m_CalibrationRunList.push_back(make_pair(1,m_VehicleInfo.max_wheel_angle/1.5));
 	m_CalibrationRunList.push_back(make_pair(1,0.0));
-	m_CalibrationRunList.push_back(make_pair(1,-m_VehicleInfo.max_steer_angle/1.5));
-	m_CalibrationRunList.push_back(make_pair(1,m_VehicleInfo.max_steer_angle/1.0));
+	m_CalibrationRunList.push_back(make_pair(1,-m_VehicleInfo.max_wheel_angle/1.5));
+	m_CalibrationRunList.push_back(make_pair(1,m_VehicleInfo.max_wheel_angle/1.0));
 	m_CalibrationRunList.push_back(make_pair(1,0.0));
-	m_CalibrationRunList.push_back(make_pair(1,-m_VehicleInfo.max_steer_angle/1.0));
+	m_CalibrationRunList.push_back(make_pair(1,-m_VehicleInfo.max_wheel_angle/1.0));
 
 	m_CalibrationRunList.push_back(make_pair(0,0));
 
 	m_CalibrationRunList.push_back(make_pair(2,0));
-	m_CalibrationRunList.push_back(make_pair(2,m_VehicleInfo.max_steer_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(2,m_VehicleInfo.max_wheel_angle/4.0));
 	m_CalibrationRunList.push_back(make_pair(2,0.0));
-	m_CalibrationRunList.push_back(make_pair(2,-m_VehicleInfo.max_steer_angle/4.0));
-	m_CalibrationRunList.push_back(make_pair(2,m_VehicleInfo.max_steer_angle/2.0));
+	m_CalibrationRunList.push_back(make_pair(2,-m_VehicleInfo.max_wheel_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(2,m_VehicleInfo.max_wheel_angle/2.0));
 	m_CalibrationRunList.push_back(make_pair(2,0.0));
-	m_CalibrationRunList.push_back(make_pair(2,-m_VehicleInfo.max_steer_angle/2.0));
-	m_CalibrationRunList.push_back(make_pair(2,m_VehicleInfo.max_steer_angle/1.5));
+	m_CalibrationRunList.push_back(make_pair(2,-m_VehicleInfo.max_wheel_angle/2.0));
+	m_CalibrationRunList.push_back(make_pair(2,m_VehicleInfo.max_wheel_angle/1.5));
 	m_CalibrationRunList.push_back(make_pair(2,0.0));
-	m_CalibrationRunList.push_back(make_pair(2,-m_VehicleInfo.max_steer_angle/1.5));
-	m_CalibrationRunList.push_back(make_pair(2,m_VehicleInfo.max_steer_angle/1.0));
+	m_CalibrationRunList.push_back(make_pair(2,-m_VehicleInfo.max_wheel_angle/1.5));
+	m_CalibrationRunList.push_back(make_pair(2,m_VehicleInfo.max_wheel_angle/1.0));
 	m_CalibrationRunList.push_back(make_pair(2,0.0));
-	m_CalibrationRunList.push_back(make_pair(2,-m_VehicleInfo.max_steer_angle/1.0));
+	m_CalibrationRunList.push_back(make_pair(2,-m_VehicleInfo.max_wheel_angle/1.0));
 
 	m_CalibrationRunList.push_back(make_pair(0,0));
 
 	m_CalibrationRunList.push_back(make_pair(3,0));
-	m_CalibrationRunList.push_back(make_pair(3,m_VehicleInfo.max_steer_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(3,m_VehicleInfo.max_wheel_angle/4.0));
 	m_CalibrationRunList.push_back(make_pair(3,0.0));
-	m_CalibrationRunList.push_back(make_pair(3,-m_VehicleInfo.max_steer_angle/4.0));
-	m_CalibrationRunList.push_back(make_pair(3,m_VehicleInfo.max_steer_angle/2.0));
+	m_CalibrationRunList.push_back(make_pair(3,-m_VehicleInfo.max_wheel_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(3,m_VehicleInfo.max_wheel_angle/2.0));
 	m_CalibrationRunList.push_back(make_pair(3,0.0));
-	m_CalibrationRunList.push_back(make_pair(3,-m_VehicleInfo.max_steer_angle/2.0));
-	m_CalibrationRunList.push_back(make_pair(3,m_VehicleInfo.max_steer_angle/1.5));
+	m_CalibrationRunList.push_back(make_pair(3,-m_VehicleInfo.max_wheel_angle/2.0));
+	m_CalibrationRunList.push_back(make_pair(3,m_VehicleInfo.max_wheel_angle/1.5));
 	m_CalibrationRunList.push_back(make_pair(3,0.0));
-	m_CalibrationRunList.push_back(make_pair(3,-m_VehicleInfo.max_steer_angle/1.5));
+	m_CalibrationRunList.push_back(make_pair(3,-m_VehicleInfo.max_wheel_angle/1.5));
 
 	m_CalibrationRunList.push_back(make_pair(0,0));
 
 	m_CalibrationRunList.push_back(make_pair(4,0));
-	m_CalibrationRunList.push_back(make_pair(4,m_VehicleInfo.max_steer_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(4,m_VehicleInfo.max_wheel_angle/4.0));
 	m_CalibrationRunList.push_back(make_pair(4,0.0));
-	m_CalibrationRunList.push_back(make_pair(4,-m_VehicleInfo.max_steer_angle/4.0));
-	m_CalibrationRunList.push_back(make_pair(4,m_VehicleInfo.max_steer_angle/2.0));
+	m_CalibrationRunList.push_back(make_pair(4,-m_VehicleInfo.max_wheel_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(4,m_VehicleInfo.max_wheel_angle/2.0));
 	m_CalibrationRunList.push_back(make_pair(4,0.0));
-	m_CalibrationRunList.push_back(make_pair(4,-m_VehicleInfo.max_steer_angle/2.0));
-	m_CalibrationRunList.push_back(make_pair(4,m_VehicleInfo.max_steer_angle/1.5));
+	m_CalibrationRunList.push_back(make_pair(4,-m_VehicleInfo.max_wheel_angle/2.0));
+	m_CalibrationRunList.push_back(make_pair(4,m_VehicleInfo.max_wheel_angle/1.5));
 	m_CalibrationRunList.push_back(make_pair(4,0.0));
-	m_CalibrationRunList.push_back(make_pair(4,-m_VehicleInfo.max_steer_angle/1.5));
+	m_CalibrationRunList.push_back(make_pair(4,-m_VehicleInfo.max_wheel_angle/1.5));
 
 	m_CalibrationRunList.push_back(make_pair(0,0));
 
 	m_CalibrationRunList.push_back(make_pair(5,0));
-	m_CalibrationRunList.push_back(make_pair(5,m_VehicleInfo.max_steer_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(5,m_VehicleInfo.max_wheel_angle/4.0));
 	m_CalibrationRunList.push_back(make_pair(5,0.0));
-	m_CalibrationRunList.push_back(make_pair(5,-m_VehicleInfo.max_steer_angle/4.0));
-	m_CalibrationRunList.push_back(make_pair(5,m_VehicleInfo.max_steer_angle/2.0));
+	m_CalibrationRunList.push_back(make_pair(5,-m_VehicleInfo.max_wheel_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(5,m_VehicleInfo.max_wheel_angle/2.0));
 	m_CalibrationRunList.push_back(make_pair(5,0.0));
-	m_CalibrationRunList.push_back(make_pair(5,-m_VehicleInfo.max_steer_angle/2.0));
-	m_CalibrationRunList.push_back(make_pair(5,m_VehicleInfo.max_steer_angle/1.5));
+	m_CalibrationRunList.push_back(make_pair(5,-m_VehicleInfo.max_wheel_angle/2.0));
+	m_CalibrationRunList.push_back(make_pair(5,m_VehicleInfo.max_wheel_angle/1.5));
 	m_CalibrationRunList.push_back(make_pair(5,0.0));
-	m_CalibrationRunList.push_back(make_pair(5,-m_VehicleInfo.max_steer_angle/1.5));
+	m_CalibrationRunList.push_back(make_pair(5,-m_VehicleInfo.max_wheel_angle/1.5));
 
 	m_CalibrationRunList.push_back(make_pair(0,0));
 
 	m_CalibrationRunList.push_back(make_pair(6,0));
-	m_CalibrationRunList.push_back(make_pair(6,m_VehicleInfo.max_steer_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(6,m_VehicleInfo.max_wheel_angle/4.0));
 	m_CalibrationRunList.push_back(make_pair(6,0.0));
-	m_CalibrationRunList.push_back(make_pair(6,-m_VehicleInfo.max_steer_angle/4.0));
-	m_CalibrationRunList.push_back(make_pair(6,m_VehicleInfo.max_steer_angle/3.0));
+	m_CalibrationRunList.push_back(make_pair(6,-m_VehicleInfo.max_wheel_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(6,m_VehicleInfo.max_wheel_angle/3.0));
 	m_CalibrationRunList.push_back(make_pair(6,0.0));
-	m_CalibrationRunList.push_back(make_pair(6,-m_VehicleInfo.max_steer_angle/3.0));
-	m_CalibrationRunList.push_back(make_pair(6,m_VehicleInfo.max_steer_angle/2.0));
+	m_CalibrationRunList.push_back(make_pair(6,-m_VehicleInfo.max_wheel_angle/3.0));
+	m_CalibrationRunList.push_back(make_pair(6,m_VehicleInfo.max_wheel_angle/2.0));
 	m_CalibrationRunList.push_back(make_pair(6,0.0));
-	m_CalibrationRunList.push_back(make_pair(6,-m_VehicleInfo.max_steer_angle/2.0));
+	m_CalibrationRunList.push_back(make_pair(6,-m_VehicleInfo.max_wheel_angle/2.0));
 
 	m_CalibrationRunList.push_back(make_pair(0,0));
 
 	m_CalibrationRunList.push_back(make_pair(7,0));
-	m_CalibrationRunList.push_back(make_pair(7,m_VehicleInfo.max_steer_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(7,m_VehicleInfo.max_wheel_angle/4.0));
 	m_CalibrationRunList.push_back(make_pair(7,0.0));
-	m_CalibrationRunList.push_back(make_pair(7,-m_VehicleInfo.max_steer_angle/4.0));
-	m_CalibrationRunList.push_back(make_pair(7,m_VehicleInfo.max_steer_angle/3.0));
+	m_CalibrationRunList.push_back(make_pair(7,-m_VehicleInfo.max_wheel_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(7,m_VehicleInfo.max_wheel_angle/3.0));
 	m_CalibrationRunList.push_back(make_pair(7,0.0));
-	m_CalibrationRunList.push_back(make_pair(7,-m_VehicleInfo.max_steer_angle/3.0));
-	m_CalibrationRunList.push_back(make_pair(7,m_VehicleInfo.max_steer_angle/2.0));
+	m_CalibrationRunList.push_back(make_pair(7,-m_VehicleInfo.max_wheel_angle/3.0));
+	m_CalibrationRunList.push_back(make_pair(7,m_VehicleInfo.max_wheel_angle/2.0));
 	m_CalibrationRunList.push_back(make_pair(7,0.0));
-	m_CalibrationRunList.push_back(make_pair(7,-m_VehicleInfo.max_steer_angle/2.0));
+	m_CalibrationRunList.push_back(make_pair(7,-m_VehicleInfo.max_wheel_angle/2.0));
 
 	m_CalibrationRunList.push_back(make_pair(0,0));
 
 	m_CalibrationRunList.push_back(make_pair(8,0));
-	m_CalibrationRunList.push_back(make_pair(8,m_VehicleInfo.max_steer_angle/6.0));
+	m_CalibrationRunList.push_back(make_pair(8,m_VehicleInfo.max_wheel_angle/6.0));
 	m_CalibrationRunList.push_back(make_pair(8,0.0));
-	m_CalibrationRunList.push_back(make_pair(8,-m_VehicleInfo.max_steer_angle/6.0));
-	m_CalibrationRunList.push_back(make_pair(8,m_VehicleInfo.max_steer_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(8,-m_VehicleInfo.max_wheel_angle/6.0));
+	m_CalibrationRunList.push_back(make_pair(8,m_VehicleInfo.max_wheel_angle/4.0));
 	m_CalibrationRunList.push_back(make_pair(8,0.0));
-	m_CalibrationRunList.push_back(make_pair(8,-m_VehicleInfo.max_steer_angle/4.0));
-	m_CalibrationRunList.push_back(make_pair(8,m_VehicleInfo.max_steer_angle/3.0));
+	m_CalibrationRunList.push_back(make_pair(8,-m_VehicleInfo.max_wheel_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(8,m_VehicleInfo.max_wheel_angle/3.0));
 	m_CalibrationRunList.push_back(make_pair(8,0.0));
-	m_CalibrationRunList.push_back(make_pair(8,-m_VehicleInfo.max_steer_angle/3.0));
+	m_CalibrationRunList.push_back(make_pair(8,-m_VehicleInfo.max_wheel_angle/3.0));
 
 	m_CalibrationRunList.push_back(make_pair(0,0));
 
 	m_CalibrationRunList.push_back(make_pair(9,0));
-	m_CalibrationRunList.push_back(make_pair(9,m_VehicleInfo.max_steer_angle/6.0));
+	m_CalibrationRunList.push_back(make_pair(9,m_VehicleInfo.max_wheel_angle/6.0));
 	m_CalibrationRunList.push_back(make_pair(9,0.0));
-	m_CalibrationRunList.push_back(make_pair(9,-m_VehicleInfo.max_steer_angle/6.0));
-	m_CalibrationRunList.push_back(make_pair(9,m_VehicleInfo.max_steer_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(9,-m_VehicleInfo.max_wheel_angle/6.0));
+	m_CalibrationRunList.push_back(make_pair(9,m_VehicleInfo.max_wheel_angle/4.0));
 	m_CalibrationRunList.push_back(make_pair(9,0.0));
-	m_CalibrationRunList.push_back(make_pair(9,-m_VehicleInfo.max_steer_angle/4.0));
-	m_CalibrationRunList.push_back(make_pair(9,m_VehicleInfo.max_steer_angle/3.0));
+	m_CalibrationRunList.push_back(make_pair(9,-m_VehicleInfo.max_wheel_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(9,m_VehicleInfo.max_wheel_angle/3.0));
 	m_CalibrationRunList.push_back(make_pair(9,0.0));
-	m_CalibrationRunList.push_back(make_pair(9,-m_VehicleInfo.max_steer_angle/3.0));
+	m_CalibrationRunList.push_back(make_pair(9,-m_VehicleInfo.max_wheel_angle/3.0));
 
 	m_CalibrationRunList.push_back(make_pair(0,0));
 
 	m_CalibrationRunList.push_back(make_pair(10,0));
-	m_CalibrationRunList.push_back(make_pair(10,m_VehicleInfo.max_steer_angle/6.0));
+	m_CalibrationRunList.push_back(make_pair(10,m_VehicleInfo.max_wheel_angle/6.0));
 	m_CalibrationRunList.push_back(make_pair(10,0.0));
-	m_CalibrationRunList.push_back(make_pair(10,-m_VehicleInfo.max_steer_angle/6.0));
-	m_CalibrationRunList.push_back(make_pair(10,m_VehicleInfo.max_steer_angle/5.0));
+	m_CalibrationRunList.push_back(make_pair(10,-m_VehicleInfo.max_wheel_angle/6.0));
+	m_CalibrationRunList.push_back(make_pair(10,m_VehicleInfo.max_wheel_angle/5.0));
 	m_CalibrationRunList.push_back(make_pair(10,0.0));
-	m_CalibrationRunList.push_back(make_pair(10,-m_VehicleInfo.max_steer_angle/5.0));
-	m_CalibrationRunList.push_back(make_pair(10,m_VehicleInfo.max_steer_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(10,-m_VehicleInfo.max_wheel_angle/5.0));
+	m_CalibrationRunList.push_back(make_pair(10,m_VehicleInfo.max_wheel_angle/4.0));
 	m_CalibrationRunList.push_back(make_pair(10,0.0));
-	m_CalibrationRunList.push_back(make_pair(10,-m_VehicleInfo.max_steer_angle/4.0));
+	m_CalibrationRunList.push_back(make_pair(10,-m_VehicleInfo.max_wheel_angle/4.0));
 
 	m_CalibrationRunList.push_back(make_pair(0,0));
 
 	m_CalibrationRunList.push_back(make_pair(11,0));
-	m_CalibrationRunList.push_back(make_pair(11,m_VehicleInfo.max_steer_angle/8.0));
+	m_CalibrationRunList.push_back(make_pair(11,m_VehicleInfo.max_wheel_angle/8.0));
 	m_CalibrationRunList.push_back(make_pair(11,0.0));
-	m_CalibrationRunList.push_back(make_pair(11,-m_VehicleInfo.max_steer_angle/8.0));
-	m_CalibrationRunList.push_back(make_pair(11,m_VehicleInfo.max_steer_angle/6.0));
+	m_CalibrationRunList.push_back(make_pair(11,-m_VehicleInfo.max_wheel_angle/8.0));
+	m_CalibrationRunList.push_back(make_pair(11,m_VehicleInfo.max_wheel_angle/6.0));
 	m_CalibrationRunList.push_back(make_pair(11,0.0));
-	m_CalibrationRunList.push_back(make_pair(11,-m_VehicleInfo.max_steer_angle/6.0));
-	m_CalibrationRunList.push_back(make_pair(11,m_VehicleInfo.max_steer_angle/5.0));
+	m_CalibrationRunList.push_back(make_pair(11,-m_VehicleInfo.max_wheel_angle/6.0));
+	m_CalibrationRunList.push_back(make_pair(11,m_VehicleInfo.max_wheel_angle/5.0));
 	m_CalibrationRunList.push_back(make_pair(11,0.0));
-	m_CalibrationRunList.push_back(make_pair(11,-m_VehicleInfo.max_steer_angle/5.0));
+	m_CalibrationRunList.push_back(make_pair(11,-m_VehicleInfo.max_wheel_angle/5.0));
 
 	m_CalibrationRunList.push_back(make_pair(0,0));
 
 	m_CalibrationRunList.push_back(make_pair(13,0));
-	m_CalibrationRunList.push_back(make_pair(13,m_VehicleInfo.max_steer_angle/10.0));
+	m_CalibrationRunList.push_back(make_pair(13,m_VehicleInfo.max_wheel_angle/10.0));
 	m_CalibrationRunList.push_back(make_pair(13,0.0));
-	m_CalibrationRunList.push_back(make_pair(13,-m_VehicleInfo.max_steer_angle/10.0));
-	m_CalibrationRunList.push_back(make_pair(13,m_VehicleInfo.max_steer_angle/9.0));
+	m_CalibrationRunList.push_back(make_pair(13,-m_VehicleInfo.max_wheel_angle/10.0));
+	m_CalibrationRunList.push_back(make_pair(13,m_VehicleInfo.max_wheel_angle/9.0));
 	m_CalibrationRunList.push_back(make_pair(13,0.0));
-	m_CalibrationRunList.push_back(make_pair(13,-m_VehicleInfo.max_steer_angle/9.0));
-	m_CalibrationRunList.push_back(make_pair(13,m_VehicleInfo.max_steer_angle/8.0));
+	m_CalibrationRunList.push_back(make_pair(13,-m_VehicleInfo.max_wheel_angle/9.0));
+	m_CalibrationRunList.push_back(make_pair(13,m_VehicleInfo.max_wheel_angle/8.0));
 	m_CalibrationRunList.push_back(make_pair(13,0.0));
-	m_CalibrationRunList.push_back(make_pair(13,-m_VehicleInfo.max_steer_angle/8.0));
+	m_CalibrationRunList.push_back(make_pair(13,-m_VehicleInfo.max_wheel_angle/8.0));
 
 	m_CalibrationRunList.push_back(make_pair(0,0));
 
 	m_CalibrationRunList.push_back(make_pair(15,0));
-	m_CalibrationRunList.push_back(make_pair(15,m_VehicleInfo.max_steer_angle/15.0));
+	m_CalibrationRunList.push_back(make_pair(15,m_VehicleInfo.max_wheel_angle/15.0));
 	m_CalibrationRunList.push_back(make_pair(15,0.0));
-	m_CalibrationRunList.push_back(make_pair(15,-m_VehicleInfo.max_steer_angle/15.0));
-	m_CalibrationRunList.push_back(make_pair(15,m_VehicleInfo.max_steer_angle/12.0));
+	m_CalibrationRunList.push_back(make_pair(15,-m_VehicleInfo.max_wheel_angle/15.0));
+	m_CalibrationRunList.push_back(make_pair(15,m_VehicleInfo.max_wheel_angle/12.0));
 	m_CalibrationRunList.push_back(make_pair(15,0.0));
-	m_CalibrationRunList.push_back(make_pair(15,-m_VehicleInfo.max_steer_angle/12.0));
-	m_CalibrationRunList.push_back(make_pair(15,m_VehicleInfo.max_steer_angle/10.0));
+	m_CalibrationRunList.push_back(make_pair(15,-m_VehicleInfo.max_wheel_angle/12.0));
+	m_CalibrationRunList.push_back(make_pair(15,m_VehicleInfo.max_wheel_angle/10.0));
 	m_CalibrationRunList.push_back(make_pair(15,0.0));
-	m_CalibrationRunList.push_back(make_pair(15,-m_VehicleInfo.max_steer_angle/10.0));
+	m_CalibrationRunList.push_back(make_pair(15,-m_VehicleInfo.max_wheel_angle/10.0));
 	m_CalibrationRunList.push_back(make_pair(0,0));
 }
 

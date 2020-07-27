@@ -60,7 +60,7 @@ public:
 						   const bool& b_keep_curr = false);
 
   void SetEvalParams(const EvaluationParams& eval_param);
-
+  void normalizeCosts(const EvaluationParams& eval_param, std::vector<TrajectoryCost>& trajectory_costs);
   static bool sortCosts(const TrajectoryCost& c1, const TrajectoryCost& c2)
   {
     return c1.cost < c2.cost;
@@ -78,7 +78,6 @@ private:
   EvaluationParams eval_params_;
 
 private:
-  void normalizeCosts(std::vector<TrajectoryCost>& trajectory_costs);
 
   void calculateTransitionCosts(std::vector<TrajectoryCost>& trajectory_costs, const int& curr_index,
                                 const PlanningParams& params);
