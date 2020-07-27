@@ -1493,36 +1493,48 @@ bool MappingHelpers::IsPointExist(const WayPoint& p, const std::vector<PlannerHN
 	return lanesList;
 }
 
+ void MappingHelpers::InsertUniqueId(std::vector<int>& id_list, int id)
+ {
+	 for(auto& x: id_list)
+	 {
+		 if(x == id)
+		 {
+			 return;
+		 }
+	 }
+
+	 id_list.push_back(id);
+ }
+
  void MappingHelpers::ConnectLanes(PlannerHNS::RoadNetwork& map)
  {
 	 if(map.roadSegments.size() == 0) return;
 
+	 //Connect next and previous lanes
 	for(auto& l : map.roadSegments.at(0).Lanes)
 	{
 		for(auto& next_lane_id : l.toIds)
 		{
 			PlannerHNS::Lane* pToLane = GetLaneById(next_lane_id, map);
+
 			if(pToLane == nullptr)
 			{
 				std::cout << "Can't Find toLane: " << next_lane_id << " To connect. " << std::endl;
 			}
 			else
 			{
-				if(find(pToLane->fromIds.begin(), pToLane->fromIds.end(), l.id) == pToLane->fromIds.end())
-				{
-					pToLane->fromIds.push_back(l.id);
-					//Now connect waypoints
-					if(l.points.size() > 0 && pToLane->points.size() > 0)
-					{
-						PlannerHNS::WayPoint* p1 = &l.points.at(l.points.size()-1);
-						PlannerHNS::WayPoint* p2 = &pToLane->points.at(0);
-						if(find(p1->toIds.begin(), p1->toIds.end(), p2->id) == p1->toIds.end())
-							p1->toIds.push_back(p2->id);
+				InsertUniqueId(pToLane->fromIds, l.id);
 
-						if(find(p2->fromIds.begin(), p2->fromIds.end(), p1->id) == p2->fromIds.end())
-							p2->fromIds.push_back(p1->id);
-					}
+				//Now connect waypoints
+				if(l.points.size() > 0 && pToLane->points.size() > 0)
+				{
+					PlannerHNS::WayPoint* p1 = &l.points.at(l.points.size()-1);
+					PlannerHNS::WayPoint* p2 = &pToLane->points.at(0);
+
+					InsertUniqueId(p1->toIds, p2->id);
+					InsertUniqueId(p2->fromIds, p1->id);
 				}
+
 			}
 		}
 	}
@@ -1536,7 +1548,7 @@ bool MappingHelpers::IsPointExist(const WayPoint& p, const std::vector<PlannerHN
 		 {
 			 if(sl.id == tl.stopLineID)
 			 {
-				 sl.lightIds.push_back(tl.id);
+				 InsertUniqueId(sl.lightIds, tl.id);
 				 break;
 			 }
 		 }
