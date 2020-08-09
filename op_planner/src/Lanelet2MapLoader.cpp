@@ -210,7 +210,7 @@ void Lanelet2MapLoader::FromLaneletToRoadNetwork(lanelet::LaneletMapPtr l2_map, 
 							sl.stopSignID = ts->id();
 							CreateWayPointsFromLineString(map, sl.points, stop_line_points, proj);
 							l.stopLines.push_back(sl);
-							PlannerHNS::MappingHelpers::InsertUniqueStopLine(map.stopLines, sl);
+							//PlannerHNS::MappingHelpers::InsertUniqueStopLine(map.stopLines, sl);
 						}
 			        }
 			      }
@@ -224,7 +224,7 @@ void Lanelet2MapLoader::FromLaneletToRoadNetwork(lanelet::LaneletMapPtr l2_map, 
 				  sl.id = stop_line_points.id();
 				  CreateWayPointsFromLineString(map, sl.points, stop_line_points, proj);
 				  l.stopLines.push_back(sl);
-				  PlannerHNS::MappingHelpers::InsertUniqueStopLine(map.stopLines, sl);
+				 //PlannerHNS::MappingHelpers::InsertUniqueStopLine(map.stopLines, sl);
 			  }
 
 			  std::vector<lanelet::AutowareTrafficLightConstPtr> lanelet_lights = lanelet::utils::query::autowareTrafficLights(x_lets);
@@ -275,6 +275,9 @@ void Lanelet2MapLoader::FromLaneletToRoadNetwork(lanelet::LaneletMapPtr l2_map, 
 
 	  map.roadSegments.clear();
 	  map.roadSegments.push_back(segment);
+
+	  PlannerHNS::MappingHelpers::ConnectMissingStopLinesAndLanes(map);
+
 	  PlannerHNS::MappingHelpers::ConnectLanes(map);
 	  PlannerHNS::MappingHelpers::ConnectTrafficLightsAndStopLines(map);
 	  PlannerHNS::MappingHelpers::ConnectTrafficSignsAndStopLines(map);

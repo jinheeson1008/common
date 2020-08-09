@@ -1542,6 +1542,36 @@ bool MappingHelpers::IsPointExist(const WayPoint& p, const std::vector<PlannerHN
 	}
  }
 
+ void MappingHelpers::ConnectMissingStopLinesAndLanes(PlannerHNS::RoadNetwork& map)
+ {
+	 if(map.roadSegments.size() == 0) return;
+
+	 for(auto& l: map.roadSegments.at(0).Lanes)
+	 {
+		 for(auto& sl: l.stopLines)
+		 {
+			 if(sl.points.size() > 0)
+			 {
+				 RelativeInfo inf;
+				 int relative_index = 0;
+				 PlanningHelpers::GetRelativeInfo(l.points, sl.points.at(0), inf, relative_index);
+				 if(inf.iBack >= 0 && inf.iBack < l.points.size())
+				 {
+					 sl.laneId = l.id;
+					 l.points.at(inf.iBack).stopLineID = sl.id;
+					 InsertUniqueStopLine(map.stopLines, sl);
+				 }
+				 else
+				 {
+					 std::cout << "Can't Assign Stop Line: " <<  sl.id << ", WayPoint Index: " << inf.iBack << ", iFront: " << inf.iFront << std::endl;
+				 }
+			 }
+		 }
+
+		 l.stopLines.clear();
+	 }
+ }
+
  void MappingHelpers::ConnectTrafficLightsAndStopLines(PlannerHNS::RoadNetwork& map)
  {
 	 for(auto& tl: map.trafficLights)

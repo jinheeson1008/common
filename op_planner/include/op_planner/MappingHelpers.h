@@ -91,6 +91,8 @@ public:
 	static void ConnectTrafficLightsAndStopLines(PlannerHNS::RoadNetwork& map);
 	static void ConnectTrafficSignsAndStopLines(PlannerHNS::RoadNetwork& map);
 
+	static void ConnectMissingStopLinesAndLanes(PlannerHNS::RoadNetwork& map);
+
 	static void FixRedundantPointsLanes(std::vector<Lane>& lanes);
 	static void FixTwoPointsLanes(std::vector<Lane>& lanes);
 	static void FixTwoPointsLane(Lane& lanes);
