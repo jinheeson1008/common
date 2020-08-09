@@ -27,6 +27,7 @@ catkin_package(
   DEPENDS TinyXML
 )
  
+ ## set(CMAKE_CXX_FLAGS " -g -Wall -Wno-unused-result ${CMAKE_CXX_FLAGS}")
 
 ###########
 ## Build ##

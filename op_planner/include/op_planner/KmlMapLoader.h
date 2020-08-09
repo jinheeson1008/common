@@ -23,6 +23,14 @@ public:
 	 */
 	void LoadKML(const std::string& kmlFile, RoadNetwork& map);
 
+	/**
+	 * @brief Should be called before LoadKML to take effect. stitching process should be withing the loading process , shouldn't be executed separately
+	 */
+	void EnableLaneStitching()
+	{
+		_bLaneStitch = true;
+	}
+
 	static TiXmlElement* GetHeadElement(TiXmlElement* pMainElem);
 	static std::vector<int> GetIDsFromPrefix(const std::string& str, const std::string& prefix, const std::string& postfix);
 	static std::pair<ACTION_TYPE, double> GetActionPairFromPrefix(const std::string& str, const std::string& prefix, const std::string& postfix);
@@ -31,6 +39,7 @@ public:
 private:
 	PlannerHNS::RoadNetwork* _pMap;
 	int _map_version;
+	bool _bLaneStitch;
 	TiXmlElement* GetDataFolder(const std::string& folderName, TiXmlElement* pMainElem);
 	std::vector<Line> GetLinesList(TiXmlElement* pElem);
 	std::vector<Curb> GetCurbsList(TiXmlElement* pElem);

@@ -56,7 +56,7 @@ public:
 	static WayPoint GetFirstWaypoint(RoadNetwork& map);
 	static WayPoint* GetLastWaypoint(RoadNetwork& map);
 	static void FindAdjacentLanes(RoadNetwork& map);
-	static void FindAdjacentLanesV2(RoadNetwork& map);
+	static void FindAdjacentLanesV2(RoadNetwork& map, const double& min_d = 1.2, const double& max_d = 3.5);
 
 	static void ConnectBoundariesToWayPoints(RoadNetwork& map);
 
@@ -95,6 +95,12 @@ public:
 	static void FixTwoPointsLanes(std::vector<Lane>& lanes);
 	static void FixTwoPointsLane(Lane& lanes);
 	static void FixUnconnectedLanes(std::vector<Lane>& lanes, const int& max_angle_diff = 90);
+	/**
+	 * Any distance between consecutive lanes is bigger than 0.25 will be filled by the last point
+	 * @param lanes
+	 * @param stitching_distance
+	 */
+	static void StitchLanes(std::vector<Lane>& lanes, const double& min_stitching_distance = 0.25, const double& max_stitching_distance = 4.0);
 	static void TrimPath(std::vector<PlannerHNS::WayPoint>& points, double trim_angle);
 
 	static void InsertWayPointToBackOfLane(const WayPoint& wp, Lane& lane, int& global_id);

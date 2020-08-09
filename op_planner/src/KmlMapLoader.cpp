@@ -10,11 +10,14 @@
 
 namespace PlannerHNS {
 
-KmlMapLoader::KmlMapLoader(int map_version) : _map_version(map_version) {
+KmlMapLoader::KmlMapLoader(int map_version) : _map_version(map_version)
+{
 	_pMap = nullptr;
+	_bLaneStitch = false;
 }
 
-KmlMapLoader::~KmlMapLoader() {
+KmlMapLoader::~KmlMapLoader()
+{
 }
 
 void KmlMapLoader::LoadKML(const std::string& kmlFile, RoadNetwork& map)
@@ -95,6 +98,8 @@ void KmlMapLoader::LoadKML(const std::string& kmlFile, RoadNetwork& map)
 
 	std::cout << " >> Load Lanes from KML file .. " << std::endl;
 	std::vector<Lane> laneLinksList = GetLanesList(pHeadElem);
+
+	MappingHelpers::FixTwoPointsLanes(laneLinksList);
 
 	map.roadSegments.clear();
 	map.roadSegments = GetRoadSegmentsList(pHeadElem);
@@ -239,6 +244,12 @@ void KmlMapLoader::LoadKML(const std::string& kmlFile, RoadNetwork& map)
 				}
 			}
 		}
+	}
+
+
+	if(_bLaneStitch && map.roadSegments.size() > 0)
+	{
+		MappingHelpers::StitchLanes(map.roadSegments.at(0).Lanes);
 	}
 
 	map.stopLines = stopLines;

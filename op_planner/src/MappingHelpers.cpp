@@ -901,6 +901,26 @@ void MappingHelpers::InsertWayPointToFrontOfLane(const WayPoint& wp, Lane& lane,
 //	lane.points.push_back(l_wp);
 }
 
+void MappingHelpers::StitchLanes(std::vector<Lane>& lanes, const double& min_stitching_distance, const double& max_stitching_distance)
+{
+	for(auto& l: lanes)
+	{
+		if(l.toLanes.size() == 1)
+		{
+			if(l.points.size() > 1 && l.toLanes.at(0)->points.size() > 1)
+			{
+				WayPoint* pWP1 = &l.points.at(l.points.size()-1);
+				WayPoint* pWP2 = &l.toLanes.at(0)->points.at(0);
+				double d = hypot(pWP2->pos.y - pWP1->pos.y, pWP2->pos.x - pWP1->pos.x);
+				if(d > min_stitching_distance && d < max_stitching_distance)
+				{
+					pWP1->pos = pWP2->pos;
+				}
+			}
+		}
+	}
+}
+
 void MappingHelpers::FixUnconnectedLanes(std::vector<Lane>& lanes, const int& max_angle_diff)
 {
 	for(unsigned int il=0; il < lanes.size(); il ++)
@@ -1292,7 +1312,7 @@ void MappingHelpers::LinkTrafficLightsAndStopLinesV2(RoadNetwork& map)
 	}
 }
 
-void MappingHelpers::FindAdjacentLanesV2(RoadNetwork& map)
+void MappingHelpers::FindAdjacentLanesV2(RoadNetwork& map, const double& min_d, const double& max_d )
 {
 	for(unsigned int rs = 0; rs < map.roadSegments.size(); rs++)
 	{
@@ -1311,7 +1331,7 @@ void MappingHelpers::FindAdjacentLanesV2(RoadNetwork& map)
 					RelativeInfo info;
 					PlanningHelpers::GetRelativeInfoLimited(pL2->points, *pWP, info);
 
-					if(!info.bAfter && !info.bBefore && fabs(info.perp_distance) > 1.2 && fabs(info.perp_distance) < 3.5 && UtilityHNS::UtilityH::AngleBetweenTwoAnglesPositive(info.perp_point.pos.a, pWP->pos.a) < 0.06)
+					if(!info.bAfter && !info.bBefore && fabs(info.perp_distance) > min_d && fabs(info.perp_distance) < max_d && UtilityHNS::UtilityH::AngleBetweenTwoAnglesPositive(info.perp_point.pos.a, pWP->pos.a) < 0.06)
 					{
 						WayPoint* pWP2 = &pL2->points.at(info.iFront);
 						if(info.perp_distance < 0)
@@ -1348,7 +1368,7 @@ void MappingHelpers::FindAdjacentLanesV2(RoadNetwork& map)
 
 							if(pWP2->pRight == 0)
 							{
-								pWP2->pRight = pWP->pLeft;
+								pWP2->pRight = pWP;
 								pWP2->RightPointId = pWP->id;
 								pWP2->RightLnId = pL->id;
 								pL2->pRightLane = pL;
