@@ -1776,7 +1776,9 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 		RelativeInfo ret_inf;
 		//WayPoint np = GetPerpendicularOnTrajectory_obsolete()(originalCenter, carPos, dummyd, closest_for_each_iteration);
 		GetRelativeInfo(originalCenter, carPos, ret_inf, closest_for_each_iteration);
-		ret_inf.perp_point.pos = carPos.pos;
+		ret_inf.perp_point.pos.x = carPos.pos.x;
+		ret_inf.perp_point.pos.y = carPos.pos.y;
+		ret_inf.perp_point.pos.a = carPos.pos.a;
 
 		RollOutStratPath.push_back(ret_inf.perp_point);
 		for(unsigned int i = 0; i < num_of_strait_points; i++)
