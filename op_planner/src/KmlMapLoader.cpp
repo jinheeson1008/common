@@ -221,11 +221,14 @@ void KmlMapLoader::LoadKML(const std::string& kmlFile, RoadNetwork& map)
 	_pMap = nullptr;
 }
 
-void KmlMapLoader::LoadKMLItems(const std::string& kmlFile, std::vector<Lane>& lanes, std::vector<Line>& lines,
+void KmlMapLoader::LoadKMLItems(const std::string& kmlFile, RoadNetwork& original_map, std::vector<Lane>& lanes, std::vector<Line>& lines,
 		std::vector<StopLine>& stopLines, std::vector<Boundary>& boundaries, std::vector<Curb>& curbs,
 		std::vector<Crossing>& crossings, std::vector<TrafficLight>& trafficLights, std::vector<TrafficSign>& signs,
 		std::vector<Marking>& markings)
 {
+
+	_pMap = &original_map;
+
 	//First, Get the main element
 	TiXmlElement* pHeadElem = 0;
 	TiXmlElement* pElem = 0;
@@ -282,6 +285,8 @@ void KmlMapLoader::LoadKMLItems(const std::string& kmlFile, std::vector<Lane>& l
 
 	std::cout << " >> Load Lines from KML file .. " << std::endl;
 	lines = GetLinesList(pHeadElem);
+
+	_pMap = nullptr;
 }
 
 TiXmlElement* KmlMapLoader::GetHeadElement(TiXmlElement* pMainElem)

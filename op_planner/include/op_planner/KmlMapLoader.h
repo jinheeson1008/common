@@ -23,7 +23,7 @@ public:
 	 */
 	void LoadKML(const std::string& kmlFile, RoadNetwork& map);
 
-	void LoadKMLItems(const std::string& kmlFile, std::vector<Lane>& lanes, std::vector<Line>& lines,
+	void LoadKMLItems(const std::string& kmlFile, RoadNetwork& original_map, std::vector<Lane>& lanes, std::vector<Line>& lines,
 			std::vector<StopLine>& stopLines, std::vector<Boundary>& boundaries, std::vector<Curb>& curbs,
 			std::vector<Crossing>& crossings, std::vector<TrafficLight>& trafficLights, std::vector<TrafficSign>& signs,
 			std::vector<Marking>& markings);
