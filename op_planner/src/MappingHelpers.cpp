@@ -490,7 +490,7 @@ void MappingHelpers::FindAdjacentLanes(RoadNetwork& map)
 							//perp_distance = PlanningHelpers::GetPerpDistanceToVectorSimple(pL->points.at(iCenter1-1), pL->points.at(iCenter1+1), closest_p);
 						}
 
-						if(perp_distance > 1.0 && perp_distance < 10.0)
+						if(perp_distance > 1.0 && perp_distance < 5.0)
 						{
 							pL->pRightLane = &map.roadSegments.at(rs_2).Lanes.at(i2);
 							for(unsigned int i_internal = 0; i_internal< pL->points.size(); i_internal++)
@@ -503,7 +503,7 @@ void MappingHelpers::FindAdjacentLanes(RoadNetwork& map)
 								}
 							}
 						}
-						else if(perp_distance < -1.0 && perp_distance > -10.0)
+						else if(perp_distance < -1.0 && perp_distance > -5.0)
 						{
 							pL->pLeftLane = &map.roadSegments.at(rs_2).Lanes.at(i2);
 							for(unsigned int i_internal = 0; i_internal< pL->points.size(); i_internal++)
@@ -612,8 +612,68 @@ void MappingHelpers::LinkMissingBranchingWayPoints(RoadNetwork& map)
 	}
 }
 
+void MappingHelpers::LinkLanesPointers(PlannerHNS::RoadNetwork& map)
+{
+	for(auto& rs: map.roadSegments)
+	{
+		//Clear first
+		for(auto& l: rs.Lanes)
+		{
+			l.toLanes.clear();
+			l.fromLanes.clear();
+		}
+	}
+
+	for(unsigned int rs = 0; rs < map.roadSegments.size(); rs++)
+	{
+		//Link Lanes
+		for(unsigned int i =0; i < map.roadSegments.at(rs).Lanes.size(); i++)
+		{
+			Lane* pL = &map.roadSegments.at(rs).Lanes.at(i);
+			for(unsigned int j = 0 ; j < pL->fromIds.size(); j++)
+			{
+				for(unsigned int l= 0; l < map.roadSegments.at(rs).Lanes.size(); l++)
+				{
+					if(map.roadSegments.at(rs).Lanes.at(l).id == pL->fromIds.at(j))
+					{
+						pL->fromLanes.push_back(&map.roadSegments.at(rs).Lanes.at(l));
+					}
+				}
+			}
+
+			for(unsigned int j = 0 ; j < pL->toIds.size(); j++)
+			{
+				for(unsigned int l= 0; l < map.roadSegments.at(rs).Lanes.size(); l++)
+				{
+					if(map.roadSegments.at(rs).Lanes.at(l).id == pL->toIds.at(j))
+					{
+						pL->toLanes.push_back(&map.roadSegments.at(rs).Lanes.at(l));
+					}
+				}
+			}
+
+			for(unsigned int j = 0 ; j < pL->points.size(); j++)
+			{
+				pL->points.at(j).pLane  = pL;
+			}
+		}
+	}
+}
+
 void MappingHelpers::LinkMissingBranchingWayPointsV2(RoadNetwork& map)
 {
+	for(auto& rs: map.roadSegments)
+	{
+		//Clear first
+		for(auto& l: rs.Lanes)
+		{
+			for(auto& wp: l.points)
+			{
+				wp.pFronts.clear();
+			}
+		}
+	}
+
 	for(unsigned int rs = 0; rs < map.roadSegments.size(); rs++)
 	{
 		for(unsigned int i =0; i < map.roadSegments.at(rs).Lanes.size(); i++)
@@ -627,7 +687,6 @@ void MappingHelpers::LinkMissingBranchingWayPointsV2(RoadNetwork& map)
 				{
 					for(unsigned int j = 0 ; j < pLane->toLanes.size(); j++)
 					{
-						//cout << "Link, Next Lane: " << pWP->laneId << ", WP: " << pWP->id << " To WP: " << pWP->toIds.at(j) << endl;
 						pWP->pFronts.push_back(&pLane->toLanes.at(j)->points.at(0));
 					}
 				}
@@ -639,8 +698,58 @@ void MappingHelpers::LinkMissingBranchingWayPointsV2(RoadNetwork& map)
 					}
 					else
 					{
-					//	cout << "Link, Same Lane: " << pWP->laneId << ", WP: " << pWP->id << " To WP: " << map.roadSegments.at(rs).Lanes.at(i).points.at(p+1).id << endl;
 						pWP->pFronts.push_back(&pLane->points.at(p+1));
+					}
+				}
+			}
+		}
+	}
+}
+
+void MappingHelpers::LinkLaneChangeWaypointsPointers(PlannerHNS::RoadNetwork& map)
+{
+	for(unsigned int rs = 0; rs < map.roadSegments.size(); rs++)
+	{
+		for(unsigned int i =0; i < map.roadSegments.at(rs).Lanes.size(); i++)
+		{
+			for(unsigned int p= 0; p < map.roadSegments.at(rs).Lanes.at(i).points.size(); p++)
+			{
+				WayPoint* pWP = &map.roadSegments.at(rs).Lanes.at(i).points.at(p);
+				if(pWP->pLeft == 0 && pWP->LeftPointId > 0)
+				{
+					pWP->pLeft = MappingHelpers::FindWaypointV2(pWP->LeftPointId, pWP->laneId, map);
+
+					if(pWP->pLeft != nullptr)
+					{
+						pWP->LeftLnId = pWP->pLeft->laneId;
+						pWP->pLane->pLeftLane = pWP->pLeft->pLane;
+						pWP->pLane->lane_change = 1;
+
+						if(pWP->pLeft->RightPointId == pWP->id)
+						{
+							pWP->pLeft->pRight = pWP;
+							pWP->pLeft->RightLnId = pWP->laneId;
+							pWP->pLeft->pLane->pRightLane = pWP->pLane;
+						}
+					}
+				}
+
+				if(pWP->pRight == 0 && pWP->RightPointId > 0)
+				{
+					pWP->pRight = MappingHelpers::FindWaypointV2(pWP->RightPointId, pWP->laneId, map);
+
+					if(pWP->pRight != nullptr)
+					{
+						pWP->RightLnId = pWP->pRight->laneId;
+						pWP->pLane->pRightLane = pWP->pRight->pLane;
+						pWP->pLane->lane_change = 1;
+
+						if(pWP->pRight->LeftPointId == pWP->id)
+						{
+							pWP->pRight->pLeft = pWP;
+							pWP->pRight->LeftLnId = pWP->laneId;
+							pWP->pRight->pLane->pLeftLane = pWP->pLane;
+						}
 					}
 				}
 			}
@@ -915,6 +1024,44 @@ void MappingHelpers::StitchLanes(std::vector<Lane>& lanes, const double& min_sti
 				if(d > min_stitching_distance && d < max_stitching_distance)
 				{
 					pWP1->pos = pWP2->pos;
+				}
+			}
+		}
+	}
+}
+
+void MappingHelpers::StitchLanes(PlannerHNS::RoadNetwork& map, const double& min_stitching_distance, const double& max_stitching_distance)
+{
+	if(map.roadSegments.size() == 0) return;
+
+	for(auto& l: map.roadSegments.at(0).Lanes)
+	{
+		if(l.toLanes.size() > 0)
+		{
+			if(l.points.size() > 1 && l.toLanes.at(0)->points.size() > 1)
+			{
+				WayPoint* pWP1 = &l.points.at(l.points.size()-1);
+				WayPoint* pWP2 = &l.toLanes.at(0)->points.at(0);
+				RelativeInfo inf;
+				int temp_index = 0;
+				PlanningHelpers::GetRelativeInfoLimited(l.toLanes.at(0)->points, *pWP1, inf, temp_index);
+				double d = hypot(pWP2->pos.y - pWP1->pos.y, pWP2->pos.x - pWP1->pos.x);
+
+				//Create new waypoint
+				if(inf.bBefore && d > min_stitching_distance && d < max_stitching_distance)
+				{
+					map.g_max_point_id++;
+					WayPoint final_wp = *pWP1;
+					final_wp.id = map.g_max_point_id;
+					final_wp.pos = pWP2->pos;
+
+					final_wp.fromIds.clear();
+					final_wp.fromIds.push_back(pWP1->id);
+
+					pWP1->toIds.clear();
+					pWP1->toIds.push_back(final_wp.id);
+
+					l.points.push_back(final_wp);
 				}
 			}
 		}
@@ -1198,44 +1345,6 @@ void MappingHelpers::FixUnconnectedLanes(std::vector<Lane>& lanes, const int& ma
 	}
 
 	lanes = sp_lanes;
-}
-
-void MappingHelpers::LinkLanesPointers(PlannerHNS::RoadNetwork& map)
-{
-	for(unsigned int rs = 0; rs < map.roadSegments.size(); rs++)
-	{
-		//Link Lanes
-		for(unsigned int i =0; i < map.roadSegments.at(rs).Lanes.size(); i++)
-		{
-			Lane* pL = &map.roadSegments.at(rs).Lanes.at(i);
-			for(unsigned int j = 0 ; j < pL->fromIds.size(); j++)
-			{
-				for(unsigned int l= 0; l < map.roadSegments.at(rs).Lanes.size(); l++)
-				{
-					if(map.roadSegments.at(rs).Lanes.at(l).id == pL->fromIds.at(j))
-					{
-						pL->fromLanes.push_back(&map.roadSegments.at(rs).Lanes.at(l));
-					}
-				}
-			}
-
-			for(unsigned int j = 0 ; j < pL->toIds.size(); j++)
-			{
-				for(unsigned int l= 0; l < map.roadSegments.at(rs).Lanes.size(); l++)
-				{
-					if(map.roadSegments.at(rs).Lanes.at(l).id == pL->toIds.at(j))
-					{
-						pL->toLanes.push_back(&map.roadSegments.at(rs).Lanes.at(l));
-					}
-				}
-			}
-
-			for(unsigned int j = 0 ; j < pL->points.size(); j++)
-			{
-				pL->points.at(j).pLane  = pL;
-			}
-		}
-	}
 }
 
 void MappingHelpers::LinkTrafficLightsAndStopLinesV2(RoadNetwork& map)

@@ -23,6 +23,11 @@ public:
 	 */
 	void LoadKML(const std::string& kmlFile, RoadNetwork& map);
 
+	void LoadKMLItems(const std::string& kmlFile, std::vector<Lane>& lanes, std::vector<Line>& lines,
+			std::vector<StopLine>& stopLines, std::vector<Boundary>& boundaries, std::vector<Curb>& curbs,
+			std::vector<Crossing>& crossings, std::vector<TrafficLight>& trafficLights, std::vector<TrafficSign>& signs,
+			std::vector<Marking>& markings);
+
 	/**
 	 * @brief Should be called before LoadKML to take effect. stitching process should be withing the loading process , shouldn't be executed separately
 	 */

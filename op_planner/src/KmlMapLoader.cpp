@@ -157,94 +157,16 @@ void KmlMapLoader::LoadKML(const std::string& kmlFile, RoadNetwork& map)
 	}
 
 	std::cout << " >> Link lanes and waypoints with pointers ... " << std::endl;
-	//Link Lanes and lane's waypoints by pointers
-	for(unsigned int rs = 0; rs < map.roadSegments.size(); rs++)
-	{
-		//Link Lanes
-		for(unsigned int i =0; i < map.roadSegments.at(rs).Lanes.size(); i++)
-		{
-			Lane* pL = &map.roadSegments.at(rs).Lanes.at(i);
-			for(unsigned int j = 0 ; j < pL->fromIds.size(); j++)
-			{
-				for(unsigned int l= 0; l < map.roadSegments.at(rs).Lanes.size(); l++)
-				{
-					if(map.roadSegments.at(rs).Lanes.at(l).id == pL->fromIds.at(j))
-					{
-						pL->fromLanes.push_back(&map.roadSegments.at(rs).Lanes.at(l));
-					}
-				}
-			}
+	//Link Lanes by pointers
+	MappingHelpers::LinkLanesPointers(map);
 
-			for(unsigned int j = 0 ; j < pL->toIds.size(); j++)
-			{
-				for(unsigned int l= 0; l < map.roadSegments.at(rs).Lanes.size(); l++)
-				{
-					if(map.roadSegments.at(rs).Lanes.at(l).id == pL->toIds.at(j))
-					{
-						pL->toLanes.push_back(&map.roadSegments.at(rs).Lanes.at(l));
-					}
-				}
-			}
-
-			for(unsigned int j = 0 ; j < pL->points.size(); j++)
-			{
-				pL->points.at(j).pLane  = pL;
-			}
-		}
-	}
-
-	//Link waypoints
+	//Link waypoints by pointers
 	std::cout << " >> Link missing branches and waypoints... " << std::endl;
 	MappingHelpers::LinkMissingBranchingWayPointsV2(map);
 
+	//Link lanechange waypoints by pointers
 	std::cout << " >> Link Lane change semantics ... " << std::endl;
-	for(unsigned int rs = 0; rs < map.roadSegments.size(); rs++)
-	{
-		for(unsigned int i =0; i < map.roadSegments.at(rs).Lanes.size(); i++)
-		{
-			for(unsigned int p= 0; p < map.roadSegments.at(rs).Lanes.at(i).points.size(); p++)
-			{
-				WayPoint* pWP = &map.roadSegments.at(rs).Lanes.at(i).points.at(p);
-				if(pWP->pLeft == 0 && pWP->LeftPointId > 0)
-				{
-					pWP->pLeft = MappingHelpers::FindWaypointV2(pWP->LeftPointId, pWP->laneId, map);
-
-					if(pWP->pLeft != nullptr)
-					{
-						pWP->LeftLnId = pWP->pLeft->laneId;
-						pWP->pLane->pLeftLane = pWP->pLeft->pLane;
-						pWP->pLane->lane_change = 1;
-
-						if(pWP->pLeft->RightPointId == pWP->id)
-						{
-							pWP->pLeft->pRight = pWP;
-							pWP->pLeft->RightLnId = pWP->laneId;
-							pWP->pLeft->pLane->pRightLane = pWP->pLane;
-						}
-					}
-				}
-
-				if(pWP->pRight == 0 && pWP->RightPointId > 0)
-				{
-					pWP->pRight = MappingHelpers::FindWaypointV2(pWP->RightPointId, pWP->laneId, map);
-
-					if(pWP->pRight != nullptr)
-					{
-						pWP->RightLnId = pWP->pRight->laneId;
-						pWP->pLane->pRightLane = pWP->pRight->pLane;
-						pWP->pLane->lane_change = 1;
-
-						if(pWP->pRight->LeftPointId == pWP->id)
-						{
-							pWP->pRight->pLeft = pWP;
-							pWP->pRight->LeftLnId = pWP->laneId;
-							pWP->pRight->pLane->pLeftLane = pWP->pLane;
-						}
-					}
-				}
-			}
-		}
-	}
+	MappingHelpers::LinkLaneChangeWaypointsPointers(map);
 
 
 	if(_bLaneStitch && map.roadSegments.size() > 0)
@@ -297,6 +219,69 @@ void KmlMapLoader::LoadKML(const std::string& kmlFile, RoadNetwork& map)
 	std::cout << "Map loaded from kml file with (" << laneLinksList.size()  << ") lanes, First Point ( " << MappingHelpers::GetFirstWaypoint(map).pos.ToString() << ")"<< std::endl;
 
 	_pMap = nullptr;
+}
+
+void KmlMapLoader::LoadKMLItems(const std::string& kmlFile, std::vector<Lane>& lanes, std::vector<Line>& lines,
+		std::vector<StopLine>& stopLines, std::vector<Boundary>& boundaries, std::vector<Curb>& curbs,
+		std::vector<Crossing>& crossings, std::vector<TrafficLight>& trafficLights, std::vector<TrafficSign>& signs,
+		std::vector<Marking>& markings)
+{
+	//First, Get the main element
+	TiXmlElement* pHeadElem = 0;
+	TiXmlElement* pElem = 0;
+
+	std::ifstream f(kmlFile.c_str());
+	if(!f.good())
+	{
+		std::cout << "Can't Open KML Map File: (" << kmlFile << ")" << std::endl;
+		return;
+	}
+
+	std::cout << " >> Loading KML Map file ... " <<  kmlFile << std::endl;
+
+	TiXmlDocument doc(kmlFile);
+	try
+	{
+		doc.LoadFile();
+	}
+	catch(std::exception& e)
+	{
+		std::cout << "KML Custom Reader Error, Can't Load .kml File, path is: "<<  kmlFile << std::endl;
+		std::cout << e.what() << std::endl;
+		return;
+	}
+
+	std::cout << " >> Reading Data from KML map file ... " << std::endl;
+	pElem = doc.FirstChildElement();
+	pHeadElem = GetHeadElement(pElem);
+
+	std::cout << " >> Load Lanes from KML file .. " << std::endl;
+	lanes = GetLanesList(pHeadElem);
+	MappingHelpers::FixTwoPointsLanes(lanes);
+
+	std::cout << " >> Load Traffic lights from KML file .. " << std::endl;
+	trafficLights = GetTrafficLightsList(pHeadElem);
+
+	std::cout << " >> Load Stop lines from KML file .. " << std::endl;
+	stopLines = GetStopLinesList(pHeadElem);
+
+	std::cout << " >> Load Signes from KML file .. " << std::endl;
+	signs = GetTrafficSignsList(pHeadElem);
+
+	std::cout << " >> Load Crossings from KML file .. " << std::endl;
+	crossings = GetCrossingsList(pHeadElem);
+
+	std::cout << " >> Load Markings from KML file .. " << std::endl;
+	markings = GetMarkingsList(pHeadElem);
+
+	std::cout << " >> Load Road boundaries from KML file .. " << std::endl;
+	boundaries = GetBoundariesList(pHeadElem);
+
+	std::cout << " >> Load Curbs from KML file .. " << std::endl;
+	curbs = GetCurbsList(pHeadElem);
+
+	std::cout << " >> Load Lines from KML file .. " << std::endl;
+	lines = GetLinesList(pHeadElem);
 }
 
 TiXmlElement* KmlMapLoader::GetHeadElement(TiXmlElement* pMainElem)

@@ -103,12 +103,21 @@ public:
 	 * @param stitching_distance
 	 */
 	static void StitchLanes(std::vector<Lane>& lanes, const double& min_stitching_distance = 0.25, const double& max_stitching_distance = 4.0);
+
+	/**
+	 * Any distance between consecutive lanes is bigger than 0.25 will be filled by the last point
+	 * @param lanes
+	 * @param stitching_distance
+	 */
+	static void StitchLanes(PlannerHNS::RoadNetwork& map, const double& min_stitching_distance = 0.25, const double& max_stitching_distance = 4.0);
+
 	static void TrimPath(std::vector<PlannerHNS::WayPoint>& points, double trim_angle);
 
 	static void InsertWayPointToBackOfLane(const WayPoint& wp, Lane& lane, int& global_id);
 	static void InsertWayPointToFrontOfLane(const WayPoint& wp, Lane& lane, int& global_id);
 
 	static void LinkLanesPointers(PlannerHNS::RoadNetwork& map);
+	static void LinkLaneChangeWaypointsPointers(PlannerHNS::RoadNetwork& map);
 
 	static void GetMapMaxIds(PlannerHNS::RoadNetwork& map);
 
