@@ -27,7 +27,6 @@ void TrajectoryEvaluator::SetEvalParams(const EvaluationParams& eval_param)
 	eval_params_ = eval_param;
 }
 
-
 TrajectoryCost TrajectoryEvaluator::doOneStep(const std::vector<std::vector<WayPoint> >& roll_outs,
                                               const std::vector<WayPoint>& total_paths, const WayPoint& curr_state,
                                               const PlanningParams& params, const CAR_BASIC_INFO& car_info,
@@ -41,10 +40,10 @@ TrajectoryCost TrajectoryEvaluator::doOneStep(const std::vector<std::vector<WayP
 //  timespec _t;
 //  UtilityHNS::UtilityH::GetTickCount(_t);
 
-	if(g_enable_debug == true)
-	{
-		std::cout << "Received paths: " <<  roll_outs.size() << ", Points: " << total_paths.size() << std::endl;
-	}
+//	if(g_enable_debug == true)
+//	{
+//		std::cout << "Received paths: " <<  roll_outs.size() << ", Points: " << total_paths.size() << std::endl;
+//	}
 
 	double critical_lateral_distance = car_info.width / 2.0 + params.horizontalSafetyDistancel;
   double critical_long_front_distance = car_info.wheel_base / 2.0 + car_info.length / 2.0
@@ -406,8 +405,18 @@ TrajectoryCost TrajectoryEvaluator::findBestTrajectory(const PlanningParams& par
   best_trajectory.closest_obj_velocity = 0;
   best_trajectory.index = params.rollOutNumber / 2;
   best_trajectory.lane_index = 0;
-  double all_closest_obj_distance = params.horizonDistance;
-  double all_closest_obj_velocity = 0;
+//  double all_closest_obj_distance = params.horizonDistance;
+//  double all_closest_obj_velocity = 0;
+
+  //because the default best trajectory is the center one,
+  //I assign distance and velocity from the center to the best, in case all blocked, this will be the best trajectory
+  //I assume that it is blocker by default, for safety reasons
+
+  if(best_trajectory.index >=0 && best_trajectory.index < trajectory_costs.size())
+  {
+	  best_trajectory = trajectory_costs.at(best_trajectory.index);
+	  best_trajectory.bBlocked = true;
+  }
 
   std::sort(trajectory_costs.begin(), trajectory_costs.end(), sortCosts);
 
@@ -423,14 +432,14 @@ TrajectoryCost TrajectoryEvaluator::findBestTrajectory(const PlanningParams& par
     std::cout << "--------------------------------------------------" << std::endl;
   }
 
-	for (unsigned int ic = 0; ic < trajectory_costs.size(); ic++)
-	{
-		if (trajectory_costs.at(ic).closest_obj_distance < all_closest_obj_distance)
-		{
-			all_closest_obj_distance = trajectory_costs.at(ic).closest_obj_distance;
-			all_closest_obj_velocity = trajectory_costs.at(ic).closest_obj_velocity;
-		}
-	}
+//	for (unsigned int ic = 0; ic < trajectory_costs.size(); ic++)
+//	{
+//		if (trajectory_costs.at(ic).closest_obj_distance < all_closest_obj_distance)
+//		{
+//			all_closest_obj_distance = trajectory_costs.at(ic).closest_obj_distance;
+//			all_closest_obj_velocity = trajectory_costs.at(ic).closest_obj_velocity;
+//		}
+//	}
 
   //new approach, in b_keep_curr branch
   //1. remove blocked trajectories, also remove all trajectory in the same side after the blocked trajectory,
@@ -459,12 +468,13 @@ TrajectoryCost TrajectoryEvaluator::findBestTrajectory(const PlanningParams& par
 		  }
 		}
 
-	  if(trajectory_costs.size() == 0)
-	  {
-		  best_trajectory.closest_obj_distance = all_closest_obj_distance;
-		  best_trajectory.closest_obj_velocity = all_closest_obj_velocity;
-	  }
-	  else
+//	  if(trajectory_costs.size() == 0)
+//	  {
+//		  best_trajectory.closest_obj_distance = all_closest_obj_distance;
+//		  best_trajectory.closest_obj_velocity = all_closest_obj_velocity;
+//	  }
+//	  else
+		if(trajectory_costs.size() > 0)
 	  {
 		  double closest_obj_distance = params.horizonDistance;
 		  double closest_obj_velocity = 0;
@@ -506,16 +516,16 @@ TrajectoryCost TrajectoryEvaluator::findBestTrajectory(const PlanningParams& par
   }
   else
   {
-	  //Assign closest distance and velocity of the best trajectory , only as additional information for the dicision maker
-	  best_trajectory.closest_obj_distance = all_closest_obj_distance;
-	  best_trajectory.closest_obj_velocity = all_closest_obj_velocity;
+	  //Assign closest distance and velocity of the best trajectory , only as additional information for the decision maker
+//	  best_trajectory.closest_obj_distance = all_closest_obj_distance;
+//	  best_trajectory.closest_obj_velocity = all_closest_obj_velocity;
 
 	  //Find Best not blocked rollout
 	  for (unsigned int ic = 0; ic < trajectory_costs.size(); ic++)
 	  {
 		if(!trajectory_costs.at(ic).bBlocked)
 		{
-			trajectory_costs.at(ic).closest_obj_distance = best_trajectory.closest_obj_distance;
+			//trajectory_costs.at(ic).closest_obj_distance = best_trajectory.closest_obj_distance;
 			best_trajectory = trajectory_costs.at(ic);
 			break;
 		}
@@ -621,7 +631,7 @@ void TrajectoryEvaluator::calculateDistanceCosts(const PlanningParams& params, c
 
 				//std::cout << info.bAfter << ", " << info.bBefore << ", " << actual_lateral_distance << ", " << actual_longitudinal_distance <<", " << t_diff <<", " << a_diff <<" ," << traj_prob <<std::endl;
 
-				if(actual_lateral_distance < c_lateral_d && t_diff) // collision point
+				if(actual_lateral_distance < c_lateral_d && t_diff < eval_params_.collision_time_) // collision point
 				{
 					trajectory_costs.at(i).lateral_cost += 2.0; // use half meter fixed critical distance as contact cost for all collision points in the range
 					collision_points.push_back(info.perp_point);

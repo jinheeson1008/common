@@ -1776,6 +1776,21 @@ void ROSHelpers::ConvertFromLocalLaneToAutowareLane(const std::vector<PlannerHNS
 	}
 }
 
+PlannerHNS::PID_CONST ROSHelpers::GetPIDValues(const std::string& str_param)
+{
+	PlannerHNS::PID_CONST pid;
+
+	std::vector<std::string> pid_list = PlannerHNS::MappingHelpers::SplitString(str_param, ",");
+	if(pid_list.size() == 3)
+	{
+		pid.kP = atof(pid_list.at(0).c_str());
+		pid.kI = atof(pid_list.at(1).c_str());
+		pid.kD = atof(pid_list.at(2).c_str());
+	}
+
+	return pid;
+}
+
 void ROSHelpers::ConvertFromAutowareLaneToLocalLane(const autoware_msgs::Lane& trajectory, std::vector<PlannerHNS::WayPoint>& path)
 {
 	path.clear();

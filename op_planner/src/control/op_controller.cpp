@@ -272,6 +272,7 @@ void MotionControl::CalculateVelocityDesired(const double& dt, const PlannerHNS:
 		else
 		{
 			desired_velocity = 0;
+			desired_acceleration = m_VehicleInfo.max_deceleration;
 		}
 	}
 	/**

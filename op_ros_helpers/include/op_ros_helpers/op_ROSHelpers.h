@@ -260,6 +260,8 @@ public:
 
 	static void ConvertFromAutowareLaneToLocalLane(const autoware_msgs::Lane& trajectory, std::vector<PlannerHNS::WayPoint>& path);
 
+	static PlannerHNS::PID_CONST GetPIDValues(const std::string& str_param);
+
 	static void createGlobalLaneArrayMarker(std_msgs::ColorRGBA color, const autoware_msgs::LaneArray &lane_waypoints_array, visualization_msgs::MarkerArray& markerArray);
 
 	static void createGlobalLaneArrayVelocityMarker(const autoware_msgs::LaneArray &lane_waypoints_array , visualization_msgs::MarkerArray& markerArray);

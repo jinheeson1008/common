@@ -1321,6 +1321,7 @@ public:
 		str << ", Lo : " << longitudinal_cost;
 		str << ", Ln : " << lane_change_cost;
 		str << ", Bl : " << bBlocked;
+		str << ", D : " << closest_obj_distance;
 		str << "\n";
 		for (unsigned int i=0; i<lateral_costs.size(); i++ )
 		{
