@@ -63,6 +63,9 @@ private:
 	std::vector<double> m_RelativeSpeeds;
 	double m_AverageRelativeSpeed;
 	double m_PrevAngleError;
+	PlannerHNS::ExtendedVehicleState m_PrevDesiredState;
+	double m_ffEstimatedVelocity;
+	double m_PredictedVelMinusRealVel;
 
 	/**
 	 * Log Information
@@ -121,6 +124,8 @@ private:
 
 	void PredictMotion(double& x, double &y, double& heading, double steering, double velocity,
 			double wheelbase, double time_elapsed);
+
+	double PredictVelocity(double v0, double v_d, double accel_stroke, double brake_stroke, double time_elapsed);
 
 	double GetPID_LinearChange(double minVal, double maxVal, double speedMax, double currSpeed);
 

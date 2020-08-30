@@ -51,6 +51,14 @@ public:
 	PID_CONST Accel_Gain;
 	PID_CONST Brake_Gain;
 
+	double accel_init_delay;
+	double accel_avg_delay;
+	double avg_acceleration;
+
+	double brake_init_delay;
+	double brake_avg_delay;
+	double avg_deceleration;
+
 	ControllerParams()
 	{
 		SimulationSteeringDelay = 0.0;
@@ -60,6 +68,14 @@ public:
 		ControlFrequency = 25;
 		avg_engine_brake_accel = -0.5;
 		min_safe_follow_distance = 2.0;
+
+		accel_init_delay = 0.01;
+		accel_avg_delay = 0.01;
+		avg_acceleration = 1.0;
+
+		brake_init_delay = 0.01;
+		brake_avg_delay = 0.01;
+		avg_deceleration = -1.0;
 	}
 };
 

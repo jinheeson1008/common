@@ -37,6 +37,8 @@ MotionControl::MotionControl()
 	m_DesiredDistance = 0;
 	m_DesiredSafeDistance = 0;
 	m_PrevDistanceError = 0;
+	m_ffEstimatedVelocity = 0;
+	m_PredictedVelMinusRealVel = 0;
 
 	UtilityHNS::UtilityH::GetTickCount(m_SteerDelayTimer);
 	UtilityHNS::UtilityH::GetTickCount(m_VelocityDelayTimer);
@@ -85,7 +87,7 @@ MotionControl::~MotionControl()
 				"heading,target_angle,angle_err,torque,"
 				"state,stop_distance,acceleration,avg_relative_speed,pred_relative_speed,"
 				"speed,target_speed,target_accel,speed_err,distance_err,target_distance,safe_distance,accel_stroke,"
-				"brake_stroke,lateral_error,iIndex,pathSize,avg_accel,total_accel",
+				"brake_stroke,lateral_error,iIndex,pathSize,avg_accel,total_accel,feed_forward_vel,ff_minus_speed",
 				m_LogData);
 
 		UtilityHNS::DataRW::WriteLogData(fileName.str(), "SteeringCalibrationLog",
@@ -203,6 +205,49 @@ int MotionControl::SteerControllerPart(const double& dt, const PlannerHNS::WayPo
 	return 1;
 }
 
+double MotionControl::PredictVelocity(double v0, double v_d, double accel_stroke, double brake_stroke, double time_elapsed)
+{
+	bool bPedalSwitch = false;
+	double init_speed_jump = m_Params.avg_acceleration * (m_Params.accel_init_delay + time_elapsed);
+
+	if((m_PrevDesiredState.accel_stroke > 0 && accel_stroke == 0) ||
+			(m_PrevDesiredState.brake_stroke > 0 && brake_stroke == 0) || (m_PrevDesiredState.accel_stroke > 0 && v0 < init_speed_jump && v_d > v0))
+	{
+		bPedalSwitch = true;
+	}
+
+	double accel = 0;
+	double delay = time_elapsed;
+	if(v_d >= v0)
+	{
+		accel = m_Params.avg_acceleration;
+
+		if(bPedalSwitch)
+			delay += m_Params.accel_init_delay;
+		else
+			delay += m_Params.accel_avg_delay;
+	}
+	else if(v_d < v0)
+	{
+		accel = m_Params.avg_deceleration;
+
+		if(bPedalSwitch)
+			delay += m_Params.brake_init_delay;
+		else
+			delay += m_Params.brake_avg_delay;
+	}
+
+	double a_dt = accel * delay;
+
+	//Initial case
+	double ff_vel = 0;
+	ff_vel = v0 + a_dt;
+
+//	std::cout << "Current Additional Velocity : " << a_dt << ", v_d: " << v_d << ", accel_stroke: " <<  accel_stroke << ", brake_stroke: " << brake_stroke << std::endl;
+
+	return ff_vel;
+}
+
 void MotionControl::PredictMotion(double& x, double &y, double& heading, double steering, double velocity, double wheelbase, double time_elapsed)
 {
 	x += velocity * time_elapsed *  cos(heading);
@@ -311,7 +356,8 @@ int MotionControl::VeclocityControllerUpdateTwoPID(const double& dt, const Plann
 	CalculateVelocityDesired(dt, CurrStatus, CurrBehavior, desired_velocity, desired_acceleration, desired_distance, safe_follow_distance);
 
 	e_d = (desired_distance - safe_follow_distance); //Follow distance error
-	e_v = (desired_velocity - CurrStatus.speed); //Target max velocity error
+	//e_v = (desired_velocity - CurrStatus.speed); //Target max velocity error
+	e_v = (desired_velocity - m_ffEstimatedVelocity); //use the FF velocity instead of the actual velocity, maybe average will be better who knows
 
 	/**
 	 * Reset PID controller of switching from follow state to any other state other vice versa.
@@ -368,12 +414,15 @@ int MotionControl::VeclocityControllerUpdateTwoPID(const double& dt, const Plann
 	desiredBrake = brake_v;
 	desiredShift = PlannerHNS::SHIFT_POS_DD;
 
+	m_ffEstimatedVelocity = PredictVelocity(CurrStatus.speed, desired_velocity, desiredAccel, desiredBrake, dt);
+
 	m_TargetSpeed = desired_velocity;
 	m_TargetAcceleration = desired_acceleration;
 	m_PrevSpeedError = e_v;
 	m_PrevDistanceError = e_d;
 	m_DesiredDistance = desired_distance;
 	m_DesiredSafeDistance = safe_follow_distance;
+	m_PredictedVelMinusRealVel = m_ffEstimatedVelocity - CurrStatus.speed;
 
 	return 1;
 }
@@ -424,7 +473,7 @@ PlannerHNS::ExtendedVehicleState MotionControl::DoOneStep(const double& dt, cons
 		//std::cout << "$$$$$ Error, Very Dangerous, Following No Path !!." << std::endl;
 	}
 
-	if(m_bEnableLog == true && (m_bCalibrationMode == true || m_Path.size() > 0))
+	if(m_bEnableLog == true && (m_bCalibrationMode == true || m_Path.size() > 0) )
 	{
 		timespec t;
 		UtilityHNS::UtilityH::GetTickCount(t);
@@ -437,7 +486,8 @@ PlannerHNS::ExtendedVehicleState MotionControl::DoOneStep(const double& dt, cons
 				currPose.pos.a << "," << m_TargetAngle << "," << m_PrevAngleError << "," << desiredState.steer_torque << "," <<
 				behavior.state << "," << behavior.stopDistance << "," << m_InstantAcceleration << "," << m_AverageRelativeSpeed << "," << m_PredictedRelativeSpeed << "," <<
 				vehicleState.speed << "," << m_TargetSpeed << "," << m_TargetAcceleration << "," << m_PrevSpeedError << "," << m_PrevDistanceError << "," << m_DesiredDistance << "," << m_DesiredSafeDistance << "," <<
-				desiredState.accel_stroke << "," <<	desiredState.brake_stroke <<  "," << m_LateralError << "," << m_iPrevWayPoint << "," << m_Path.size() << "," << m_AverageAcceleration <<"," << m_TotalAcceleration << ",";
+				desiredState.accel_stroke << "," <<	desiredState.brake_stroke <<  "," << m_LateralError << "," << m_iPrevWayPoint << "," << m_Path.size() << "," << m_AverageAcceleration <<"," << m_TotalAcceleration << "," <<
+				m_ffEstimatedVelocity << "," << m_PredictedVelMinusRealVel << ",";
 		m_LogData.push_back(dataLine.str());
 
 		LogCalibrationData(vehicleState, desiredState);
@@ -449,6 +499,8 @@ PlannerHNS::ExtendedVehicleState MotionControl::DoOneStep(const double& dt, cons
 	}
 
 	m_PrevBehaviorStatus = behavior;
+	m_PrevDesiredState = desiredState;
+
 
 	/**
 	 * These variable used in the logs
