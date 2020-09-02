@@ -484,7 +484,7 @@ void DecisionMaker::InitBehaviorStates()
 			double distance_to_stop = beh.stopDistance ;
 			if(distance_to_stop != 0)
 			{
-				deceleration_critical = (-CurrStatus.speed*CurrStatus.speed)/distance_to_stop;
+				deceleration_critical = (-CurrStatus.speed*CurrStatus.speed)/(2.0*distance_to_stop);
 			}
 
 			if(deceleration_critical >= 0)
@@ -510,7 +510,7 @@ void DecisionMaker::InitBehaviorStates()
 
 			if(distance_to_stop != 0)
 			{
-				deceleration_critical = (-CurrStatus.speed*CurrStatus.speed)/distance_to_stop;
+				deceleration_critical = (-CurrStatus.speed*CurrStatus.speed)/(2.0*distance_to_stop);
 			}
 
 			if(deceleration_critical >= 0)
@@ -630,7 +630,7 @@ void DecisionMaker::InitBehaviorStates()
 		double deceleration_critical = 0;
 		double distance_to_stop = beh.stopDistance ;
 		if(distance_to_stop != 0)
-			deceleration_critical = (-CurrStatus.speed*CurrStatus.speed)/distance_to_stop;
+			deceleration_critical = (-CurrStatus.speed*CurrStatus.speed)/(2.0*distance_to_stop);
 
 		if(deceleration_critical >= 0)
 			deceleration_critical = m_CarInfo.max_deceleration;
@@ -650,7 +650,7 @@ void DecisionMaker::InitBehaviorStates()
 		double sudden_stop_distance = -pow((CurrStatus.speed - beh.followVelocity), 2)/m_CarInfo.max_deceleration;
 
 		if(distance_to_stop != 0)
-			deceleration_critical = (-CurrStatus.speed*CurrStatus.speed)/distance_to_stop;
+			deceleration_critical = (-CurrStatus.speed*CurrStatus.speed)/(2.0*distance_to_stop);
 
 		if(deceleration_critical >= 0)
 			deceleration_critical = m_CarInfo.max_deceleration;
