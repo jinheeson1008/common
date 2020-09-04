@@ -38,6 +38,7 @@ DecisionMaker::DecisionMaker()
 	m_pAvoidObstacleState = nullptr;
 	m_pStopState = nullptr;
 	m_bRequestNewGlobalPlan = false;
+	m_bUseInternalACC = false;
 }
 
 DecisionMaker::~DecisionMaker()
@@ -61,6 +62,9 @@ void DecisionMaker::Init(const ControllerParams& ctrlParams, const PlannerHNS::P
  		m_CarInfo = carInfo;
  		m_ControlParams = ctrlParams;
  		m_params = params;
+
+
+ 		m_VelocityController.Init(m_ControlParams, m_CarInfo, true);
 
  		m_pidVelocity.Init(0.01, 0.004, 0.01);
 		m_pidVelocity.Setlimit(m_params.maxSpeed, 0);
@@ -267,6 +271,9 @@ void DecisionMaker::InitBehaviorStates()
  	{
  		pValues->distanceToGoal = m_params.horizonDistance;
  	}
+
+ 	pValues->stoppingDistances.push_back(pValues->distanceToGoal);
+
 	//if(ReachEndOfGlobalPath(pValues->minStoppingDistance + critical_long_front_distance, pValues->iCurrSafeLane)) //deprecated 27-August-2018
  	if(pValues->distanceToGoal < m_params.goalDiscoveryDistance)
  	{
@@ -455,152 +462,31 @@ void DecisionMaker::InitBehaviorStates()
 	return currentBehavior;
  }
 
- double DecisionMaker::UpdateVelocityDirectlyToTrajectorySmooth(const BehaviorState& beh, const VehicleState& CurrStatus, const double& dt)
+ double DecisionMaker::UpdateVelocityDirectlyToTrajectorySmooth(BehaviorState& beh, const VehicleState& CurrStatus, const double& dt)
  {
 
 	 PlannerHNS::PreCalculatedConditions *preCalcPrams = m_pCurrentBehaviorState->GetCalcParams();
-	 double desiredVelocity = 0;
-	 double max_velocity = 0;
 
-	if(preCalcPrams && m_TotalPaths.size() > 0)
+	 if(!preCalcPrams || m_TotalPaths.size() == 0) return 0;
+
+	 BehaviorState beh_with_max = beh;
+
+	RelativeInfo total_info;
+	PlanningHelpers::GetRelativeInfo(m_TotalPaths.at(m_iCurrentTotalPathId), state, total_info);
+	beh_with_max.maxVelocity	= PlannerHNS::PlanningHelpers::GetVelocityAhead(m_TotalPaths.at(m_iCurrentTotalPathId), total_info, total_info.iBack, preCalcPrams->minStoppingDistance*m_ControlParams.curveSlowDownRatio);
+	if(beh_with_max.maxVelocity > m_params.maxSpeed)
 	{
-
-		RelativeInfo info, total_info;
-		PlanningHelpers::GetRelativeInfo(m_TotalPaths.at(m_iCurrentTotalPathId), state, total_info);
-		PlanningHelpers::GetRelativeInfo(m_Path, state, info);
-		max_velocity	= PlannerHNS::PlanningHelpers::GetVelocityAhead(m_TotalPaths.at(m_iCurrentTotalPathId), total_info, total_info.iBack, preCalcPrams->minStoppingDistance);
-		if(max_velocity > m_params.maxSpeed)
-		{
-			max_velocity = m_params.maxSpeed;
-		}
-
-		//std::cout << "Max Velocity : " << max_velocity << "," << m_params.maxSpeed << std::endl;
-
-		double critical_long_front_distance = m_CarInfo.length/2.0;
-
-		if(beh.state == STOPPING_STATE || beh.state == TRAFFIC_LIGHT_STOP_STATE || beh.state == STOP_SIGN_STOP_STATE)
-		{
-			double deceleration_critical = 0;
-			double distance_to_stop = beh.stopDistance ;
-			if(distance_to_stop != 0)
-			{
-				deceleration_critical = (-CurrStatus.speed*CurrStatus.speed)/(2.0*distance_to_stop);
-			}
-
-			if(deceleration_critical >= 0)
-			{
-				deceleration_critical = m_CarInfo.max_deceleration;
-			}
-
-			desiredVelocity = deceleration_critical * dt + CurrStatus.speed;
-
-	#ifndef DISABLE_CARLA_SPECIAL_CODE
-			desiredVelocity = 0; //for CARLA
-	#endif
-
-			//std::cout << "Stopping : V: " << CurrStatus.speed << ", A: " << deceleration_critical << ", dt: " << dt << std::endl;
-			//std::cout << "Stopping (beh, brake): (" << beh.stopDistance << ", " << preCalcPrams->minStoppingDistance << ") , desiredPID=" << desiredVelocity << ", To Goal: " << preCalcPrams->distanceToGoal <<  std::endl;
-		}
-		else if(beh.state == FOLLOW_STATE)
-		{
-
-			double deceleration_critical = 0;
-			double distance_to_stop = beh.followDistance -  critical_long_front_distance - m_params.additionalBrakingDistance;
-			double sudden_stop_distance = -pow((CurrStatus.speed - beh.followVelocity), 2)/m_CarInfo.max_deceleration;
-
-			if(distance_to_stop != 0)
-			{
-				deceleration_critical = (-CurrStatus.speed*CurrStatus.speed)/(2.0*distance_to_stop);
-			}
-
-			if(deceleration_critical >= 0)
-			{
-				deceleration_critical = m_CarInfo.max_deceleration;
-			}
-
-			desiredVelocity = deceleration_critical * dt + CurrStatus.speed;
-
-			if(beh.followVelocity > CurrStatus.speed)
-			{
-				desiredVelocity = CurrStatus.speed;
-			}
-
-//			double deceleration_critical = 0;
-//			double inv_time = 2.0*((beh.followDistance-critical_long_front_distance)-CurrStatus.speed);
-//			if(inv_time == 0)
-//				deceleration_critical = m_CarInfo.max_deceleration;
-//			else
-//				deceleration_critical = CurrStatus.speed*CurrStatus.speed/inv_time;
-//
-//			if(deceleration_critical > 0) deceleration_critical = -deceleration_critical;
-//			if(deceleration_critical < m_CarInfo.max_deceleration) deceleration_critical = m_CarInfo.max_deceleration;
-//
-//			desiredVelocity = (deceleration_critical * dt) + CurrStatus.speed;
-//
-//			if(desiredVelocity > max_velocity)
-//			{
-//				desiredVelocity = max_velocity;
-//			}
-//
-//			if(beh.followDistance <= 0)
-//			{
-//				desiredVelocity = 0;
-//			}
-
-	#ifndef DISABLE_CARLA_SPECIAL_CODE
-			desiredVelocity = 0; // for CARLA
-	#endif
-
-			//std::cout << "Following V: " << CurrStatus.speed << ", Desired V: " << beh.followVelocity << ", A: " << deceleration_critical << ", d_to_stop: " << distance_to_stop << ", sudden_stop_d" << sudden_stop_distance << std::endl;
-			//std::cout << "Desired Vel: " << desiredVelocity << std::endl;
-
-		}
-		else if(beh.state == FORWARD_STATE || beh.state == OBSTACLE_AVOIDANCE_STATE )
-		{
-
-			double acceleration_critical = m_CarInfo.max_acceleration;
-
-			if(max_velocity < CurrStatus.speed)
-			{
-				acceleration_critical = m_CarInfo.max_deceleration ;
-			}
-
-			desiredVelocity = (acceleration_critical * dt) + CurrStatus.speed;
-
-	#ifndef DISABLE_CARLA_SPECIAL_CODE
-			desiredVelocity  = max_velocity;
-	#endif
-
-			//std::cout << "bEnd : " << preCalcPrams->bFinalLocalTrajectory << ", Min D: " << preCalcPrams->minStoppingDistance << ", D To Goal: " << preCalcPrams->distanceToGoal << std::endl;
-			//std::cout << "Forward: dt" << dt << " ,Target vel: " << desiredVelocity << ", Acc: " << acceleration_critical << ", Max Vel: " << max_velocity << ", Curr Vel: " << CurrStatus.speed << ", break_d: " << m_params.additionalBrakingDistance  << std::endl;
-			//std::cout << "Forward Target Acc: " << acceleration_critical  << ", PID Velocity: " << desiredVelocity << ", Max Velocity : " << max_velocity  << std::endl;
-		}
-		else if(beh.state == STOP_SIGN_WAIT_STATE || beh.state == TRAFFIC_LIGHT_WAIT_STATE)
-		{
-			desiredVelocity = 0;
-		}
-		else
-		{
-			desiredVelocity = 0;
-		}
-
-
-		if(desiredVelocity >  m_params.maxSpeed)
-		{
-			desiredVelocity = m_params.maxSpeed;
-		}
-		else if(desiredVelocity < 0)
-		{
-			desiredVelocity = 0;
-		}
+		beh_with_max.maxVelocity = m_params.maxSpeed;
 	}
+
+	VehicleState desired_state =  m_VelocityController.DoOneStep(dt, beh_with_max, CurrStatus);
 
 	for(unsigned int i =  0; i < m_Path.size(); i++)
 	{
-		m_Path.at(i).v = desiredVelocity;
+		m_Path.at(i).v = desired_state.speed;
 	}
 
-	return max_velocity;
+	return desired_state.speed;
 
  }
  
@@ -765,7 +651,14 @@ void DecisionMaker::InitBehaviorStates()
 
 	beh.bNewPlan = SelectSafeTrajectory();
 
-	beh.maxVelocity = UpdateVelocityDirectlyToTrajectory(beh, vehicleState, dt);
+	if(m_bUseInternalACC)
+	{
+		beh.maxVelocity = UpdateVelocityDirectlyToTrajectorySmooth(beh, vehicleState, dt);
+	}
+	else
+	{
+		beh.maxVelocity = UpdateVelocityDirectlyToTrajectory(beh, vehicleState, dt);
+	}
 
 	//std::cout << "Eval_i: " << tc.index << ", Curr_i: " <<  m_pCurrentBehaviorState->GetCalcParams()->iCurrSafeTrajectory << ", Prev_i: " << m_pCurrentBehaviorState->GetCalcParams()->iPrevSafeTrajectory << std::endl;
 

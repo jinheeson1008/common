@@ -11,6 +11,7 @@
 #include "op_planner/BehaviorStateMachine.h"
 #include "op_planner/PlannerCommonDef.h"
 #include "op_planner/RoadNetwork.h"
+#include "op_planner/control/op_acc.h"
 
 namespace PlannerHNS
 {
@@ -53,6 +54,7 @@ public:
 	UtilityHNS::PIDController m_pidFollowing;
 
 	bool m_bRequestNewGlobalPlan;
+	bool m_bUseInternalACC;
 
 public:
 
@@ -79,7 +81,7 @@ protected:
 	bool SelectSafeTrajectory();
 	BehaviorState GenerateBehaviorState(const VehicleState& vehicleState);
 	double UpdateVelocityDirectlyToTrajectory(const BehaviorState& beh, const VehicleState& CurrStatus, const double& dt);
-	double UpdateVelocityDirectlyToTrajectorySmooth(const BehaviorState& beh, const VehicleState& CurrStatus, const double& dt);
+	double UpdateVelocityDirectlyToTrajectorySmooth(BehaviorState& beh, const VehicleState& CurrStatus, const double& dt);
 	bool ReachEndOfGlobalPath(const double& min_distance, const int& iGlobalPathIndex);
 
 
@@ -88,6 +90,7 @@ protected:
 	std::vector<std::vector<WayPoint> > m_TotalOriginalPaths;
 	std::vector<std::vector<WayPoint> > m_TotalPaths;
 	PlannerHNS::PlanningParams m_params;
+	ACC m_VelocityController;
 
 
 };

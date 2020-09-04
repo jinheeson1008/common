@@ -2171,6 +2171,64 @@ void PlanningHelpers::SmoothGlobalPathSpeed(vector<WayPoint>& path)
 	SmoothSpeedProfiles(path, 0.45,0.25, 0.01);
 }
 
+void PlanningHelpers::ShiftRecommendedSpeed(std::vector<WayPoint>& path, const double& max_speed, const double& curr_speed, const double& inc_ratio, const double& path_density)
+{
+	if(max_speed == 0 || curr_speed == 0) return;
+
+	double shift_distance = max_speed*0.5;
+	double curr_speed_ratio = (2.0 * curr_speed) / max_speed;
+
+	if(curr_speed < 2)
+	{
+		shift_distance += 0;
+	}
+	else if(curr_speed < 4)
+	{
+		shift_distance += 4*inc_ratio;
+	}
+	else if(curr_speed < 6)
+	{
+		shift_distance += 6*inc_ratio;
+	}
+	else if(curr_speed < 8)
+	{
+		shift_distance += 8*inc_ratio;
+	}
+	else if(curr_speed < 10)
+	{
+		shift_distance += 10*inc_ratio;
+	}
+	else if(curr_speed < 15)
+	{
+		shift_distance += 15*inc_ratio;
+	}
+	else
+	{
+		shift_distance += 20*inc_ratio;
+	}
+
+	int shift_index = shift_distance / path_density;
+
+	for(unsigned int i=0; i < path.size()-1; i++)
+	{
+		if(path.at(i).v < path.at(i+1).v)
+		{
+			int vel_min = path.at(i).v;
+			if(i < shift_index)
+			{
+				shift_index = i;
+			}
+
+			for(unsigned int j=i-shift_index; j<i; j++)
+			{
+				path.at(j).v = vel_min;
+			}
+		}
+	}
+
+	SmoothSpeedProfiles(path, 0.4,0.3, 0.01);
+}
+
 void PlanningHelpers::GenerateRecommendedSpeed(vector<WayPoint>& path, const double& max_speed, const double& speedProfileFactor)
 {
 	CalcAngleAndCostAndCurvatureAnd2D(path);

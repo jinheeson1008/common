@@ -61,6 +61,7 @@ set(PLANNERH_SRC
 	src/RoadNetwork.cpp
 	src/hmi/HMIMSG.cpp
 	src/control/op_controller.cpp
+	src/control/op_acc.cpp
 )
 
 ## Declare a cpp library

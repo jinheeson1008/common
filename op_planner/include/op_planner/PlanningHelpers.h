@@ -136,6 +136,8 @@ public:
 
 	static void GenerateRecommendedSpeed(std::vector<WayPoint>& path, const double& max_speed, const double& speedProfileFactor);
 
+	static void ShiftRecommendedSpeed(std::vector<WayPoint>& path, const double& max_speed, const double& curr_speed, const double& inc_ratio, const double& path_density);
+
 	static WayPoint* BuildPlanningSearchTreeV2(WayPoint* pStart,
 			const WayPoint& goalPos,
 			const std::vector<int>& globalPath, const double& DistanceLimit,

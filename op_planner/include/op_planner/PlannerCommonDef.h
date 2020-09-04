@@ -50,6 +50,7 @@ public:
 	PID_CONST Velocity_Gain;
 	PID_CONST Accel_Gain;
 	PID_CONST Brake_Gain;
+	PID_CONST Follow_Gain;
 
 	double accel_init_delay;
 	double accel_avg_delay;
@@ -58,6 +59,10 @@ public:
 	double brake_init_delay;
 	double brake_avg_delay;
 	double avg_deceleration;
+
+	double accelPushRatio;
+	double brakePushRatio;
+	double curveSlowDownRatio;
 
 	ControllerParams()
 	{
@@ -76,6 +81,10 @@ public:
 		brake_init_delay = 0.01;
 		brake_avg_delay = 0.01;
 		avg_deceleration = -1.0;
+
+		accelPushRatio = 1.0;
+		brakePushRatio = 1.0;
+		curveSlowDownRatio = 1.0;
 	}
 };
 
