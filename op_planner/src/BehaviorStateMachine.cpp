@@ -526,10 +526,10 @@ BehaviorStateMachine* StopStateII::GetNextState()
 	{
 		return FindBehaviorState(GOAL_STATE);
 	}
-//	else if((pCParams->distanceToGoal - pCParams->minStoppingDistance) > 1.0 && pCParams->currentVelocity <= m_zero_velocity)
-//	{
-//		return FindBehaviorState(FORWARD_STATE);
-//	}
+	else if((pCParams->distanceToGoal - pCParams->minStoppingDistance) > 1.0 && pCParams->currentVelocity <= m_zero_velocity)
+	{
+		return FindBehaviorState(FORWARD_STATE);
+	}
 	else
 	{
 		return FindBehaviorState(this->m_Behavior);

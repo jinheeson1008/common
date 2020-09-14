@@ -1732,6 +1732,7 @@ void ROSHelpers::ConvertFromLocalLaneToAutowareLane(const std::vector<PlannerHNS
 	for(unsigned int i = iStart; i < path.size(); i++)
 	{
 		autoware_msgs::Waypoint wp;
+
 		wp.pose.pose.position.x = path.at(i).pos.x;
 		wp.pose.pose.position.y = path.at(i).pos.y;
 		wp.pose.pose.position.z = path.at(i).pos.z;
@@ -1747,6 +1748,8 @@ void ROSHelpers::ConvertFromLocalLaneToAutowareLane(const std::vector<PlannerHNS
 
 		wp.gid = path.at(i).gid;
 
+
+
 		//wp.cost = path.at(i).cost;
 		wp.cost = 0;
 
@@ -1755,6 +1758,8 @@ void ROSHelpers::ConvertFromLocalLaneToAutowareLane(const std::vector<PlannerHNS
 			wp.direction = path.at(i).actionCost.at(0).first;
 			wp.cost += path.at(i).actionCost.at(0).second;
 		}
+
+
 
 		trajectory.waypoints.push_back(wp);
 	}

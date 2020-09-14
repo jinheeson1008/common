@@ -221,7 +221,8 @@ void DecisionMaker::InitBehaviorStates()
 	/**
 	 * Global Lanes section, set global path index and ID
 	 */
- 	if(bestTrajectory.lane_index >= 0 && m_bRequestNewGlobalPlan == false)
+ 	//if(bestTrajectory.lane_index >= 0 && m_bRequestNewGlobalPlan == false)
+ 	if(bestTrajectory.lane_index >= 0 && bestTrajectory.lane_index < m_TotalPaths.size())
  	{
  		pValues->iCurrSafeLane = bestTrajectory.lane_index;
  	}
@@ -267,7 +268,7 @@ void DecisionMaker::InitBehaviorStates()
  	double critical_long_front_distance =  m_params.additionalBrakingDistance + m_params.verticalSafetyDistance;
 
  	pValues->distanceToGoal = PlannerHNS::PlanningHelpers::GetDistanceFromPoseToEnd(state, m_TotalPaths.at(pValues->iCurrSafeLane));
- 	if(pValues->distanceToGoal < 0 || pValues->distanceToGoal > m_params.horizonDistance)
+ 	if((pValues->distanceToGoal < -m_params.goalDiscoveryDistance) || (pValues->distanceToGoal > m_params.horizonDistance))
  	{
  		pValues->distanceToGoal = m_params.horizonDistance;
  	}
@@ -660,6 +661,7 @@ void DecisionMaker::InitBehaviorStates()
 		beh.maxVelocity = UpdateVelocityDirectlyToTrajectory(beh, vehicleState, dt);
 	}
 
+	//std::cout << "Evaluated Rollouts size: " << m_LanesRollOuts.size() << std::endl;
 	//std::cout << "Eval_i: " << tc.index << ", Curr_i: " <<  m_pCurrentBehaviorState->GetCalcParams()->iCurrSafeTrajectory << ", Prev_i: " << m_pCurrentBehaviorState->GetCalcParams()->iPrevSafeTrajectory << std::endl;
 
 	return beh;
