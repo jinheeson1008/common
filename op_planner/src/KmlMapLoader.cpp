@@ -903,7 +903,7 @@ std::vector<WayPoint> KmlMapLoader::GetCenterLaneData(TiXmlElement* pElem, const
 					gps_points.at(i).v =  dnums.at(0);
 				}
 
-				dnums = GetDoubleFromPrefix(add_info_list.at(i), "Dir", "SLine");
+				dnums = GetDoubleFromPrefix(add_info_list.at(i), "Dir", "Wid");
 				if(dnums.size() > 0)
 				{
 					gps_points.at(i).pos.a = gps_points.at(i).pos.dir =  dnums.at(0);
@@ -914,6 +914,20 @@ std::vector<WayPoint> KmlMapLoader::GetCenterLaneData(TiXmlElement* pElem, const
 					if(dnums.size() > 0)
 					{
 						gps_points.at(i).pos.a = gps_points.at(i).pos.dir =  dnums.at(0);
+					}
+				}
+
+				dnums = GetDoubleFromPrefix(add_info_list.at(i), "Wid", "SLine");
+				if(dnums.size() > 0)
+				{
+					gps_points.at(i).width = dnums.at(0);
+				}
+				else
+				{
+					dnums = GetDoubleFromPrefix(add_info_list.at(i), "Wid", "");
+					if(dnums.size() > 0)
+					{
+						gps_points.at(i).width = dnums.at(0);
 					}
 				}
 
