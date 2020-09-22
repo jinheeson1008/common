@@ -62,7 +62,7 @@ void DecisionMaker::Init(const ControllerParams& ctrlParams, const PlannerHNS::P
  		m_CarInfo = carInfo;
  		m_ControlParams = ctrlParams;
  		m_params = params;
-
+ 		m_original_params = params;
 
  		m_VelocityController.Init(m_ControlParams, m_CarInfo, true);
 
@@ -198,13 +198,6 @@ void DecisionMaker::InitBehaviorStates()
  	else
  		pValues->minStoppingDistance = m_params.horizonDistance;
 
- 	pValues->iCentralTrajectory	= m_pCurrentBehaviorState->m_pParams->rollOutNumber/2;
-
-	if(pValues->iPrevSafeTrajectory < 0)
-	{
-		pValues->iPrevSafeTrajectory = pValues->iCentralTrajectory;
-	}
-
  	pValues->stoppingDistances.clear();
  	pValues->stoppingDistances.push_back(m_params.horizonDistance);
  	pValues->stoppingDistances.push_back(pValues->minStoppingDistance);
@@ -251,6 +244,25 @@ void DecisionMaker::InitBehaviorStates()
 	/**
 	 * Local Trajectory section, set local trajectory index
 	 */
+
+	if(m_LanesRollOuts.at(m_iCurrentTotalPathId).size() <= 1)
+	{
+		m_params.rollOutNumber = 0;
+		m_params.enableSwerving = false;
+	}
+	else
+	{
+		m_params.rollOutNumber = m_LanesRollOuts.at(m_iCurrentTotalPathId).size() - 1;
+		m_params.enableSwerving = m_original_params.enableSwerving;
+	}
+
+ 	pValues->iCentralTrajectory	= m_pCurrentBehaviorState->m_pParams->rollOutNumber/2;
+
+	if(pValues->iPrevSafeTrajectory < 0)
+	{
+		pValues->iPrevSafeTrajectory = pValues->iCentralTrajectory;
+	}
+
  	if(bestTrajectory.index >=0 &&  bestTrajectory.index < (int)m_LanesRollOuts.at(m_iCurrentTotalPathId).size())
  	{
  		pValues->iCurrSafeTrajectory = bestTrajectory.index;

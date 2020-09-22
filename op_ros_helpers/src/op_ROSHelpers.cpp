@@ -619,7 +619,7 @@ void ROSHelpers::ConvertFromPlannerHToAutowarePathFormat(const std::vector<Plann
 	}
 }
 
-void ROSHelpers::ConvertFromRoadNetworkToAutowareVisualizeMapFormat(const PlannerHNS::RoadNetwork& map,	visualization_msgs::MarkerArray& markerArray)
+void ROSHelpers::ConvertFromRoadNetworkToAutowareVisualizeMapFormat(const PlannerHNS::RoadNetwork& map,	visualization_msgs::MarkerArray& markerArray, bool show_connections)
 {
 	visualization_msgs::Marker lane_waypoint_marker;
 	lane_waypoint_marker.header.frame_id = "map";
@@ -639,13 +639,14 @@ void ROSHelpers::ConvertFromRoadNetworkToAutowareVisualizeMapFormat(const Planne
 	lane_waypoint_marker.frame_locked = false;
 
 	markerArray.markers.clear();
+	int marker_id = 0;
 
 	for(unsigned int i = 0; i< map.roadSegments.size(); i++)
 	{
 		for(unsigned int j = 0; j < map.roadSegments.at(i).Lanes.size(); j++)
 		{
 		  lane_waypoint_marker.points.clear();
-		  lane_waypoint_marker.id = map.roadSegments.at(i).Lanes.at(j).id;
+		  lane_waypoint_marker.id = marker_id++;
 		  for(unsigned int p = 0; p < map.roadSegments.at(i).Lanes.at(j).points.size(); p++)
 		  {
 			geometry_msgs::Point point;
@@ -656,6 +657,43 @@ void ROSHelpers::ConvertFromRoadNetworkToAutowareVisualizeMapFormat(const Planne
 			lane_waypoint_marker.points.push_back(point);
 		  }
 		  markerArray.markers.push_back(lane_waypoint_marker);
+		}
+	}
+
+	if(show_connections && map.roadSegments.size() > 0)
+	{
+		for(auto l: map.roadSegments.at(0).Lanes)
+		{
+			PlanningHelpers::CalcAngleAndCost(l.points);
+			for(auto& p: l.points)
+			{
+				marker_id++;
+				visualization_msgs::Marker mkr_l;
+				mkr_l = PlannerHNS::ROSHelpers::CreateGenMarker(p.pos.x,p.pos.y,p.pos.z,p.pos.a, 0.7,1,0.5,1.0,marker_id,"road_network_vector_map", visualization_msgs::Marker::ARROW);
+				mkr_l.scale.y = 0.2;
+				mkr_l.scale.z = 0.2;
+				mkr_l.color.a = 0.25;
+				markerArray.markers.push_back(mkr_l);
+				if(p.LeftPointId > 0)
+				{
+					marker_id++;
+					mkr_l = PlannerHNS::ROSHelpers::CreateGenMarker(p.pos.x,p.pos.y,p.pos.z,p.pos.a+M_PI_2, 0.7,0.2,0.5,1.0,marker_id,"road_network_vector_map", visualization_msgs::Marker::ARROW);
+					mkr_l.scale.y = 0.2;
+					mkr_l.scale.z = 0.2;
+					mkr_l.color.a = 0.25;
+					markerArray.markers.push_back(mkr_l);
+				}
+
+				if(p.RightPointId > 0)
+				{
+					marker_id++;
+					mkr_l = PlannerHNS::ROSHelpers::CreateGenMarker(p.pos.x,p.pos.y,p.pos.z,p.pos.a-M_PI_2, 0.7,0.2,0.5,1.0,marker_id,"road_network_vector_map", visualization_msgs::Marker::ARROW);
+					mkr_l.scale.y = 0.2;
+					mkr_l.scale.z = 0.2;
+					mkr_l.color.a = 0.25;
+					markerArray.markers.push_back(mkr_l);
+				}
+			}
 		}
 	}
 
@@ -677,7 +715,7 @@ void ROSHelpers::ConvertFromRoadNetworkToAutowareVisualizeMapFormat(const Planne
 	for(unsigned int sl = 0; sl < map.stopLines.size(); sl++)
 	{
 	  stop_line_marker.points.clear();
-	  stop_line_marker.id = map.stopLines.at(sl).id;
+	  stop_line_marker.id = marker_id++;
 	  for(unsigned int p = 0; p < map.stopLines.at(sl).points.size(); p++)
 	  {
 		geometry_msgs::Point point;
@@ -716,7 +754,7 @@ void ROSHelpers::ConvertFromRoadNetworkToAutowareVisualizeMapFormat(const Planne
 			boundary_marker.color.a = 0.5;
 		}
 		boundary_marker.points.clear();
-		boundary_marker.id = map.boundaries.at(ib).id;
+		boundary_marker.id = marker_id++;
 	  for(int p = 0; p < map.boundaries.at(ib).points.size(); p++)
 	  {
 		  int curr_index = p;
@@ -749,7 +787,7 @@ void ROSHelpers::ConvertFromRoadNetworkToAutowareVisualizeMapFormat(const Planne
 			continue;
 
 		curb_marker.points.clear();
-		curb_marker.id = map.curbs.at(ic).id;
+		curb_marker.id = marker_id++;
 	  for(unsigned int p = 0; p < map.curbs.at(ic).points.size(); p++)
 	  {
 		geometry_msgs::Point point;
@@ -1745,21 +1783,14 @@ void ROSHelpers::ConvertFromLocalLaneToAutowareLane(const std::vector<PlannerHNS
 		wp.right_lane_id = path.at(i).RightPointId;
 		wp.time_cost = path.at(i).timeCost;
 		wp.change_flag = ceil(path.at(i).laneChangeCost);
-
 		wp.gid = path.at(i).gid;
-
-
-
-		//wp.cost = path.at(i).cost;
+		wp.wpstate.event_state = path.at(i).custom_type;
 		wp.cost = 0;
-
 		if(path.at(i).actionCost.size()>0)
 		{
 			wp.direction = path.at(i).actionCost.at(0).first;
 			wp.cost += path.at(i).actionCost.at(0).second;
 		}
-
-
 
 		trajectory.waypoints.push_back(wp);
 	}
@@ -1824,6 +1855,15 @@ void ROSHelpers::ConvertFromAutowareLaneToLocalLane(const autoware_msgs::Lane& t
 		wp.RightPointId = trajectory.waypoints.at(i).right_lane_id;
 		wp.timeCost = trajectory.waypoints.at(i).time_cost;
 		wp.laneChangeCost = trajectory.waypoints.at(i).change_flag;
+
+		if(trajectory.waypoints.at(i).wpstate.event_state == 0)
+		{
+			wp.custom_type = CUSTOM_AVOIDANCE_DISABLED;
+		}
+		else if(trajectory.waypoints.at(i).wpstate.event_state == 1)
+		{
+			wp.custom_type = CUSTOM_AVOIDANCE_ENABLED;
+		}
 
 		if(trajectory.waypoints.at(i).direction == 0)
 			wp.bDir = PlannerHNS::FORWARD_DIR;
@@ -2286,6 +2326,88 @@ void ROSHelpers::TTC_PathRviz(const std::vector<PlannerHNS::WayPoint>& path, vis
 
 		markerArray.markers.push_back(lane_waypoint_marker);
 	}
+}
+
+void ROSHelpers::CreateNextPlanningTreeLevelMarker(std::vector<PlannerHNS::WayPoint*>& level, visualization_msgs::MarkerArray& markerArray, PlannerHNS::WayPoint* pCurrGoal, double max_cost)
+{
+	if(level.size() == 0 || pCurrGoal == nullptr)
+		return;
+
+	std::vector<PlannerHNS::WayPoint*> newlevel;
+
+	//lane_waypoint_marker.frame_locked = false;
+
+	for(unsigned int i = 0; i < level.size(); i++)
+	{
+		visualization_msgs::Marker lane_waypoint_marker;
+		lane_waypoint_marker.header.frame_id = "map";
+		lane_waypoint_marker.header.stamp = ros::Time();
+		lane_waypoint_marker.type = visualization_msgs::Marker::ARROW;
+		lane_waypoint_marker.ns = "tree_levels";
+		lane_waypoint_marker.action = visualization_msgs::Marker::ADD;
+		lane_waypoint_marker.scale.x = 1.0;
+		lane_waypoint_marker.scale.y = 0.5;
+		lane_waypoint_marker.scale.z = 0.5;
+		lane_waypoint_marker.color.a = 0.8;
+		lane_waypoint_marker.color.b = 1;
+		lane_waypoint_marker.color.r = 1;
+		lane_waypoint_marker.color.g = 0;
+
+//		float norm_cost = level.at(i)->cost / max_cost * 2.0;
+//		if(norm_cost <= 1.0)
+//		{
+//			lane_waypoint_marker.color.r = 1-norm_cost;
+//			lane_waypoint_marker.color.g = 1-1.0;
+//		}
+//		else if(norm_cost > 1.0)
+//		{
+//			lane_waypoint_marker.color.r = 1-1.0;
+//			lane_waypoint_marker.color.g = 1- (2.0 - norm_cost);
+//		}
+
+		if(markerArray.markers.size() == 0)
+			lane_waypoint_marker.id = 0;
+		else
+			lane_waypoint_marker.id = markerArray.markers.at(markerArray.markers.size()-1).id + 1;
+
+		lane_waypoint_marker.pose.position.x = level.at(i)->pos.x;
+		lane_waypoint_marker.pose.position.y = level.at(i)->pos.y;
+		lane_waypoint_marker.pose.position.z = level.at(i)->pos.z;
+		double a = UtilityHNS::UtilityH::SplitPositiveAngle(level.at(i)->pos.a);
+		lane_waypoint_marker.pose.orientation = tf::createQuaternionMsgFromYaw(a);
+		markerArray.markers.push_back(lane_waypoint_marker);
+
+		if(level.at(i)->pLeft)
+		{
+			lane_waypoint_marker.pose.orientation = tf::createQuaternionMsgFromYaw(a + M_PI_2);
+			newlevel.push_back(level.at(i)->pLeft);
+			lane_waypoint_marker.id = markerArray.markers.at(markerArray.markers.size()-1).id + 1;
+			markerArray.markers.push_back(lane_waypoint_marker);
+		}
+		if(level.at(i)->pRight)
+		{
+			newlevel.push_back(level.at(i)->pRight);
+			lane_waypoint_marker.pose.orientation = tf::createQuaternionMsgFromYaw(a - M_PI_2);
+			lane_waypoint_marker.id = markerArray.markers.at(markerArray.markers.size()-1).id + 1;
+			markerArray.markers.push_back(lane_waypoint_marker);
+		}
+
+		for(unsigned int j = 0; j < level.at(i)->pFronts.size(); j++)
+			if(level.at(i)->pFronts.at(j))
+				newlevel.push_back(level.at(i)->pFronts.at(j));
+
+		if(hypot(pCurrGoal->pos.y - level.at(i)->pos.y, pCurrGoal->pos.x - level.at(i)->pos.x) < 0.5)
+		{
+			newlevel.clear();
+			break;
+		}
+
+		//std::cout << "Levels: " <<  lane_waypoint_marker.id << ", pLeft:" << level.at(i)->pLeft << ", pRight:" << level.at(i)->pRight << ", nFront:" << level.at(i)->pFronts.size() << ", Cost: "<< norm_cost<< std::endl;
+	}
+
+	level = newlevel;
+
+	//std::cout << "Levels: " <<  level.size() << std::endl;
 }
 
 }

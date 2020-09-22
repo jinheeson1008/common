@@ -90,6 +90,7 @@ protected:
 	std::vector<std::vector<WayPoint> > m_TotalOriginalPaths;
 	std::vector<std::vector<WayPoint> > m_TotalPaths;
 	PlannerHNS::PlanningParams m_params;
+	PlannerHNS::PlanningParams m_original_params;
 	ACC m_VelocityController;
 
 

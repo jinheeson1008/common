@@ -44,9 +44,15 @@ void PlannerH::GenerateRunoffTrajectory(const std::vector<std::vector<WayPoint> 
 		vector<double> e_distances;
 		if(referencePaths.at(i).size()>0)
 		{
+			int nRollOuts = rollOutNumber;
+			if(referencePaths.at(i).at(0).custom_type == CUSTOM_AVOIDANCE_DISABLED)
+			{
+				nRollOuts = 0;
+			}
+
 			PlanningHelpers::CalculateRollInTrajectories(carPos, speed, referencePaths.at(i), s_index, e_index, e_distances,
 					local_rollOutPaths, microPlanDistance, maxSpeed, carTipMargin, rollInMargin,
-					rollInSpeedFactor, pathDensity, rollOutDensity,rollOutNumber,
+					rollInSpeedFactor, pathDensity, rollOutDensity, nRollOuts,
 					SmoothDataWeight, SmoothWeight, SmoothTolerance, bHeadingSmooth, sampledPoints_debug);
 		}
 		else
