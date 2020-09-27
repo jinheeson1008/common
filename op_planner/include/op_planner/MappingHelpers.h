@@ -37,6 +37,12 @@ static EnumString<BOUNDARY_TYPE> BOUNDARY_TYPE_STR(NORMAL_ROAD_BOUNDARY,
 				{EXIT_BOUNDARY, "Exit"},
 		});
 
+static EnumString<CustomBehaviorType> CustomBehaviorTypeStr(CUSTOM_AVOIDANCE_DISABLED,
+		{
+				{CUSTOM_AVOIDANCE_DISABLED, "Disabled"},
+				{CUSTOM_AVOIDANCE_ENABLED, "Enabled"}
+		});
+
 class MappingHelpers {
 public:
 	MappingHelpers();
@@ -57,6 +63,16 @@ public:
 	static WayPoint* GetLastWaypoint(RoadNetwork& map);
 	static void FindAdjacentLanes(RoadNetwork& map);
 	static void FindAdjacentLanesV2(RoadNetwork& map, const double& min_d = 1.2, const double& max_d = 3.5);
+	/**
+	 *
+	 *
+	 * @param map
+	 * @param lane_id
+	 * @param dir = 0 for both left and right, = 1 for left lane, = 2 for right lane
+	 * @param min_d
+	 * @param max_d
+	 */
+	static void FindAdjacentSingleLane(RoadNetwork& map, const int& lane_id, const int& dir,  const double& min_d = 1.2, const double& max_d = 3.5);
 
 	static void ConnectBoundariesToWayPoints(RoadNetwork& map);
 

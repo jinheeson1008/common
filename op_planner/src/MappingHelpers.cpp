@@ -1421,6 +1421,65 @@ void MappingHelpers::LinkTrafficLightsAndStopLinesV2(RoadNetwork& map)
 	}
 }
 
+void MappingHelpers::FindAdjacentSingleLane(RoadNetwork& map, const int& lane_id, const int& dir,  const double& min_d, const double& max_d)
+{
+	Lane* pL =  GetLaneById(lane_id, map);
+	if(pL != nullptr)
+	{
+		for(auto& l: map.roadSegments.at(0).Lanes)
+		{
+			PlanningHelpers::CalcAngleAndCost(l.points);
+		}
+
+		for(auto& l2: map.roadSegments.at(0).Lanes)
+		{
+			if(pL->id != l2.id)
+			{
+				for(auto& wp1: pL->points)
+				{
+					RelativeInfo info;
+					PlanningHelpers::GetRelativeInfoLimited(l2.points, wp1, info);
+					double angle_diff = UtilityHNS::UtilityH::AngleBetweenTwoAnglesPositive(info.perp_point.pos.a, wp1.pos.a)*RAD2DEG;
+					if(fabs(info.perp_distance) > min_d && fabs(info.perp_distance) < max_d && !info.bAfter && !info.bBefore && angle_diff < 10)
+					{
+						WayPoint* wp2 = &l2.points.at(info.iFront);
+						if(info.perp_distance < 0 && (dir == 0 || dir == 2))
+						{
+							pL->lane_change = 1;
+							l2.lane_change = 1;
+
+							wp1.pRight = wp2;
+							wp1.RightPointId = wp2->id;
+							wp1.RightLnId = l2.id;
+							pL->pRightLane = &l2;
+
+							wp2->pLeft = &wp1;
+							wp2->LeftPointId = wp1.id;
+							wp2->LeftLnId = pL->id;
+							l2.pLeftLane = pL;
+						}
+						else if(info.perp_distance >= 0 && (dir == 0 || dir == 1))
+						{
+							pL->lane_change = 1;
+							l2.lane_change = 1;
+
+							wp1.pLeft = wp2;
+							wp1.LeftPointId = wp2->id;
+							wp1.LeftLnId = l2.id;
+							pL->pLeftLane = &l2;
+
+							wp2->pRight = &wp1;
+							wp2->RightPointId = wp1.id;
+							wp2->RightLnId = pL->id;
+							l2.pRightLane = pL;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 void MappingHelpers::FindAdjacentLanesV2(RoadNetwork& map, const double& min_d, const double& max_d )
 {
 	if(map.roadSegments.size() == 0) return;
@@ -1479,73 +1538,6 @@ void MappingHelpers::FindAdjacentLanesV2(RoadNetwork& map, const double& min_d, 
 			}
 		}
 	}
-
-//	for(unsigned int rs = 0; rs < map.roadSegments.size(); rs++)
-//	{
-//		for(unsigned int i =0; i < map.roadSegments.at(rs).Lanes.size(); i++)
-//		{
-//			Lane* pL = &map.roadSegments.at(rs).Lanes.at(i);
-//			for(unsigned int i2 =0; i2 < map.roadSegments.at(rs).Lanes.size(); i2++)
-//			{
-//				Lane* pL2 = &map.roadSegments.at(rs).Lanes.at(i2);
-//
-//				if(pL->id == pL2->id) continue;
-//
-//				for(unsigned int p=0; p < pL->points.size(); p++)
-//				{
-//					WayPoint* pWP = &pL->points.at(p);
-//					RelativeInfo info;
-//					PlanningHelpers::GetRelativeInfoLimited(pL2->points, *pWP, info);
-//
-//					if(!info.bAfter && !info.bBefore && fabs(info.perp_distance) > min_d && fabs(info.perp_distance) < max_d && UtilityHNS::UtilityH::AngleBetweenTwoAnglesPositive(info.perp_point.pos.a, pWP->pos.a) < 0.06)
-//					{
-//						WayPoint* pWP2 = &pL2->points.at(info.iFront);
-//						if(info.perp_distance < 0)
-//						{
-//							if(pWP->pRight == 0)
-//							{
-//								pWP->pRight = pWP2;
-//								pWP->RightPointId = pWP2->id;
-//								pWP->RightLnId = pL2->id;
-//								pL->pRightLane = pL2;
-//								pL->lane_change = 1;
-//
-//							}
-//
-//							if(pWP2->pLeft == 0)
-//							{
-//								pWP2->pLeft = pWP;
-//								pWP2->LeftPointId = pWP->id;
-//								pWP2->LeftLnId = pL->id;
-//								pL2->pLeftLane = pL;
-//								pL2->lane_change = 1;
-//							}
-//						}
-//						else
-//						{
-//							if(pWP->pLeft == 0)
-//							{
-//								pWP->pLeft = pWP2;
-//								pWP->LeftPointId = pWP2->id;
-//								pWP->LeftLnId = pL2->id;
-//								pL->pLeftLane = pL2;
-//								pL->lane_change = 1;
-//							}
-//
-//							if(pWP2->pRight == 0)
-//							{
-//								pWP2->pRight = pWP;
-//								pWP2->RightPointId = pWP->id;
-//								pWP2->RightLnId = pL->id;
-//								pL2->pRightLane = pL;
-//								pL2->lane_change = 1;
-//							}
-//						}
-//					}
-//				}
-//			}
-//		}
-//	}
 }
 
 void MappingHelpers::GetMapMaxIds(PlannerHNS::RoadNetwork& map)

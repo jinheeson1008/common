@@ -751,7 +751,7 @@ int PlanningHelpers::GetClosestNextPointIndexDirectionFast(const vector<WayPoint
 	return min_index;
 }
 
-int PlanningHelpers::GetClosestPointIndex_obsolete(const vector<WayPoint>& trajectory, const WayPoint& p,const int& prevIndex )
+int PlanningHelpers::GetClosestPointIndex(const vector<WayPoint>& trajectory, const WayPoint& p,const int& prevIndex )
 {
 	if(trajectory.size() == 0 || prevIndex < 0) return 0;
 
@@ -981,7 +981,7 @@ WayPoint PlanningHelpers::GetNextPointOnTrajectory_obsolete(const vector<WayPoin
 double PlanningHelpers::GetDistanceOnTrajectory_obsolete(const std::vector<WayPoint>& path, const int& start_index, const WayPoint& p)
 {
 
-	int end_point_index = GetClosestPointIndex_obsolete(path, p);
+	int end_point_index = GetClosestPointIndex(path, p);
 	if(end_point_index > 0)
 		end_point_index--;
 
@@ -1185,7 +1185,7 @@ void PlanningHelpers::FixPathDensity(vector<WayPoint>& path, const double& dista
 			ei++;
 			remaining = 0;
 		}
-		else if(d > (distanceDensity +  margin)) // skip
+		else if(d > (distanceDensity +  margin)) // insert
 		{
 			WayPoint pm = path.at(si);
 			nPoints = d  / distanceDensity;
@@ -1194,15 +1194,23 @@ void PlanningHelpers::FixPathDensity(vector<WayPoint>& path, const double& dista
 				pm.pos.x = pm.pos.x + distanceDensity * cos(a);
 				pm.pos.y = pm.pos.y + distanceDensity * sin(a);
 				pm.pos.z = z;
-				fixedPath.push_back(pm);
+				int closest_index = GetClosestPointIndex(path, pm);
+				WayPoint pm_with_correct_info = pm;
+				if(closest_index >=0 && closest_index < path.size())
+				{
+					pm_with_correct_info = path.at(closest_index);
+					pm_with_correct_info.pos = pm.pos;
+				}
+
+				fixedPath.push_back(pm_with_correct_info);
 			}
 			remaining = d - nPoints*distanceDensity;
 			si++;
 			path.at(si).pos = pm.pos;
-			d = 0;
 			ei++;
+			d = 0;
 		}
-		else
+		else // push
 		{
 			d = 0;
 			remaining = 0;
@@ -1212,6 +1220,35 @@ void PlanningHelpers::FixPathDensity(vector<WayPoint>& path, const double& dista
 		}
 	}
 
+	/**
+	 * The following code is added on 26 September 2020, to solve the missing last point issue,
+	 * Also it handles the case when the given resolution is larger than the length of the path.
+	 */
+	if(fixedPath.size() > 1)
+	{
+		WayPoint e_p_0 = fixedPath.at(fixedPath.size()-2);
+		WayPoint e_p_1 = fixedPath.at(fixedPath.size()-1);
+		WayPoint e_p = path.at(path.size()-1);
+		double d0 = hypot(e_p.pos.y - e_p_0.pos.y, e_p.pos.x - e_p_0.pos.x);
+		double d1 = hypot(e_p.pos.y - e_p_1.pos.y, e_p.pos.x - e_p_1.pos.x);
+
+		if(d0 > distanceDensity && d1 > distanceDensity/4.0)
+		{
+			fixedPath.push_back(e_p);
+		}
+		else
+		{
+			fixedPath.erase(fixedPath.end());
+			fixedPath.push_back(e_p);
+		}
+	}
+	else
+	{
+		if(path.size() > 1)
+		{
+			fixedPath.push_back(path.at(path.size()-1));
+		}
+	}
 	path = fixedPath;
 }
 

@@ -1341,15 +1341,18 @@ bool AisanLanesFileReader::ReadNextLine(AisanLane& data)
 		data.Lno	  	= strtol(lineData.at(0).at(16).c_str(), NULL, 10);
 
 
-		if(lineData.at(0).size() < 23) return true;
-
-		data.LaneType	= strtol(lineData.at(0).at(17).c_str(), NULL, 10);
-		data.LimitVel	= strtol(lineData.at(0).at(18).c_str(), NULL, 10);
-		data.RefVel	 	= strtol(lineData.at(0).at(19).c_str(), NULL, 10);
-		data.RoadSecID	= strtol(lineData.at(0).at(20).c_str(), NULL, 10);
-		data.LaneChgFG 	= strtol(lineData.at(0).at(21).c_str(), NULL, 10);
-		data.LinkWAID	= strtol(lineData.at(0).at(22).c_str(), NULL, 10);
-
+		if(lineData.at(0).size() > 17)
+			data.LaneType	= strtol(lineData.at(0).at(17).c_str(), NULL, 10);
+		if(lineData.at(0).size() > 18)
+			data.LimitVel	= strtol(lineData.at(0).at(18).c_str(), NULL, 10);
+		if(lineData.at(0).size() > 19)
+			data.RefVel	 	= strtol(lineData.at(0).at(19).c_str(), NULL, 10);
+		if(lineData.at(0).size() > 20)
+			data.RoadSecID	= strtol(lineData.at(0).at(20).c_str(), NULL, 10);
+		if(lineData.at(0).size() > 21)
+			data.LaneChgFG 	= strtol(lineData.at(0).at(21).c_str(), NULL, 10);
+		if(lineData.at(0).size() > 22)
+			data.LinkWAID	= strtol(lineData.at(0).at(22).c_str(), NULL, 10);
 
 		if(lineData.at(0).size() > 23)
 		{
