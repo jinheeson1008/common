@@ -634,7 +634,7 @@ void ROSHelpers::ConvertFromRoadNetworkToAutowareVisualizeMapFormat(const Planne
 	roll_color.b = 0.9;
 	roll_color.a = 0.5;
 
-	lane_waypoint_marker.color = roll_color;
+	//lane_waypoint_marker.color = roll_color;
 	lane_waypoint_marker.pose.orientation = tf::createQuaternionMsgFromYaw(0);
 	lane_waypoint_marker.frame_locked = false;
 
@@ -646,6 +646,7 @@ void ROSHelpers::ConvertFromRoadNetworkToAutowareVisualizeMapFormat(const Planne
 		for(unsigned int j = 0; j < map.roadSegments.at(i).Lanes.size(); j++)
 		{
 		  lane_waypoint_marker.points.clear();
+		  lane_waypoint_marker.colors.clear();
 		  lane_waypoint_marker.id = marker_id++;
 		  for(unsigned int p = 0; p < map.roadSegments.at(i).Lanes.at(j).points.size(); p++)
 		  {
@@ -654,6 +655,14 @@ void ROSHelpers::ConvertFromRoadNetworkToAutowareVisualizeMapFormat(const Planne
 			point.y = map.roadSegments.at(i).Lanes.at(j).points.at(p).pos.y;
 			point.z = map.roadSegments.at(i).Lanes.at(j).points.at(p).pos.z;
 
+			std_msgs::ColorRGBA edge_color = roll_color;
+//			if(map.roadSegments.at(i).Lanes.at(j).points.at(p).custom_type == CUSTOM_AVOIDANCE_DISABLED)
+//			{
+//				edge_color.r = 0.5;
+//				edge_color.b = 0.5;
+//			}
+
+			lane_waypoint_marker.colors.push_back(edge_color);
 			lane_waypoint_marker.points.push_back(point);
 		  }
 		  markerArray.markers.push_back(lane_waypoint_marker);
@@ -943,7 +952,12 @@ void ROSHelpers::TrajectoriesToMarkers(const std::vector<std::vector<std::vector
 	lane_waypoint_marker.scale.y = 0.1;
 	//lane_waypoint_marker.scale.z = 0.1;
 	lane_waypoint_marker.frame_locked = false;
-	std_msgs::ColorRGBA  total_color, curr_color;
+	std_msgs::ColorRGBA  default_color;
+	default_color.r = 0;
+	default_color.g = 1;
+	default_color.b = 0;
+	default_color.a = 0.8;
+
 
 	int count = 0;
 	for (unsigned int il = 0; il < paths.size(); il++)
@@ -951,6 +965,7 @@ void ROSHelpers::TrajectoriesToMarkers(const std::vector<std::vector<std::vector
 		for (unsigned int i = 0; i < paths.at(il).size(); i++)
 		{
 			lane_waypoint_marker.points.clear();
+			lane_waypoint_marker.colors.clear();
 			lane_waypoint_marker.id = count;
 
 			for (unsigned int j=0; j < paths.at(il).at(i).size(); j++)
@@ -961,14 +976,16 @@ void ROSHelpers::TrajectoriesToMarkers(const std::vector<std::vector<std::vector
 			  point.y = paths.at(il).at(i).at(j).pos.y;
 			  point.z = paths.at(il).at(i).at(j).pos.z;
 
+			  std_msgs::ColorRGBA  edge_color = default_color;
+//			  if(paths.at(il).at(i).at(j).custom_type == CUSTOM_AVOIDANCE_ENABLED)
+//			  {
+//				  edge_color.r = 1;
+//				  edge_color.g = 0.75;
+//			  }
+
+			  lane_waypoint_marker.colors.push_back(edge_color);
 			  lane_waypoint_marker.points.push_back(point);
 			}
-
-			lane_waypoint_marker.color.a = 0.9;
-
-			lane_waypoint_marker.color.r = 0.0;
-			lane_waypoint_marker.color.g = 1.0;
-			lane_waypoint_marker.color.b = 0.0;
 
 			markerArray.markers.push_back(lane_waypoint_marker);
 			count++;

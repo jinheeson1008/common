@@ -217,7 +217,7 @@ void MappingHelpers::LinkTrafficLightsIntoGroups(RoadNetwork& map)
 	}
 }
 
-WayPoint* MappingHelpers::GetClosestWaypointFromMap(const WayPoint& pos, RoadNetwork& map, const bool bDirectionBased)
+WayPoint* MappingHelpers::GetClosestWaypointFromMap(const WayPoint& pos, RoadNetwork& map, const bool& bDirectionBased)
 {
 	WayPoint* pWaypoint = nullptr;
 	double min_d = DBL_MAX;
@@ -255,7 +255,7 @@ WayPoint* MappingHelpers::GetClosestWaypointFromMap(const WayPoint& pos, RoadNet
 	return pWaypoint;
 }
 
-vector<WayPoint*> MappingHelpers::GetClosestWaypointsListFromMap(const WayPoint& pos, RoadNetwork& map, const double& distance, const bool bDirectionBased)
+vector<WayPoint*> MappingHelpers::GetClosestWaypointsListFromMap(const WayPoint& pos, RoadNetwork& map, const double& distance, const bool& bDirectionBased)
 {
 	vector<WayPoint*> waypoints_list;
 
@@ -338,7 +338,7 @@ std::vector<Lane*> MappingHelpers::GetClosestLanesFast(const WayPoint& center, R
 	return lanesList;
 }
 
-Lane* MappingHelpers::GetClosestLaneFromMap(const WayPoint& pos, RoadNetwork& map, const double& distance, const bool bDirectionBased)
+Lane* MappingHelpers::GetClosestLaneFromMap(const WayPoint& pos, RoadNetwork& map, const double& distance, const bool& bDirectionBased)
 {
 	Lane* pCloseLane = nullptr;
 	double min_d = DBL_MAX;

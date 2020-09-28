@@ -23,7 +23,7 @@ namespace PlannerHNS {
 #define LANE_CHANGE_SPEED_FACTOR 0.5
 #define LANE_CHANGE_COST 3.0 // meters
 //#define BACKUP_STRAIGHT_PLAN_DISTANCE 10 //meters
-#define LANE_CHANGE_MIN_DISTANCE 5
+#define LANE_CHANGE_MIN_DISTANCE 8
 
 class PlanningHelpers
 {
@@ -120,7 +120,7 @@ public:
 			std::vector<std::vector<WayPoint> >& rollInPaths, const double& max_roll_distance,
 			const double& maxSpeed, const double&  carTipMargin, const double& rollInMargin,
 			const double& rollInSpeedFactor, const double& pathDensity, const double& rollOutDensity,
-			const int& rollOutNumber, const double& SmoothDataWeight, const double& SmoothWeight,
+			const int& rollOutsNumber, const double& SmoothDataWeight, const double& SmoothWeight,
 			const double& SmoothTolerance, const bool& bHeadingSmooth,
 			std::vector<WayPoint>& sampledPoints);
 
@@ -171,7 +171,13 @@ public:
 	static void TraversePathTreeBackwards(WayPoint* pHead, WayPoint* pStartWP, const std::vector<int>& globalPathIds,
 			std::vector<WayPoint>& localPath, std::vector<std::vector<WayPoint> >& localPaths);
 
-	static void ExtractPlanAlernatives(const std::vector<WayPoint>& singlePath, const double& plan_distance, std::vector<std::vector<WayPoint> >& allPaths);
+	static void ExtractPlanAlernatives(const std::vector<WayPoint>& singlePath, const double& plan_distance, std::vector<std::vector<WayPoint> >& allPaths, double lane_change_distance = 10);
+
+	static void ExtractPlanAlernativesV2(const std::vector<WayPoint>& singlePath, const double& plan_distance, const double& lane_change_distane, std::vector<std::vector<WayPoint> >& allPaths);
+
+	static void ExtractPlanAlernativesSection(const WayPoint& startPose, const double& plan_distance, std::vector<WayPoint>& path);
+
+	static void RemoveFromPathUntil(std::vector<WayPoint>& path, const double& distance);
 
 	static std::vector<int> GetUniqueLeftRightIds(const std::vector<WayPoint>& path);
 

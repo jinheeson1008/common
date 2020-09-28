@@ -1779,7 +1779,7 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 		vector<vector<WayPoint> >& rollInPaths, const double& max_roll_distance,
 		const double& maxSpeed, const double&  carTipMargin, const double& rollInMargin,
 		const double& rollInSpeedFactor, const double& pathDensity, const double& rollOutDensity,
-		const int& rollOutNumber, const double& SmoothDataWeight, const double& SmoothWeight,
+		const int& rollOutsNumber, const double& SmoothDataWeight, const double& SmoothWeight,
 		const double& SmoothTolerance, const bool& bHeadingSmooth,
 		std::vector<WayPoint>& sampledPoints)
 {
@@ -1800,6 +1800,12 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 		if(i>0)
 			remaining_distance += distance2points(originalCenter[i].pos, originalCenter[i+1].pos);
 	  }
+
+	int nRollOuts = rollOutsNumber;
+	if(originalCenter.at(close_index).custom_type == CUSTOM_AVOIDANCE_DISABLED)
+	{
+		nRollOuts = 0;
+	}
 
 	double initial_roll_in_distance = info.perp_distance ; //GetPerpDistanceToTrajectorySimple(originalCenter, carPos, close_index);
 
@@ -1860,9 +1866,9 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 		  }
 	  }
 
-	int centralTrajectoryIndex = rollOutNumber/2;
+	int centralTrajectoryIndex = nRollOuts/2;
 	vector<double> end_distance_list;
-	for(int i=0; i< rollOutNumber+1; i++)
+	for(int i=0; i< nRollOuts+1; i++)
 	  {
 		  double end_roll_in_distance = rollOutDensity*(i - centralTrajectoryIndex);
 		  end_distance_list.push_back(end_roll_in_distance);
@@ -1904,7 +1910,7 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 	vector<double> inc_list;
 	rollInPaths.clear();
 	vector<double> inc_list_inc;
-	for(int i=0; i< rollOutNumber+1; i++)
+	for(int i=0; i< nRollOuts+1; i++)
 	{
 		double diff = end_laterals.at(i)-initial_roll_in_distance;
 		inc_list.push_back(diff/(double)nSteps);
@@ -1915,7 +1921,7 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 
 
 	vector<vector<WayPoint> > execluded_from_smoothing;
-	for(unsigned int i=0; i< rollOutNumber+1 ; i++)
+	for(unsigned int i=0; i< nRollOuts+1 ; i++)
 		execluded_from_smoothing.push_back(vector<WayPoint>());
 
 
@@ -1925,7 +1931,7 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 	{
 		p = originalCenter.at(j);
 		double original_speed = p.v;
-	  for(unsigned int i=0; i< rollOutNumber+1 ; i++)
+	  for(unsigned int i=0; i< nRollOuts+1 ; i++)
 	  {
 		  p.pos.x = originalCenter.at(j).pos.x -  initial_roll_in_distance*cos(p.pos.a + M_PI_2);
 		  p.pos.y = originalCenter.at(j).pos.y -  initial_roll_in_distance*sin(p.pos.a + M_PI_2);
@@ -1947,7 +1953,7 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 	  {
 		  p = originalCenter.at(j);
 		  double original_speed = p.v;
-		  for(unsigned int i=0; i< rollOutNumber+1 ; i++)
+		  for(unsigned int i=0; i< nRollOuts+1 ; i++)
 		  {
 			  inc_list_inc[i] += inc_list[i];
 			  double d = inc_list_inc[i];
@@ -1969,7 +1975,7 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 	{
 		p = originalCenter.at(j);
 		double original_speed = p.v;
-	  for(unsigned int i=0; i< rollOutNumber+1 ; i++)
+	  for(unsigned int i=0; i< nRollOuts+1 ; i++)
 	  {
 		  double d = end_laterals.at(i);
 		  p.pos.x  = originalCenter.at(j).pos.x - d*cos(p.pos.a + M_PI_2);
@@ -1984,13 +1990,13 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 	  }
 	}
 
-	for(unsigned int i=0; i< rollOutNumber+1 ; i++)
+	for(unsigned int i=0; i< nRollOuts+1 ; i++)
 		rollInPaths.at(i).insert(rollInPaths.at(i).begin(), execluded_from_smoothing.at(i).begin(), execluded_from_smoothing.at(i).end());
 
 	///***   Smoothing From Car Heading Section ***///
 	if(bHeadingSmooth)
 	{
-		for(unsigned int i=0; i< rollOutNumber+1 ; i++)
+		for(unsigned int i=0; i< nRollOuts+1 ; i++)
 		{
 			unsigned int cut_index = GetClosestNextPointIndexFastV2(rollInPaths.at(i), RollOutStratPath.at(RollOutStratPath.size()-1));
 			rollInPaths.at(i).erase(rollInPaths.at(i).begin(), rollInPaths.at(i).begin()+cut_index);
@@ -2029,7 +2035,7 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 		  }
 	  }
 
-	for(unsigned int i=0; i< rollOutNumber+1 ; i++)
+	for(unsigned int i=0; i< nRollOuts+1 ; i++)
 	{
 		SmoothPath(rollInPaths.at(i), SmoothDataWeight, SmoothWeight, SmoothTolerance);
 	}
@@ -2365,7 +2371,7 @@ WayPoint* PlanningHelpers::BuildPlanningSearchTreeV2(WayPoint* pStart,
 				*wp = *pH->pLeft;
 				double d = hypot(wp->pos.y - pH->pos.y, wp->pos.x - pH->pos.x);
 				distance += d;
-				before_change_distance = -LANE_CHANGE_MIN_DISTANCE*3;
+				before_change_distance = -LANE_CHANGE_MIN_DISTANCE*2;
 
 				for(unsigned int a = 0; a < wp->actionCost.size(); a++)
 				{
@@ -2387,7 +2393,7 @@ WayPoint* PlanningHelpers::BuildPlanningSearchTreeV2(WayPoint* pStart,
 				*wp = *pH->pRight;
 				double d = hypot(wp->pos.y - pH->pos.y, wp->pos.x - pH->pos.x);
 				distance += d;
-				before_change_distance = -LANE_CHANGE_MIN_DISTANCE*3;
+				before_change_distance = -LANE_CHANGE_MIN_DISTANCE*2;
 
 				for(unsigned int a = 0; a < wp->actionCost.size(); a++)
 				{
@@ -2842,24 +2848,124 @@ WayPoint* PlanningHelpers::GetMinCostCell(const vector<WayPoint*>& cells, const 
 	return pC;
 }
 
-void PlanningHelpers::ExtractPlanAlernatives(const std::vector<WayPoint>& singlePath, const double& plan_distance, std::vector<std::vector<WayPoint> >& allPaths)
+void PlanningHelpers::ExtractPlanAlernativesSection(const WayPoint& startPose, const double& plan_distance, std::vector<WayPoint>& path)
+{
+	RelativeInfo start_info;
+	PlanningHelpers::GetRelativeInfo(startPose.pLane->points, startPose, start_info);
+	vector<WayPoint*> local_cell_to_delete;
+	PlannerHNS::WayPoint* pStart = &startPose.pLane->points.at(start_info.iFront);
+	WayPoint* pLaneCell =  PlanningHelpers::BuildPlanningSearchTreeStraight(pStart, plan_distance, local_cell_to_delete);
+	if(pLaneCell)
+	{
+		vector<vector<WayPoint> > tempCurrentForwardPathss;
+		vector<int> globalPathIds;
+		PlanningHelpers::TraversePathTreeBackwards(pLaneCell, pStart, globalPathIds, path, tempCurrentForwardPathss);
+	}
+}
+
+void PlanningHelpers::RemoveFromPathUntil(std::vector<WayPoint>& path, const double& distance)
+{
+	if(path.size() < 2) return;
+
+	CalcAngleAndCost(path);
+
+	int cut_off_index = path.size() - 2;
+	for(unsigned int i = 0; i < path.size() - 2; i++)
+	{
+		if(path.at(i).cost > distance)
+		{
+			cut_off_index = i;
+			break;
+		}
+	}
+
+	if(cut_off_index > 0)
+	{
+		path.erase(path.begin(), path.begin() + cut_off_index);
+	}
+}
+
+void PlanningHelpers::ExtractPlanAlernativesV2(const std::vector<WayPoint>& singlePath, const double& plan_distance, const double& lane_change_distane, std::vector<std::vector<WayPoint> >& allPaths)
+{
+	if(singlePath.size() == 0) return;
+
+	std::vector<WayPoint> path_sections;
+	std::vector<WayPoint> straight_path;
+	allPaths.clear();
+
+	for(unsigned int i = 0; i < singlePath.size(); i++)
+	{
+		if(singlePath.at(i).bDir != FORWARD_DIR && singlePath.at(i).pLane && singlePath.at(i).pFronts.size() > 0 && i > 0)
+		{
+			straight_path.clear();
+			ExtractPlanAlernativesSection(singlePath.at(i-1), plan_distance, straight_path);
+			straight_path.insert(straight_path.begin(), path_sections.begin(), path_sections.end());
+			RemoveFromPathUntil(straight_path, lane_change_distane);
+			allPaths.push_back(straight_path);
+			path_sections.clear();
+		}
+		else
+		{
+			path_sections.push_back(singlePath.at(i));
+		}
+	}
+
+	RemoveFromPathUntil(path_sections, lane_change_distane);
+	allPaths.push_back(path_sections);
+
+//	allPaths.clear();
+//	for(unsigned int i= 1; i < singlePath.size(); i++)
+//	{
+//		if(singlePath.at(i).bDir != FORWARD_DIR && singlePath.at(i).pLane && singlePath.at(i).pFronts.size() > 0)
+//		{
+//			WayPoint start_point = singlePath.at(i-1);
+//
+//
+//				if(straight_path.size() > 2)
+//				{
+//					//std::cout << "Generated Parallel Path : " << straight_path.size() << std::endl;
+//					double avg_cost_distance = 0;
+// 					for(auto& p: straight_path)
+//					{
+//						RelativeInfo change_inf;
+//						int dummy_index = 0;
+//						GetRelativeInfo(singlePath, p, change_inf, dummy_index);
+//						avg_cost_distance += change_inf.perp_distance;
+//						//std::cout << "Distance to Side Path: " << change_inf.perp_distance << std::endl;
+//					}
+//
+// 					avg_cost_distance = avg_cost_distance/straight_path.size();
+// 					//std::cout << "Generated Parallel Path Cost: " << fabs(avg_cost_distance) << std::endl;
+//
+//					straight_path.insert(straight_path.begin(), singlePath.begin(), singlePath.begin()+(i-1));
+//					for(unsigned int ic = 0; ic < straight_path.size(); ic++)
+//					{
+//						straight_path.at(ic).laneChangeCost = fabs(avg_cost_distance);
+//					}
+//					allPaths.push_back(straight_path);
+//				}
+//			}
+//		}
+//	}
+//
+//	allPaths.push_back(singlePath);
+}
+
+void PlanningHelpers::ExtractPlanAlernatives(const std::vector<WayPoint>& singlePath, const double& plan_distance, std::vector<std::vector<WayPoint> >& allPaths, double lane_change_distance)
 {
 	if(singlePath.size() == 0) return;
 
 	allPaths.clear();
 	std::vector<WayPoint> path;
 	path.push_back(singlePath.at(0));
-	double skip_distance = 8;
 	double d = 0;
 	bool bStartSkip = false;
 	for(unsigned int i= 1; i < singlePath.size(); i++)
 	{
 		if(singlePath.at(i).bDir != FORWARD_DIR && singlePath.at(i).pLane && singlePath.at(i).pFronts.size() > 0)
 		{
-
 			bStartSkip = true;
 			WayPoint start_point = singlePath.at(i-1);
-
 			RelativeInfo start_info;
 			PlanningHelpers::GetRelativeInfo(start_point.pLane->points, start_point, start_info);
 			vector<WayPoint*> local_cell_to_delete;
@@ -2896,20 +3002,22 @@ void PlanningHelpers::ExtractPlanAlernatives(const std::vector<WayPoint>& single
 				}
 			}
 		}
-
-		if(bStartSkip)
+		else
 		{
-			d += hypot(singlePath.at(i).pos.y - singlePath.at(i-1).pos.y, singlePath.at(i).pos.x - singlePath.at(i-1).pos.x);
-			if(d > skip_distance)
+			if(bStartSkip)
 			{
-				d = 0;
-				bStartSkip = false;
+				d += hypot(singlePath.at(i).pos.y - singlePath.at(i-1).pos.y, singlePath.at(i).pos.x - singlePath.at(i-1).pos.x);
+				if(d > lane_change_distance)
+				{
+					d = 0;
+					bStartSkip = false;
+				}
 			}
-		}
 
-		if(!bStartSkip)
-		{
-			path.push_back(singlePath.at(i));
+			if(!bStartSkip)
+			{
+				path.push_back(singlePath.at(i));
+			}
 		}
 	}
 
