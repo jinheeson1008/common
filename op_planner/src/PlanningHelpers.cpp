@@ -3340,6 +3340,62 @@ double PlanningHelpers::GetDistanceFromPoseToEnd(const PlannerHNS::WayPoint& pos
 	 return d;
 }
 
+void PlanningHelpers::InitializeSafetyPolygon(const PlannerHNS::WayPoint& curr_state, const PlannerHNS::CAR_BASIC_INFO& car_info,
+                                                  const PlannerHNS::VehicleState& vehicle_state, const double& lateral_safe_d,
+                                                  const double& long_safe_d, const bool& use_turning_angle, PlannerHNS::PolygonShape& car_border)
+{
+
+	double c_lateral_d = (car_info.width/2.0) + lateral_safe_d;
+	double c_long_front_d = car_info.wheel_base + car_info.front_length + long_safe_d;
+	double c_car_front_d = car_info.wheel_base + car_info.front_length;
+	double c_long_back_d = car_info.back_length + long_safe_d;
+
+  PlannerHNS::Mat3 inv_rotation_mat(curr_state.pos.a - M_PI_2);
+  PlannerHNS::Mat3 inv_translation_mat(curr_state.pos.x, curr_state.pos.y);
+
+  double corner_slide_distance = c_lateral_d / 2.0;
+  double ratio_to_angle = corner_slide_distance / car_info.max_wheel_angle;
+  double slide_distance = vehicle_state.steer * ratio_to_angle;
+
+  GPSPoint bottom_left(-c_lateral_d, -c_long_back_d, curr_state.pos.z, 0);
+  GPSPoint bottom_right(c_lateral_d, -c_long_back_d, curr_state.pos.z, 0);
+
+  GPSPoint top_right_car(c_lateral_d, c_car_front_d, curr_state.pos.z, 0);
+  GPSPoint top_left_car(-c_lateral_d, c_car_front_d, curr_state.pos.z, 0);
+
+  GPSPoint top_right(c_lateral_d - slide_distance, c_long_front_d, curr_state.pos.z, 0);
+  GPSPoint top_left(-c_lateral_d - slide_distance, c_long_front_d, curr_state.pos.z, 0);
+
+  bottom_left = inv_rotation_mat * bottom_left;
+  bottom_left = inv_translation_mat * bottom_left;
+
+  top_right = inv_rotation_mat * top_right;
+  top_right = inv_translation_mat * top_right;
+
+  bottom_right = inv_rotation_mat * bottom_right;
+  bottom_right = inv_translation_mat * bottom_right;
+
+  top_left = inv_rotation_mat * top_left;
+  top_left = inv_translation_mat * top_left;
+
+  top_right_car = inv_rotation_mat * top_right_car;
+  top_right_car = inv_translation_mat * top_right_car;
+
+  top_left_car = inv_rotation_mat * top_left_car;
+  top_left_car = inv_translation_mat * top_left_car;
+
+  car_border.points.clear();
+  car_border.points.push_back(bottom_left);
+  car_border.points.push_back(bottom_right);
+  car_border.points.push_back(top_right_car);
+  if(use_turning_angle == true)
+  {
+	  car_border.points.push_back(top_right);
+	  car_border.points.push_back(top_left);
+  }
+  car_border.points.push_back(top_left_car);
+}
+
 int PlanningHelpers::PointInsidePolygon(const std::vector<GPSPoint>& points,const GPSPoint& p)
 {
         int counter = 0;

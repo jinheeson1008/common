@@ -11,6 +11,7 @@
 #include "RoadNetwork.h"
 #include "op_utility/DataRW.h"
 #include "tinyxml.h"
+#include "PlannerCommonDef.h"
 
 #define DISABLE_CARLA_SPECIAL_CODE
 
@@ -208,6 +209,10 @@ public:
 	static std::string MakePathDirectionID(const std::vector<PlannerHNS::WayPoint>& _path);
 
 	static double GetDistanceFromPoseToEnd(const PlannerHNS::WayPoint& pose, const std::vector<WayPoint>& path);
+
+	static void InitializeSafetyPolygon(const PlannerHNS::WayPoint& curr_state, const PlannerHNS::CAR_BASIC_INFO& car_info,
+	                                                  const PlannerHNS::VehicleState& vehicle_state, const double& lateral_safe_d,
+	                                                  const double& long_safe_d, const bool& use_turning_angle, PlannerHNS::PolygonShape& car_border);
 
 	static int PointInsidePolygon(const std::vector<GPSPoint>& points,const GPSPoint& p);
 

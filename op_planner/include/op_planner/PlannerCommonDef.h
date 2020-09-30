@@ -95,8 +95,11 @@ public:
 
   double turning_radius = 5.2; // meters
   double wheel_base = 2.7; // meters
-  double length = 4.3; // meters
+  double length = 4.54; // meters
   double width = 1.82; // meters
+  double front_length = 0.96;
+  double back_length = 0.89;
+  double height = 1.47;
 
   double max_speed_forward = 10; // m/s
   double min_speed_forward = 0.0; // m/s speed that is considered stopping, to avoid small speed noise
