@@ -1023,6 +1023,50 @@ void ROSHelpers::TrajectoryToMarkersWithCircles(const std::vector<PlannerHNS::Wa
 	markerArray.markers.push_back(path_part);
 }
 
+void ROSHelpers::DrivingPathToMarkers(const std::vector<std::pair<PlannerHNS::WayPoint, PlannerHNS::PolygonShape> >& path, visualization_msgs::MarkerArray& markerArray)
+{
+	visualization_msgs::Marker path_line, car_rect;
+	std::vector<geometry_msgs::Point> points_list;
+	int counter = 1;
+	markerArray.markers.clear();
+
+
+	for(const auto& item: path)
+	{
+		geometry_msgs::Point point;
+		point.x = item.first.pos.x;
+		point.y = item.first.pos.y;
+		point.z = item.first.pos.z;
+		points_list.push_back(point);
+
+		car_rect = CreateGenMarker(0,0,0,0, 0.9, 0.7, 0.5, 0.05, counter,"op_driving_path", visualization_msgs::Marker::LINE_STRIP);
+		for(const auto& p: item.second.points)
+		{
+			geometry_msgs::Point car_point;
+			car_point.x = p.x;
+			car_point.y = p.y;
+			car_point.z = p.z;
+			car_rect.points.push_back(car_point);
+		}
+
+		if(item.second.points.size() > 0)
+		{
+			geometry_msgs::Point car_point;
+			car_point.x = item.second.points.front().x;
+			car_point.y = item.second.points.front().y;
+			car_point.z = item.second.points.front().z;
+			car_rect.points.push_back(car_point);
+		}
+
+		markerArray.markers.push_back(car_rect);
+		counter++;
+	}
+
+	path_line = CreateGenMarker(0,0,0,0, 0.5, 0.7, 0.9, 0.1, counter,"op_driving_path", visualization_msgs::Marker::LINE_STRIP);
+	path_line.points = points_list;
+	markerArray.markers.push_back(path_line);
+}
+
 void ROSHelpers::TrajectoriesToColoredMarkers(const std::vector<std::vector<PlannerHNS::WayPoint> >& paths, const std::vector<PlannerHNS::TrajectoryCost>& traj_costs,const int& iClosest, visualization_msgs::MarkerArray& markerArray)
 {
 	visualization_msgs::Marker lane_waypoint_marker;

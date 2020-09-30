@@ -95,6 +95,8 @@ public:
 
 	static void TrajectoryToMarkersWithCircles(const std::vector<PlannerHNS::WayPoint>& path, const double& r_path, const double& g_path, const double& b_path, const double& r_circle, const double& g_circle, const double& b_circle, const double& radius, visualization_msgs::MarkerArray& markerArray);
 
+	static void DrivingPathToMarkers(const std::vector<std::pair<PlannerHNS::WayPoint, PlannerHNS::PolygonShape> >& path, visualization_msgs::MarkerArray& markerArray);
+
 	static void InitPredMarkers(const int& nMarkers, visualization_msgs::MarkerArray& paths);
 
 	static void InitCurbsMarkers(const int& nMarkers, visualization_msgs::MarkerArray& curbs);
