@@ -823,6 +823,30 @@ void MappingHelpers::LinkTrafficLightsAndStopLines(RoadNetwork& map)
 	}
 }
 
+void MappingHelpers::UpdateMapWithSignalPose(const std::vector<WayPoint>& points, RoadNetwork& map, std::vector<WayPoint*>& updated_list, const double& min_affect_radius, const double& hit_cost)
+{
+	if(map.roadSegments.size() == 0 || points.size() == 0) return;
+
+	for(auto& p: points)
+	{
+		for(auto& l: map.roadSegments.at(0).Lanes)
+		{
+			RelativeInfo inf;
+			int dummy_index = 0;
+			PlanningHelpers::GetRelativeInfoLimited(l.points, p, inf, dummy_index);
+
+			if(!inf.bAfter && !inf.bBefore && fabs(inf.perp_distance) < min_affect_radius)
+			{
+				l.points.at(inf.iBack).actionCost.push_back(std::make_pair(PlannerHNS::CHANGE_DESTINATION, hit_cost));
+				updated_list.push_back(&l.points.at(inf.iBack));
+				l.points.at(inf.iFront).actionCost.push_back(std::make_pair(PlannerHNS::CHANGE_DESTINATION, hit_cost));
+				updated_list.push_back(&l.points.at(inf.iFront));
+
+			}
+		}
+	}
+}
+
 void MappingHelpers::UpdateMapWithOccupancyGrid(OccupancyToGridMap& map_info, const std::vector<int>& data, RoadNetwork& map, std::vector<WayPoint*>& updated_list)
 {
 	PlannerHNS::Mat3 rotationMat(- map_info.center.pos.a);

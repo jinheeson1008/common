@@ -50,6 +50,8 @@ public:
 
 	static void UpdateMapWithOccupancyGrid(OccupancyToGridMap& map_info, const std::vector<int>& data, RoadNetwork& map, std::vector<WayPoint*>& updated_list);
 
+	static void UpdateMapWithSignalPose(const std::vector<WayPoint>& points, RoadNetwork& map, std::vector<WayPoint*>& updated_list, const double& min_affect_radius = 0.75, const double& hit_cost = 1);
+
 	static void LinkTrafficLightsIntoGroups(RoadNetwork& map);
 
 	static Lane* GetClosestLaneFromMap(const WayPoint& pos, RoadNetwork& map, const double& distance = 5.0, const bool& bDirectionBased = true);
