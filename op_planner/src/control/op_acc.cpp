@@ -243,6 +243,10 @@ void  ACC::UpdateVelocityModelBased(const double& dt, const PlannerHNS::VehicleS
 		deceleration_critical = deceleration_critical * m_Params.brakePushRatio;
 
 		desiredVel = (deceleration_critical * dt) + CurrStatus.speed;
+		if(CurrStatus.speed < 1.0)
+		{
+			desiredVel = 0;
+		}
 
 		//std::cout << "STOP: stop_distance: " <<  distance_to_stop << ", desiredVel: " << desiredVel << ", Deceleration: " << deceleration_critical << ", dt: " << dt << std::endl;
 	}
