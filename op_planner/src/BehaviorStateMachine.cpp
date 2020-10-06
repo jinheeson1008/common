@@ -522,11 +522,15 @@ BehaviorStateMachine* StopStateII::GetNextState()
 {
 	PreCalculatedConditions* pCParams = GetCalcParams();
 
-	if(pCParams->currentGoalID != pCParams->prevGoalID)
-	{
-		return FindBehaviorState(GOAL_STATE);
-	}
-	else if((pCParams->distanceToGoal - pCParams->minStoppingDistance) > 1.0 && pCParams->currentVelocity <= m_zero_velocity)
+	/**
+	 * Enable to reach the End state, currently not needed, End state blocks replanning
+	 */
+//	if(pCParams->currentGoalID != pCParams->prevGoalID)
+//	{
+//		return FindBehaviorState(GOAL_STATE);
+//	}
+//	else
+	if((pCParams->distanceToGoal - pCParams->minStoppingDistance) > 1.0 && pCParams->currentVelocity <= m_zero_velocity)
 	{
 		return FindBehaviorState(FORWARD_STATE);
 	}
