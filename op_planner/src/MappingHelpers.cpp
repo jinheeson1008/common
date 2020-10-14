@@ -841,7 +841,7 @@ void MappingHelpers::UpdateMapWithSignalPose(const std::vector<WayPoint>& points
 				updated_list.push_back(&l.points.at(inf.iBack));
 				l.points.at(inf.iFront).actionCost.push_back(std::make_pair(PlannerHNS::CHANGE_DESTINATION, hit_cost));
 				updated_list.push_back(&l.points.at(inf.iFront));
-
+				break;
 			}
 		}
 	}
