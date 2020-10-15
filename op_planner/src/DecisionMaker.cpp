@@ -358,7 +358,7 @@ void DecisionMaker::InitBehaviorStates()
 			int dummy_index = 0;
 			PlanningHelpers::GetRelativeInfo(m_TotalPaths.at(i), state, curr_total_path_inf, dummy_index);
 			pValues->distanceToChangeLane = m_TotalPaths.at(i).back().cost - curr_total_path_inf.perp_point.cost;
-			if(pValues->distanceToChangeLane < m_params.microPlanDistance*0.75)
+			if((pValues->distanceToChangeLane < m_params.microPlanDistance*0.75) || (fabs(curr_total_path_inf.perp_distance) < 1.0 && m_iCurrentTotalPathId == i))
 			{
 				m_bRequestNewGlobalPlan = true;
 			}
