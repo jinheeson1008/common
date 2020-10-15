@@ -171,6 +171,8 @@ public:
 
 	static std::vector<Lane*> GetClosestMultipleLanesFromMap(const WayPoint& pos, RoadNetwork& map, const double& distance = 5.0);
 
+	static void ShiftMapUsingInternalOrigin(RoadNetwork& map);
+
 
 	/**
 	 * @brief Reading supporting file which contains projection string and map origin. it should have the same name as the fileName + ".proj.dat"

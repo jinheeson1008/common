@@ -2289,4 +2289,30 @@ void MappingHelpers::UpdatePointWithProjection(const PlannerHNS::RoadNetwork& ma
 	}
 }
 
+void MappingHelpers::ShiftMapUsingInternalOrigin(RoadNetwork& map)
+{
+	for(auto& sec: map.roadSegments)
+	{
+		for(auto& l: sec.Lanes)
+		{
+			for(auto& p: l.points)
+			{
+				p.pos.x += map.origin.pos.x;
+				p.pos.y += map.origin.pos.y;
+				p.pos.z += map.origin.pos.z;
+			}
+		}
+	}
+
+	for(auto& sl: map.stopLines)
+	{
+		for(auto& p: sl.points)
+		{
+			p.pos.x += map.origin.pos.x;
+			p.pos.y += map.origin.pos.y;
+			p.pos.z += map.origin.pos.z;
+		}
+	}
+}
+
 } /* namespace PlannerHNS */
