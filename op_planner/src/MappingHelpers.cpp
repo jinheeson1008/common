@@ -2289,7 +2289,64 @@ void MappingHelpers::UpdatePointWithProjection(const PlannerHNS::RoadNetwork& ma
 	}
 }
 
-void MappingHelpers::ShiftMapUsingInternalOrigin(RoadNetwork& map)
+void MappingHelpers::RotateMapUsingIncr(RoadNetwork& map, const double&  angle, const double& x_center, const double& y_center)
+{
+	PlannerHNS::Mat3 rotationMat(angle);
+	PlannerHNS::Mat3 translationMat(-x_center, -y_center);
+	PlannerHNS::Mat3 invTranslationMat(x_center, y_center);
+
+	for(auto& sec: map.roadSegments)
+		{
+			for(auto& l: sec.Lanes)
+			{
+				for(auto& p: l.points)
+				{
+					GPSPoint relative_point = p.pos;
+					relative_point = translationMat * relative_point;
+					relative_point = rotationMat * relative_point;
+					relative_point = invTranslationMat * relative_point;
+					p.pos = relative_point;
+				}
+			}
+		}
+
+		for(auto& sl: map.stopLines)
+		{
+			for(auto& p: sl.points)
+			{
+				GPSPoint relative_point = p.pos;
+				relative_point = translationMat * relative_point;
+				relative_point = rotationMat * relative_point;
+				relative_point = invTranslationMat * relative_point;
+				p.pos = relative_point;
+			}
+		}
+}
+
+void MappingHelpers::ShiftMapItemsUsingIncr(std::vector<Lane>& lanes, std::vector<StopLine>& stop_lines, const double& x_inc, const double& y_inc, const double& z_inc)
+{
+	for(auto& l: lanes)
+	{
+		for(auto& p: l.points)
+		{
+			p.pos.x += x_inc;
+			p.pos.y += y_inc;
+			p.pos.z += z_inc;
+		}
+	}
+
+	for(auto& sl: stop_lines)
+	{
+		for(auto& p: sl.points)
+		{
+			p.pos.x += x_inc;
+			p.pos.y += y_inc;
+			p.pos.z += z_inc;
+		}
+	}
+}
+
+void MappingHelpers::ShiftMapUsingIncr(RoadNetwork& map, const double& x_inc, const double& y_inc, const double& z_inc)
 {
 	for(auto& sec: map.roadSegments)
 	{
@@ -2297,9 +2354,9 @@ void MappingHelpers::ShiftMapUsingInternalOrigin(RoadNetwork& map)
 		{
 			for(auto& p: l.points)
 			{
-				p.pos.x += map.origin.pos.x;
-				p.pos.y += map.origin.pos.y;
-				p.pos.z += map.origin.pos.z;
+				p.pos.x += x_inc;
+				p.pos.y += y_inc;
+				p.pos.z += z_inc;
 			}
 		}
 	}
@@ -2308,11 +2365,16 @@ void MappingHelpers::ShiftMapUsingInternalOrigin(RoadNetwork& map)
 	{
 		for(auto& p: sl.points)
 		{
-			p.pos.x += map.origin.pos.x;
-			p.pos.y += map.origin.pos.y;
-			p.pos.z += map.origin.pos.z;
+			p.pos.x += x_inc;
+			p.pos.y += y_inc;
+			p.pos.z += z_inc;
 		}
 	}
+}
+
+void MappingHelpers::ShiftMapUsingInternalOrigin(RoadNetwork& map)
+{
+	ShiftMapUsingIncr(map, map.origin.pos.x, map.origin.pos.y, map.origin.pos.z);
 }
 
 } /* namespace PlannerHNS */
