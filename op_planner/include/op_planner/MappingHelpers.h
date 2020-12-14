@@ -104,6 +104,9 @@ public:
 	static void AssignActionCostToLane(Lane* pL, ACTION_TYPE action, double cost);
 
 	static void ConnectLanes(PlannerHNS::RoadNetwork& map);
+
+	static void ConnectWayPoints(PlannerHNS::RoadNetwork& map);
+
 	static void InsertUniqueId(std::vector<int>& id_list, int id);
 
 	static void ConnectTrafficLightsAndStopLines(PlannerHNS::RoadNetwork& map);

@@ -57,11 +57,10 @@ void MappingHelpers::RemoveShortTwoPointsLanesFromMap(RoadNetwork& map, double l
 		for(int i = 0 ; i < rseg.Lanes.size(); i++)
 		{
 			Lane* pL = &rseg.Lanes.at(i);
-			if(pL->points.size() > 0 && pL->points.size() < 4)
+			if(pL->points.size() < 4)
 			{
-				PlanningHelpers::CalcAngleAndCost(pL->points);
-				//double d = hypot(pL->points.at(1).pos.y-pL->points.at(0).pos.y, pL->points.at(1).pos.x-pL->points.at(0).pos.x);
-				double d = pL->points.at(pL->points.size()-1).cost;
+				double d = PlanningHelpers::CalcAngleAndCost(pL->points);
+
 				if(d < l_length)
 				{
 					for(auto& f_id : pL->fromIds)
@@ -1171,7 +1170,6 @@ void MappingHelpers::FixUnconnectedLanes(std::vector<Lane>& lanes, const int& ma
 					front_half.fromIds.push_back(pL->id);
 					front_half.id = front_half.points.at(0).originalMapID;
 					front_half.areaId = pL->areaId;
-					front_half.dir = pL->dir;
 					front_half.num = pL->num;
 					front_half.roadId = pL->roadId;
 					front_half.speed = pL->speed;
@@ -1185,7 +1183,6 @@ void MappingHelpers::FixUnconnectedLanes(std::vector<Lane>& lanes, const int& ma
 					back_half.fromIds = pL->fromIds;
 					back_half.id = pL->id;
 					back_half.areaId = pL->areaId;
-					back_half.dir = pL->dir;
 					back_half.num = pL->num;
 					back_half.roadId = pL->roadId;
 					back_half.speed = pL->speed;
@@ -1308,7 +1305,6 @@ void MappingHelpers::FixUnconnectedLanes(std::vector<Lane>& lanes, const int& ma
 					front_half.fromIds.push_back(pBL->id);
 					front_half.id = front_half.points.at(0).originalMapID;
 					front_half.areaId = pL->areaId;
-					front_half.dir = pL->dir;
 					front_half.num = pL->num;
 					front_half.roadId = pL->roadId;
 					front_half.speed = pL->speed;
@@ -1320,7 +1316,6 @@ void MappingHelpers::FixUnconnectedLanes(std::vector<Lane>& lanes, const int& ma
 					back_half.fromIds = pL->fromIds;
 					back_half.id = pL->id;
 					back_half.areaId = pL->areaId;
-					back_half.dir = pL->dir;
 					back_half.num = pL->num;
 					back_half.roadId = pL->roadId;
 					back_half.speed = pL->speed;
@@ -1690,6 +1685,52 @@ bool MappingHelpers::IsPointExist(const WayPoint& p, const std::vector<PlannerHN
 	 id_list.push_back(id);
  }
 
+ void MappingHelpers::ConnectWayPoints(PlannerHNS::RoadNetwork& map)
+ {
+ 	for(unsigned int rs = 0; rs < map.roadSegments.size(); rs++)
+ 	{
+ 		for(unsigned int i = 0; i < map.roadSegments.at(rs).Lanes.size(); i++)
+ 		{
+ 			PlannerHNS::Lane* pL = &map.roadSegments.at(rs).Lanes.at(i);
+ 			for(unsigned int iwp= 0; iwp < pL->points.size(); iwp++)
+ 			{
+ 				//make sure to IDs are connected correctly
+ 				if(iwp < pL->points.size()-1) // Inside the lane
+ 				{
+ 					InsertUniqueId(pL->points.at(iwp).toIds, pL->points.at(iwp+1).id);
+ 				}
+ 				else // connect to the next lane
+ 				{
+ 					for(unsigned int k=0; k< pL->toLanes.size(); k++)
+ 					{
+ 						if(pL->toLanes.at(k) != nullptr && pL->toLanes.at(k)->points.size()>0)
+ 						{
+ 							InsertUniqueId(pL->points.at(iwp).toIds, pL->toLanes.at(k)->points.at(0).id);
+ 						}
+ 					}
+ 				}
+
+ 				//make sure from IDs are connected correctly
+ 				if(iwp > 0) // Inside the lane
+ 				{
+ 					InsertUniqueId(pL->points.at(iwp).fromIds, pL->points.at(iwp-1).id);
+ 				}
+ 				else // connect to the next lane
+ 				{
+ 					for(unsigned int k=0; k< pL->fromLanes.size(); k++)
+ 					{
+ 						if(pL->fromLanes.at(k) != nullptr && pL->fromLanes.at(k)->points.size()>0)
+ 						{
+ 							int final_point_index = pL->fromLanes.at(k)->points.size() - 1;
+ 							InsertUniqueId(pL->points.at(iwp).fromIds, pL->fromLanes.at(k)->points.at(final_point_index).id);
+ 						}
+ 					}
+ 				}
+ 			}
+ 		}
+ 	}
+ }
+
  void MappingHelpers::ConnectLanes(PlannerHNS::RoadNetwork& map)
  {
 	 if(map.roadSegments.size() == 0) return;
@@ -2008,6 +2049,9 @@ std::string MappingHelpers::FromLineTypeToText(LINE_TYPE type)
 		break;
 	case DEFAULT_WHITE_LINE:
 		return "whiteline";
+		break;
+	case DEFAULT_YELLOW_LINE:
+		return "yellowline";
 		break;
 	case CONTINUOUS_LINE:
 		return "onepiece";

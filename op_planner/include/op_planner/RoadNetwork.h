@@ -102,7 +102,7 @@ enum CustomBehaviorType{CUSTOM_AVOIDANCE_DISABLED = 0, CUSTOM_AVOIDANCE_ENABLED 
 
 enum MARKING_COLOR{MARK_COLOR_WHITE, MARK_COLOR_YELLOW, MARK_COLOR_RED, MARK_COLOR_ORANG, MARK_COLOR_BLUE};
 
-enum LINE_TYPE{DEFAULT_WHITE_LINE, CONTINUOUS_LINE, SEPARATION_LINE, SUPPORT_LINE, GENERAL_LINE};
+enum LINE_TYPE{DEFAULT_WHITE_LINE, DEFAULT_YELLOW_LINE, CONTINUOUS_LINE, SEPARATION_LINE, SUPPORT_LINE, GENERAL_LINE};
 
 enum TRAFFIC_SIGN_TYPE {UNKNOWN_SIGN, STOP_SIGN, MAX_SPEED_SIGN, MIN_SPEED_SIGN, NO_PARKING_SIGN, SCHOOL_CROSSING_SIGN};
 
@@ -737,6 +737,7 @@ public:
 	WayPoint center;
 	std::vector<WayPoint> points;
 	Lane* pLane;
+	double width;
 
 	Marking()
 	{
@@ -746,6 +747,7 @@ public:
 		mark_type = UNKNOWN_MARK;
 		mark_color = MARK_COLOR_WHITE;
 		pLane = nullptr;
+		width = 0;
 	}
 };
 
@@ -790,7 +792,6 @@ public:
 	int num; //lane number in the road segment from left to right
 	double speed;
 	double length;
-	double dir;
 	LaneType type;
 	double width;
 	int lane_change;
@@ -813,7 +814,6 @@ public:
 		num		= 0;
 		speed 	= 0;
 		length 	= 0;
-		dir		= 0;
 		type 	= NORMAL_LANE;
 		width 	= 0;
 		pLeftLane = 0;

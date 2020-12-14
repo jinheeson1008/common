@@ -1005,13 +1005,6 @@ void VectorMapLoader::ConstructRoadNetworkFromROSMessageVer0(UtilityHNS::MapRaw&
 		{
 			roadLanes.at(l).toIds.at(tp) = MappingHelpers::GetLaneIdByWaypointId(roadLanes.at(l).toIds.at(tp), roadLanes);
 		}
-
-		double sum_a = 0;
-		for(unsigned int j = 0 ; j < roadLanes.at(l).points.size(); j++)
-		{
-			sum_a += roadLanes.at(l).points.at(j).pos.a;
-		}
-		roadLanes.at(l).dir = sum_a/(double)roadLanes.at(l).points.size();
 	}
 
 	//map has one road segment
