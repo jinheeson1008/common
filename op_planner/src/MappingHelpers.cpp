@@ -2421,4 +2421,89 @@ void MappingHelpers::ShiftMapUsingInternalOrigin(RoadNetwork& map)
 	ShiftMapUsingIncr(map, map.origin.pos.x, map.origin.pos.y, map.origin.pos.z);
 }
 
+void MappingHelpers::SplitLane(int lane_id, int point_index, RoadNetwork& map, PlannerHNS::Lane& modified_lane, PlannerHNS::Lane& added_lane)
+{
+	for(unsigned int i=0; i < map.roadSegments.size(); i++)
+	{
+		for(int il=0; il < map.roadSegments.at(i).Lanes.size(); il++)
+		{
+			if(map.roadSegments.at(i).Lanes.at(il).id == lane_id)
+			{
+				Lane* pL = &map.roadSegments.at(i).Lanes.at(il);
+				if(point_index > 0 && point_index < pL->points.size()-1)
+				{
+					if(pL->points.at(point_index).fromIds.size() > 1 || pL->points.at(point_index).toIds.size() > 1 || pL->points.at(point_index+1).fromIds.size() > 1)
+					{
+						std::cout << "Can't Split lane, multi-connection exists, please remove the multiple connection manually first. " << std::endl;
+						return;
+					}
+
+					pL->points.at(point_index).pos.x = (pL->points.at(point_index-1).pos.x + pL->points.at(point_index).pos.x)/2.0;
+					pL->points.at(point_index).pos.y = (pL->points.at(point_index-1).pos.y + pL->points.at(point_index).pos.y)/2.0;
+					pL->points.at(point_index).pos.z = (pL->points.at(point_index-1).pos.z + pL->points.at(point_index).pos.z)/2.0;
+
+					Lane p_new_lane = *pL;
+					PlannerHNS::RoadNetwork::g_max_lane_id++;
+					p_new_lane.id = PlannerHNS::RoadNetwork::g_max_lane_id;
+
+					p_new_lane.points.clear();
+					p_new_lane.fromIds.clear();
+					p_new_lane.toIds.clear();
+					p_new_lane.fromLanes.clear();
+					p_new_lane.toLanes.clear();
+
+					p_new_lane.fromIds.push_back(pL->id);
+					p_new_lane.toIds = pL->toIds;
+					pL->toIds.clear();
+					pL->toIds.push_back(p_new_lane.id);
+
+					for(auto& id : p_new_lane.toIds)
+					{
+						Lane* pTempLane = MappingHelpers::GetLaneById(id , map);
+						if(pTempLane != nullptr)
+						{
+							bool bFound = false;
+							for(unsigned int j = 0; j < pTempLane->fromIds.size(); j++)
+							{
+								if(pTempLane->fromIds.at(j) == pL->id)
+								{
+									pTempLane->fromIds.at(j) = p_new_lane.id;
+								}
+							}
+						}
+					}
+
+					PlannerHNS::WayPoint new_start = pL->points.at(point_index);
+					PlannerHNS::RoadNetwork::g_max_point_id++;
+					new_start.id = PlannerHNS::RoadNetwork::g_max_point_id;
+
+					pL->points.at(point_index).toIds.clear();
+					pL->points.at(point_index).toIds.push_back(new_start.id);
+
+					new_start.toIds.clear();
+					new_start.toIds.push_back(pL->points.at(point_index+1).id);
+					new_start.fromIds.clear();
+					new_start.fromIds.push_back(pL->points.at(point_index).id);
+
+					pL->points.at(point_index+1).fromIds.clear();
+					pL->points.at(point_index+1).fromIds.push_back(new_start.id);
+
+					new_start.pos.x = (pL->points.at(point_index+1).pos.x + new_start.pos.x)/2.0;
+					new_start.pos.y = (pL->points.at(point_index+1).pos.y + new_start.pos.y)/2.0;
+					new_start.pos.z = (pL->points.at(point_index+1).pos.z + new_start.pos.z)/2.0;
+
+					p_new_lane.points.push_back(new_start);
+					p_new_lane.points.insert(p_new_lane.points.begin()+1, pL->points.begin()+point_index+1,pL->points.end());
+					pL->points.erase(pL->points.begin()+point_index+1, pL->points.end());
+
+					modified_lane = *pL;
+					added_lane = p_new_lane;
+					map.roadSegments.at(i).Lanes.push_back(p_new_lane);
+				}
+				break;
+			}
+		}
+	}
+}
+
 } /* namespace PlannerHNS */

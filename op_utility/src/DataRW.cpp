@@ -266,7 +266,7 @@ SimpleReaderBase::SimpleReaderBase(const string& path, const int& nHeaders, cons
 	m_File = ifstream(file_name_.c_str(), ios::in);
 	if(!m_File.is_open())
 	{
-		printf("\n Can't Open Map File !, %s", file_name_.c_str());
+		printf("\nCan't Open File!, %s \n", file_name_.c_str());
 		return;
 	}
 
