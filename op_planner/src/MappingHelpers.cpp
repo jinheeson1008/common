@@ -836,10 +836,18 @@ void MappingHelpers::UpdateMapWithSignalPose(const std::vector<WayPoint>& points
 
 			if(!inf.bAfter && !inf.bBefore && fabs(inf.perp_distance) < min_affect_radius)
 			{
-				l.points.at(inf.iBack).actionCost.push_back(std::make_pair(PlannerHNS::CHANGE_DESTINATION, hit_cost));
-				updated_list.push_back(&l.points.at(inf.iBack));
-				l.points.at(inf.iFront).actionCost.push_back(std::make_pair(PlannerHNS::CHANGE_DESTINATION, hit_cost));
-				updated_list.push_back(&l.points.at(inf.iFront));
+				if(hit_cost < 0)
+				{
+					l.points.at(inf.iBack).pFronts.clear();
+					l.points.at(inf.iFront).pBacks.clear();
+				}
+				else
+				{
+					l.points.at(inf.iBack).actionCost.push_back(std::make_pair(PlannerHNS::CHANGE_DESTINATION, hit_cost));
+					updated_list.push_back(&l.points.at(inf.iBack));
+					l.points.at(inf.iFront).actionCost.push_back(std::make_pair(PlannerHNS::CHANGE_DESTINATION, hit_cost));
+					updated_list.push_back(&l.points.at(inf.iFront));
+				}
 				break;
 			}
 		}

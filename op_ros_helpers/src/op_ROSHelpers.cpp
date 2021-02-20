@@ -949,7 +949,7 @@ void ROSHelpers::TrajectoriesToMarkers(const std::vector<std::vector<std::vector
 	lane_waypoint_marker.type = visualization_msgs::Marker::LINE_STRIP;
 	lane_waypoint_marker.action = visualization_msgs::Marker::ADD;
 	lane_waypoint_marker.scale.x = 0.1;
-	lane_waypoint_marker.scale.y = 0.1;
+	//lane_waypoint_marker.scale.y = 0.1;
 	//lane_waypoint_marker.scale.z = 0.1;
 	lane_waypoint_marker.frame_locked = false;
 	std_msgs::ColorRGBA  default_color;
@@ -957,6 +957,7 @@ void ROSHelpers::TrajectoriesToMarkers(const std::vector<std::vector<std::vector
 	default_color.g = 1;
 	default_color.b = 0;
 	default_color.a = 0.8;
+	lane_waypoint_marker.pose.orientation = tf::createQuaternionMsgFromYaw(0);
 
 
 	int count = 0;

@@ -1029,6 +1029,7 @@ public:
 	double 	minDistanceToAvoid; // should be smaller than minFollowingDistance and larger than maxDistanceToAvoid
 	double	maxDistanceToAvoid; // should be smaller than minDistanceToAvoid
 	double 	speedProfileFactor;
+	double  curveSlowDownRatio;
 	double 	smoothingDataWeight;
 	double 	smoothingSmoothWeight;
 	double 	smoothingToleranceError;
@@ -1075,6 +1076,7 @@ public:
 		minDistanceToAvoid = 15;
 		maxDistanceToAvoid = 5;
 		speedProfileFactor = 1.0;
+		curveSlowDownRatio = 1.0;
 		smoothingDataWeight = 0.47;
 		smoothingSmoothWeight = 0.2;
 		smoothingToleranceError = 0.05;

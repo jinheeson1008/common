@@ -286,29 +286,29 @@ double PIDController::getTimeDependentPID(const double& e, const double& dt)
 	}
 
 
-	double edot = (e - prevErr);
-	if(dt > 0 && fabs(edot) > 0)
-	{
-		m_LastValidErrorDiff = edot/dt;
-	}
-
-	m_edot_list.push_back(m_LastValidErrorDiff);
-
-	if(m_edot_list.size() > 5)
-	{
-		double _sum = 0;
-		for(auto& v: m_edot_list)
-		{
-			_sum += v;
-		}
-
-		m_LastValidErrorDiff = _sum/m_edot_list.size();
-		m_edot_list.erase(m_edot_list.begin()+0);
-	}
+	double edot = (e - prevErr) / dt;
+//	if(dt > 0 && fabs(edot) > 0)
+//	{
+//		m_LastValidErrorDiff = edot/dt;
+//	}
+//
+//	m_edot_list.push_back(m_LastValidErrorDiff);
+//
+//	if(m_edot_list.size() > 5)
+//	{
+//		double _sum = 0;
+//		for(auto& v: m_edot_list)
+//		{
+//			_sum += v;
+//		}
+//
+//		m_LastValidErrorDiff = _sum/m_edot_list.size();
+//		m_edot_list.erase(m_edot_list.begin()+0);
+//	}
 
 	kp_v = kp * e;
 	ki_v = ki * accumErr;
-	kd_v = kd * m_LastValidErrorDiff;
+	kd_v = kd * edot;
 
 	pid_v = kp_v + ki_v + kd_v;
 	pid_lim = pid_v;

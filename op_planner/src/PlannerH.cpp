@@ -4,9 +4,13 @@
 /// \date Dec 14, 2016
 
 #include "op_planner/PlannerH.h"
+#include <iostream>
 #include "op_planner/PlanningHelpers.h"
 #include "op_planner/MappingHelpers.h"
-#include <iostream>
+#include "op_planner/control/MotionSimulator.h"
+#include "op_planner/control/op_controller.h"
+
+
 
 using namespace std;
 
@@ -499,6 +503,113 @@ void PlannerH::DeleteWaypoints(vector<WayPoint*>& wps)
 		}
 	}
 	wps.clear();
+}
+
+void PlannerH::GenerateKinematicallyFeasibleTrajectory(const VehicleState& curr_status, const WayPoint& curr_pose, const CAR_BASIC_INFO& vehicle_info,
+		const double& steering_delay, const double& pathDensity, const double& min_pursuite_dstance, const double& curr_velocity,
+		const std::vector<WayPoint>& path_in, std::vector<WayPoint>& path_out, bool bBackwardSimulation)
+{
+	if(path_in.size() < 2) return;
+
+	std::vector<PlannerHNS::WayPoint > local_path = path_in;
+	WayPoint local_pose = curr_pose;
+	if(bBackwardSimulation)
+	{
+		std::reverse(local_path.begin(), local_path.end());
+		PlannerHNS::PlanningHelpers::CalcAngleAndCost(local_path);
+		local_pose = local_path.at(0);
+	}
+	else
+	{
+//		WayPoint last_point = local_path.back();
+//		double extra_length = vehicle_info.wheel_base + vehicle_info.front_length;
+//		last_point.pos.x += extra_length * cos(last_point.pos.a);
+//		last_point.pos.y += extra_length * sin(last_point.pos.a);
+//		last_point.cost += extra_length;
+//		local_path.push_back(last_point);
+	}
+
+	CAR_BASIC_INFO local_vehicle_info = vehicle_info;
+	local_vehicle_info.max_speed_forward = curr_velocity;
+
+	ControllerHyperParams hyper_params;
+	if(steering_delay > 0)
+	{
+		hyper_params.bEnableSteeringFF = true;
+	}
+	else
+	{
+		hyper_params.bEnableSteeringFF = false;
+	}
+	hyper_params.path_density = pathDensity;
+
+	ControllerParams control_params;
+	control_params.Steering_Gain.kP = 4.0;
+	control_params.Steering_Gain.kI = 0.0;
+	control_params.Steering_Gain.kD = 0.0;
+	control_params.ControlFrequency = 50;
+	control_params.SteeringDelay = steering_delay;
+	control_params.minPursuiteDistance = min_pursuite_dstance;// + steering_delay * 2.0;
+
+	MotionControl wpf;
+	MotionSimulator sim;
+	wpf.Init(control_params, hyper_params, local_vehicle_info);
+	sim.Init(local_vehicle_info.wheel_base, local_vehicle_info.max_wheel_angle, control_params.SteeringDelay);
+	sim.FirstLocalizeMe(local_pose);
+
+	bool bNewTrajectory = true;
+	double dt = 1.0 / (double)control_params.ControlFrequency;
+	double total_length = 0;
+	double exit_distance = pathDensity;
+	VehicleState local_move_status = curr_status;
+	VehicleState local_command_status;
+
+	path_out.clear();
+	path_out.push_back(sim.getStatePose());
+	path_out.at(0).gid = local_path.at(0).gid;
+
+	while(1)
+	{
+		local_command_status = wpf.DoOneSimulationStep(dt, local_path, sim.getStatePose(), local_move_status, bNewTrajectory);
+		sim.SimulateOdoPosition(dt, local_command_status);
+		local_move_status.speed = sim.getStateVelocity();
+		local_move_status.steer = sim.getStateSteering();
+		bNewTrajectory = false;
+
+		WayPoint p = wpf.m_PerpendicularPoint;
+		p.pos = sim.getStatePose().pos;
+
+		if(path_out.size() > 0)
+		{
+			double d = hypot(p.pos.y - path_out.back().pos.y, p.pos.x - path_out.back().pos.x);
+			if(d >= pathDensity)
+			{
+				total_length += d;
+				path_out.push_back(p);
+				double d_to_end = hypot(p.pos.y - path_in.back().pos.y, p.pos.x - path_in.back().pos.x);
+				if(bBackwardSimulation)
+				{
+					d_to_end = hypot(p.pos.y - curr_pose.pos.y, p.pos.x - curr_pose.pos.x);
+				}
+
+				if(d_to_end <= exit_distance || total_length >= path_in.back().cost)
+				{
+					break;
+				}
+			}
+		}
+		else
+		{
+			path_out.push_back(p);
+		}
+	}
+
+	if(bBackwardSimulation)
+	{
+		std::reverse(path_out.begin(), path_out.end());
+		path_out.front().gid = path_out.back().gid;
+	}
+	PlanningHelpers::CalcAngleAndCost(path_out);
 }
 
 }

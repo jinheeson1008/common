@@ -22,9 +22,10 @@ namespace PlannerHNS {
 #define pointNorm(v) sqrt(v.x*v.x + v.y*v.y)
 #define angle2points(from , to) atan2(to.y - from.y, to.x - from.x )
 #define LANE_CHANGE_SPEED_FACTOR 0.5
-#define LANE_CHANGE_COST 3.0 // meters
+#define LANE_CHANGE_COST 50.0 // meters
 //#define BACKUP_STRAIGHT_PLAN_DISTANCE 10 //meters
 #define LANE_CHANGE_MIN_DISTANCE 8
+#define MAX_STEERING_ALLOWED_DELAY 3.0 //seconds
 
 class PlanningHelpers
 {
@@ -107,9 +108,6 @@ public:
 
 	static double GetAccurateDistanceOnTrajectory(std::vector<WayPoint>& path, const int& start_index, const WayPoint& p);
 
-	static void ExtractPartFromPointToDistance(const std::vector<WayPoint>& originalPath, const WayPoint& pos, const double& minDistance,
-			const double& pathDensity, std::vector<WayPoint>& extractedPath, const double& SmoothDataWeight, const double& SmoothWeight, const double& SmoothTolerance);
-
 	static void ExtractPartFromPointToDistanceFast(const std::vector<WayPoint>& originalPath, const WayPoint& pos, const double& minDistance,
 				const double& pathDensity, std::vector<WayPoint>& extractedPath, const double& SmoothDataWeight, const double& SmoothWeight, const double& SmoothTolerance);
 
@@ -136,6 +134,18 @@ public:
 	static void SmoothGlobalPathSpeed(std::vector<WayPoint>& path);
 
 	static void GenerateRecommendedSpeed(std::vector<WayPoint>& path, const double& max_speed, const double& speedProfileFactor);
+
+	/**
+	 *
+	 * @param dt
+	 * @param CurrSpeed
+	 * @param vehicleInfo uses (max_acceleration, max deceleration, max_speed)
+	 * @param ctrlParams uses (accel_push, brake_push, safe_follow_distance)
+	 * @param CurrBehavior uses (state, max_velocity, stop_distance, follow_distance)
+	 * @return
+	 */
+	static double GetACCVelocityModelBased(const double& dt, const double& CurrSpeed, const PlannerHNS::CAR_BASIC_INFO& vehicleInfo,
+			const PlannerHNS::ControllerParams& ctrlParams, const PlannerHNS::BehaviorState& CurrBehavior);
 
 	static void ShiftRecommendedSpeed(std::vector<WayPoint>& path, const double& max_speed, const double& curr_speed, const double& inc_ratio, const double& path_density);
 
@@ -171,6 +181,15 @@ public:
 
 	static void TraversePathTreeBackwards(WayPoint* pHead, WayPoint* pStartWP, const std::vector<int>& globalPathIds,
 			std::vector<WayPoint>& localPath, std::vector<std::vector<WayPoint> >& localPaths);
+
+	static double CalculateLookAheadDistance(const double& steering_delay, const double& curr_velocity, const double& min_distance, double speed_factor = 0.15, double delay_factor = 1.0);
+
+	static void PredictMotionTimeBased(double& x, double &y, double& heading, double steering, double velocity, double wheelbase, double time_elapsed);
+
+	static void PredictMotionDistanceBased(double& x, double &y, double& heading, double steering, double distance, double wheelbase);
+
+	static void EstimateFuturePosition(const PlannerHNS::WayPoint& currPose, const double& currSteering, const double& est_distance,
+			const double& est_resolution, const double& wheel_base, PlannerHNS::WayPoint& estimatedPose);
 
 	static void ExtractPlanAlernatives(const std::vector<WayPoint>& singlePath, const double& plan_distance, std::vector<std::vector<WayPoint> >& allPaths, double lane_change_distance = 10);
 

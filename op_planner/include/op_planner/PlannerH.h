@@ -10,12 +10,26 @@
 #define LANE_CHANGE_SMOOTH_FACTOR_DISTANCE 25 // meters
 
 #include "RoadNetwork.h"
+#include "PlannerCommonDef.h"
 
 namespace PlannerHNS
 {
 
 enum PLANDIRECTION {MOVE_FORWARD_ONLY, MOVE_BACKWARD_ONLY, 	MOVE_FREE};
 enum HeuristicConstrains {EUCLIDEAN, NEIGBORHOOD,DIRECTION };
+
+class TrajectoryGenParams
+{
+public:
+	int control_frequency = 50;
+	bool fixed_velocity = false;
+	bool avoid_curbs = false;
+	bool navigate_tight_turns = false;
+	CAR_BASIC_INFO vehicle_info;
+	ControllerParams control_params;
+	PlanningParams planning_params;
+};
+
 
 class PlannerH
 {
@@ -31,6 +45,9 @@ public:
 				const int& iCurrGlobalPath, const int& iCurrLocalTraj,
 				std::vector<std::vector<std::vector<WayPoint> > >& rollOutsPaths,
 				std::vector<WayPoint>& sampledPoints);
+
+	void GenerateKinematicallyFeasibleTrajectory(const VehicleState& curr_status, const WayPoint& curr_pose, const CAR_BASIC_INFO& vehicle_info, const double& steering_delay, const double& pathDensity,
+			const double& min_pursuite_dstance, const double& curr_velocity, const std::vector<WayPoint>& path_in, std::vector<WayPoint>& path_out, bool bBackwardSimulation = false);
 
 	double PlanUsingDP(const WayPoint& carPos,const WayPoint& goalPos,
 			const double& maxSearchDistance, const double& planning_distance, const bool bEnableLaneChange, const std::vector<int>& globalPath,

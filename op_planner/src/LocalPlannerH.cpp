@@ -44,13 +44,13 @@ LocalPlannerH::LocalPlannerH()
 LocalPlannerH::~LocalPlannerH()
 {
 	delete m_pStopState;
-	delete m_pMissionCompleteState ;
-	delete m_pGoalState			;
-	delete m_pGoToGoalState 		;
-	delete m_pWaitState 			;
-	delete m_pInitState 			;
-	delete m_pFollowState			;
-	delete m_pAvoidObstacleState	;
+	delete m_pMissionCompleteState;
+	delete m_pGoalState;
+	delete m_pGoToGoalState;
+	delete m_pWaitState;
+	delete m_pInitState;
+	delete m_pFollowState;
+	delete m_pAvoidObstacleState;
 	delete m_pTrafficLightStopState;
 	delete m_pTrafficLightWaitState;
 	delete m_pStopSignWaitState	;

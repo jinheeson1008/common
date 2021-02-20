@@ -48,6 +48,8 @@ public:
 	double min_safe_follow_distance; // in follow mode, keep this distance to the object in front
 	PID_CONST Steering_Gain;
 	PID_CONST Velocity_Gain;
+
+	PID_CONST Torque_Gain;
 	PID_CONST Accel_Gain;
 	PID_CONST Brake_Gain;
 	PID_CONST Follow_Gain;
@@ -62,7 +64,6 @@ public:
 
 	double accelPushRatio;
 	double brakePushRatio;
-	double curveSlowDownRatio;
 
 	ControllerParams()
 	{
@@ -84,7 +85,6 @@ public:
 
 		accelPushRatio = 1.0;
 		brakePushRatio = 1.0;
-		curveSlowDownRatio = 1.0;
 	}
 };
 
@@ -104,7 +104,7 @@ public:
   double max_speed_forward = 10; // m/s
   double min_speed_forward = 0.0; // m/s speed that is considered stopping, to avoid small speed noise
 
-  double max_steer_value = 660; // degrees, total steering wheel angle to the right
+  double max_steer_value = 11.52; // radians, total steering wheel angle to the right, equivilent to 660
   double max_wheel_angle = 0.42; // radians, max angle for the front wheel = asin(wheel_base/turning_radius);
 
   double max_accel_value = 100.0; // accel pedal stroke force
@@ -115,7 +115,6 @@ public:
   double max_acceleration = 1.5; // m/s*s
   double max_deceleration = -1.5; // m/s*s
 };
-
 
 } /* namespace PlannerHNS */
 

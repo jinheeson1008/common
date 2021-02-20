@@ -11,7 +11,7 @@
 #include "op_planner/BehaviorStateMachine.h"
 #include "op_planner/PlannerCommonDef.h"
 #include "op_planner/RoadNetwork.h"
-#include "op_planner/control/op_acc.h"
+//#include "op_planner/control/op_acc.h"
 
 namespace PlannerHNS
 {
@@ -91,7 +91,7 @@ protected:
 	std::vector<std::vector<WayPoint> > m_TotalPaths;
 	PlannerHNS::PlanningParams m_params;
 	PlannerHNS::PlanningParams m_original_params;
-	ACC m_VelocityController;
+	//ACC m_VelocityController;
 
 
 };

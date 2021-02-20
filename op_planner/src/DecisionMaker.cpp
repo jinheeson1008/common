@@ -64,7 +64,7 @@ void DecisionMaker::Init(const ControllerParams& ctrlParams, const PlannerHNS::P
  		m_params = params;
  		m_original_params = params;
 
- 		m_VelocityController.Init(m_ControlParams, m_CarInfo, true);
+ 		//m_VelocityController.Init(m_ControlParams, m_CarInfo, true);
 
  		m_pidVelocity.Init(0.01, 0.004, 0.01);
 		m_pidVelocity.Setlimit(m_params.maxSpeed, 0);
@@ -486,21 +486,22 @@ void DecisionMaker::InitBehaviorStates()
 
 	RelativeInfo total_info;
 	PlanningHelpers::GetRelativeInfo(m_TotalPaths.at(m_iCurrentTotalPathId), state, total_info);
-	beh_with_max.maxVelocity	= PlannerHNS::PlanningHelpers::GetVelocityAhead(m_TotalPaths.at(m_iCurrentTotalPathId), total_info, total_info.iBack, preCalcPrams->minStoppingDistance*m_ControlParams.curveSlowDownRatio);
+	beh_with_max.maxVelocity = PlannerHNS::PlanningHelpers::GetVelocityAhead(m_TotalPaths.at(m_iCurrentTotalPathId), total_info, total_info.iBack, preCalcPrams->minStoppingDistance*m_params.curveSlowDownRatio);
 	if(beh_with_max.maxVelocity > m_params.maxSpeed)
 	{
 		beh_with_max.maxVelocity = m_params.maxSpeed;
 	}
 
-	VehicleState desired_state =  m_VelocityController.DoOneStep(dt, beh_with_max, CurrStatus);
+	//VehicleState desired_state =  m_VelocityController.DoOneStep(dt, beh_with_max, CurrStatus);
+
+	double target_velocity = PlanningHelpers::GetACCVelocityModelBased(dt, CurrStatus.speed, m_CarInfo, m_ControlParams, beh_with_max);
 
 	for(unsigned int i =  0; i < m_Path.size(); i++)
 	{
-		m_Path.at(i).v = desired_state.speed;
+		m_Path.at(i).v = target_velocity;
 	}
 
-	return desired_state.speed;
-
+	return target_velocity;
  }
  
  double DecisionMaker::UpdateVelocityDirectlyToTrajectory(const BehaviorState& beh, const VehicleState& CurrStatus, const double& dt)
@@ -513,7 +514,7 @@ void DecisionMaker::InitBehaviorStates()
 	RelativeInfo info, total_info;
 	PlanningHelpers::GetRelativeInfo(m_TotalPaths.at(m_iCurrentTotalPathId), state, total_info);
 	PlanningHelpers::GetRelativeInfo(m_Path, state, info);
-	double max_velocity	= PlannerHNS::PlanningHelpers::GetVelocityAhead(m_TotalPaths.at(m_iCurrentTotalPathId), total_info, total_info.iBack, preCalcPrams->minStoppingDistance);
+	double max_velocity	= PlannerHNS::PlanningHelpers::GetVelocityAhead(m_TotalPaths.at(m_iCurrentTotalPathId), total_info, total_info.iBack, preCalcPrams->minStoppingDistance*m_params.curveSlowDownRatio);
 	if(max_velocity > m_params.maxSpeed)
 	{
 		max_velocity = m_params.maxSpeed;

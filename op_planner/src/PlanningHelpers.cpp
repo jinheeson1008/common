@@ -1650,45 +1650,6 @@ void PlanningHelpers::CalcDtLaneInfo(vector<WayPoint>& path)
 	}
 }
 
-void PlanningHelpers::ExtractPartFromPointToDistance(const vector<WayPoint>& originalPath, const WayPoint& pos, const double& minDistance,
-		const double& pathDensity, vector<WayPoint>& extractedPath, const double& SmoothDataWeight, const double& SmoothWeight, const double& SmoothTolerance)
-{
-	extractedPath.clear();
-	unsigned int close_index = GetClosestNextPointIndexDirectionFast(originalPath, pos);
-//	int i_slow = GetClosestNextPointIndexDirection(originalPath, pos);
-//	if(close_index != i_slow)
-//		cout << "Aler Alert !!! fast: " << close_index << ", slow: " << i_slow  << endl;
-	//vector<WayPoint> tempPath;
-	double d_limit = 0;
-	if(close_index >= 2) close_index -=2;
-	else close_index = 0;
-
-	for(unsigned int i=close_index; i< originalPath.size(); i++)
-	{
-		extractedPath.push_back(originalPath.at(i));
-
-		if(i>0)
-			d_limit += hypot(originalPath.at(i).pos.y - originalPath.at(i-1).pos.y, originalPath.at(i).pos.x - originalPath.at(i-1).pos.x);
-
-		if(d_limit > minDistance)
-			break;
-	}
-
-	if(extractedPath.size() < 2)
-	{
-		cout << endl << "### Planner Z . Extracted Rollout Path is too Small, Size = " << extractedPath.size() << endl;
-		return;
-	}
-
-	FixPathDensity(extractedPath, pathDensity);
-	SmoothPath(extractedPath, SmoothDataWeight, SmoothWeight , SmoothTolerance);
-	CalcAngleAndCost(extractedPath);
-
-	//extractedPath = tempPath;
-	//tempPath.clear();
-	//TestQuadraticSpline(extractedPath, tempPath);
-}
-
 int PlanningHelpers::ExtractPartFromPointToDistanceDirectionFast(const vector<WayPoint>& originalPath, const WayPoint& pos, const double& minDistance,
 		const double& pathDensity, vector<WayPoint>& extractedPath, int prev_index)
 {
@@ -1784,11 +1745,6 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 		std::vector<WayPoint>& sampledPoints)
 {
 	WayPoint p;
-	//double dummyd = 0;
-
-	int iLimitIndex = (carTipMargin/0.3)/pathDensity;
-	if(iLimitIndex >= originalCenter.size())
-		iLimitIndex = originalCenter.size() - 1;
 
 	//Get Closest Index
 	RelativeInfo info;
@@ -1796,10 +1752,12 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 	double remaining_distance = 0;
 	int close_index = info.iBack;
 	for(unsigned int i=close_index; i< originalCenter.size()-1; i++)
-	  {
+	{
 		if(i>0)
+		{
 			remaining_distance += distance2points(originalCenter[i].pos, originalCenter[i+1].pos);
-	  }
+		}
+	}
 
 	int nRollOuts = rollOutsNumber;
 	if(originalCenter.at(close_index).custom_type == CUSTOM_AVOIDANCE_DISABLED)
@@ -1809,15 +1767,13 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 
 	double initial_roll_in_distance = info.perp_distance ; //GetPerpDistanceToTrajectorySimple(originalCenter, carPos, close_index);
 
-
 	vector<WayPoint> RollOutStratPath;
 	///***   Smoothing From Car Heading Section ***///
 	if(bHeadingSmooth)
 	{
-		unsigned int num_of_strait_points = carTipMargin*0.5 / pathDensity;
+		unsigned int num_of_strait_points = carTipMargin*0.75 / pathDensity;
 		int closest_for_each_iteration = 0;
 		RelativeInfo ret_inf;
-		//WayPoint np = GetPerpendicularOnTrajectory_obsolete()(originalCenter, carPos, dummyd, closest_for_each_iteration);
 		GetRelativeInfo(originalCenter, carPos, ret_inf, closest_for_each_iteration);
 		ret_inf.perp_point.pos.x = carPos.pos.x;
 		ret_inf.perp_point.pos.y = carPos.pos.y;
@@ -1829,7 +1785,6 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 			p = RollOutStratPath.at(i);
 			p.pos.x = p.pos.x +  pathDensity*cos(p.pos.a);
 			p.pos.y = p.pos.y +  pathDensity*sin(p.pos.a);
-			//np = GetPerpendicularOnTrajectory_obsolete(originalCenter, p, dummyd, closest_for_each_iteration);
 			GetRelativeInfo(originalCenter, p, ret_inf, closest_for_each_iteration);
 			ret_inf.perp_point.pos = p.pos;
 			RollOutStratPath.push_back(ret_inf.perp_point);
@@ -1837,12 +1792,8 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 
 		GetRelativeInfo(originalCenter, RollOutStratPath.at(RollOutStratPath.size()-1), ret_inf, close_index);
 		initial_roll_in_distance = ret_inf.perp_distance;
-		//initial_roll_in_distance = GetPerpDistanceToTrajectorySimple_obsolete(originalCenter, RollOutStratPath.at(RollOutStratPath.size()-1), close_index);
 	}
 	///***   -------------------------------- ***///
-
-
-	//printf("\n Lateral Distance: %f" , initial_roll_in_distance);
 
 	//calculate the starting index
 	double d_limit = 0;
@@ -1851,13 +1802,17 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 	//calculate end index
 	double start_distance = rollInSpeedFactor*speed+rollInMargin;
 	if(start_distance > remaining_distance)
+	{
 		start_distance = remaining_distance;
+	}
 
 	d_limit = 0;
 	for(unsigned int i=close_index; i< originalCenter.size(); i++)
 	  {
 		  if(i>0)
+		  {
 			  d_limit += distance2points(originalCenter[i].pos, originalCenter[i-1].pos);
+		  }
 
 		  if(d_limit >= start_distance)
 		  {
@@ -1869,10 +1824,10 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 	int centralTrajectoryIndex = nRollOuts/2;
 	vector<double> end_distance_list;
 	for(int i=0; i< nRollOuts+1; i++)
-	  {
-		  double end_roll_in_distance = rollOutDensity*(i - centralTrajectoryIndex);
-		  end_distance_list.push_back(end_roll_in_distance);
-	  }
+	{
+		double end_roll_in_distance = rollOutDensity*(i - centralTrajectoryIndex);
+		end_distance_list.push_back(end_roll_in_distance);
+	}
 
 	start_index = close_index;
 	end_index = far_index;
@@ -1886,9 +1841,13 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 	for(unsigned int i=smoothing_start_index; i< originalCenter.size(); i++)
 	{
 		if(i > 0)
+		{
 			d_limit += distance2points(originalCenter[i].pos, originalCenter[i-1].pos);
+		}
 		if(d_limit > carTipMargin)
+		{
 			break;
+		}
 
 		smoothing_start_index++;
 	}
@@ -1897,15 +1856,19 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 	for(unsigned int i=end_index; i< originalCenter.size(); i++)
 	{
 		if(i > 0)
+		{
 			d_limit += distance2points(originalCenter[i].pos, originalCenter[i-1].pos);
+		}
+
 		if(d_limit > carTipMargin)
+		{
 			break;
+		}
 
 		smoothing_end_index++;
 	}
 
 	int nSteps = end_index - smoothing_start_index;
-
 
 	vector<double> inc_list;
 	rollInPaths.clear();
@@ -1918,80 +1881,101 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 		inc_list_inc.push_back(0);
 	}
 
-
-
 	vector<vector<WayPoint> > execluded_from_smoothing;
 	for(unsigned int i=0; i< nRollOuts+1 ; i++)
+	{
 		execluded_from_smoothing.push_back(vector<WayPoint>());
-
-
+	}
 
 	//Insert First strait points within the tip of the car range
+	int iLimitIndex = (carTipMargin/0.3)/pathDensity;
+	if(iLimitIndex >= originalCenter.size())
+	{
+		iLimitIndex = originalCenter.size() - 1;
+	}
+
 	for(unsigned int j = start_index; j < smoothing_start_index; j++)
 	{
 		p = originalCenter.at(j);
 		double original_speed = p.v;
-	  for(unsigned int i=0; i< nRollOuts+1 ; i++)
-	  {
-		  p.pos.x = originalCenter.at(j).pos.x -  initial_roll_in_distance*cos(p.pos.a + M_PI_2);
-		  p.pos.y = originalCenter.at(j).pos.y -  initial_roll_in_distance*sin(p.pos.a + M_PI_2);
-		  if(i!=centralTrajectoryIndex)
-			  p.v = original_speed * LANE_CHANGE_SPEED_FACTOR;
-		  else
-			  p.v = original_speed ;
+		for(unsigned int i=0; i< nRollOuts+1 ; i++)
+		{
+			p.pos.x = originalCenter.at(j).pos.x -  initial_roll_in_distance*cos(p.pos.a + M_PI_2);
+			p.pos.y = originalCenter.at(j).pos.y -  initial_roll_in_distance*sin(p.pos.a + M_PI_2);
+			if(i!=centralTrajectoryIndex)
+			{
+				p.v = original_speed * LANE_CHANGE_SPEED_FACTOR;
+			}
+			else
+			{
+				p.v = original_speed;
+			}
 
-		  if(j < iLimitIndex)
-			  execluded_from_smoothing.at(i).push_back(p);
-		  else
-			  rollInPaths.at(i).push_back(p);
-
-		  sampledPoints.push_back(p);
-	  }
+			if(j < iLimitIndex)
+			{
+				execluded_from_smoothing.at(i).push_back(p);
+			}
+			else
+			{
+				rollInPaths.at(i).push_back(p);
+			}
+			sampledPoints.push_back(p);
+		}
 	}
 
 	for(unsigned int j = smoothing_start_index; j < end_index; j++)
-	  {
-		  p = originalCenter.at(j);
-		  double original_speed = p.v;
-		  for(unsigned int i=0; i< nRollOuts+1 ; i++)
-		  {
-			  inc_list_inc[i] += inc_list[i];
-			  double d = inc_list_inc[i];
-			  p.pos.x = originalCenter.at(j).pos.x -  initial_roll_in_distance*cos(p.pos.a + M_PI_2) - d*cos(p.pos.a+ M_PI_2);
-			  p.pos.y = originalCenter.at(j).pos.y -  initial_roll_in_distance*sin(p.pos.a + M_PI_2) - d*sin(p.pos.a+ M_PI_2);
-			  if(i!=centralTrajectoryIndex)
-				  p.v = original_speed * LANE_CHANGE_SPEED_FACTOR;
-			  else
-				  p.v = original_speed ;
+	{
+		p = originalCenter.at(j);
+		double original_speed = p.v;
 
-			  rollInPaths.at(i).push_back(p);
+		for(unsigned int i=0; i< nRollOuts+1 ; i++)
+		{
+			inc_list_inc[i] += inc_list[i];
+			double d = inc_list_inc[i];
+			p.pos.x = originalCenter.at(j).pos.x -  initial_roll_in_distance*cos(p.pos.a + M_PI_2) - d*cos(p.pos.a+ M_PI_2);
+			p.pos.y = originalCenter.at(j).pos.y -  initial_roll_in_distance*sin(p.pos.a + M_PI_2) - d*sin(p.pos.a+ M_PI_2);
+			if(i!=centralTrajectoryIndex)
+			{
+				p.v = original_speed * LANE_CHANGE_SPEED_FACTOR;
+			}
+			else
+			{
+				p.v = original_speed ;
+			}
 
-			  sampledPoints.push_back(p);
-		  }
-	  }
+			rollInPaths.at(i).push_back(p);
+			sampledPoints.push_back(p);
+		}
+	}
 
 	//Insert last strait points to make better smoothing
 	for(unsigned int j = end_index; j < smoothing_end_index; j++)
 	{
 		p = originalCenter.at(j);
 		double original_speed = p.v;
-	  for(unsigned int i=0; i< nRollOuts+1 ; i++)
-	  {
-		  double d = end_laterals.at(i);
-		  p.pos.x  = originalCenter.at(j).pos.x - d*cos(p.pos.a + M_PI_2);
-		  p.pos.y  = originalCenter.at(j).pos.y - d*sin(p.pos.a + M_PI_2);
-		  if(i!=centralTrajectoryIndex)
-			  p.v = original_speed * LANE_CHANGE_SPEED_FACTOR;
-		  else
-			  p.v = original_speed ;
-		  rollInPaths.at(i).push_back(p);
+		for(unsigned int i=0; i< nRollOuts+1 ; i++)
+		{
+			double d = end_laterals.at(i);
+			p.pos.x  = originalCenter.at(j).pos.x - d*cos(p.pos.a + M_PI_2);
+			p.pos.y  = originalCenter.at(j).pos.y - d*sin(p.pos.a + M_PI_2);
+			if(i!=centralTrajectoryIndex)
+			{
+				p.v = original_speed * LANE_CHANGE_SPEED_FACTOR;
+			}
+			else
+			{
+				p.v = original_speed;
+			}
 
-		  sampledPoints.push_back(p);
-	  }
+			rollInPaths.at(i).push_back(p);
+			sampledPoints.push_back(p);
+		}
 	}
 
 	for(unsigned int i=0; i< nRollOuts+1 ; i++)
+	{
 		rollInPaths.at(i).insert(rollInPaths.at(i).begin(), execluded_from_smoothing.at(i).begin(), execluded_from_smoothing.at(i).end());
+	}
 
 	///***   Smoothing From Car Heading Section ***///
 	if(bHeadingSmooth)
@@ -2005,43 +1989,46 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 	}
 	///***   -------------------------------- ***///
 
-
-
 	d_limit = 0;
 	for(unsigned int j = smoothing_end_index; j < originalCenter.size(); j++)
-	  {
+	{
 		if(j > 0)
+		{
 			d_limit += distance2points(originalCenter.at(j).pos, originalCenter.at(j-1).pos);
+		}
 
 		if(d_limit > max_roll_distance)
+		{
 			break;
+		}
 
-			p = originalCenter.at(j);
-			double original_speed = p.v;
-		  for(unsigned int i=0; i< rollInPaths.size() ; i++)
-		  {
-			  double d = end_laterals.at(i);
-			  p.pos.x  = originalCenter.at(j).pos.x - d*cos(p.pos.a + M_PI_2);
-			  p.pos.y  = originalCenter.at(j).pos.y - d*sin(p.pos.a + M_PI_2);
+		p = originalCenter.at(j);
+		double original_speed = p.v;
+		for(unsigned int i=0; i< rollInPaths.size() ; i++)
+		{
+			double d = end_laterals.at(i);
+			p.pos.x  = originalCenter.at(j).pos.x - d*cos(p.pos.a + M_PI_2);
+			p.pos.y  = originalCenter.at(j).pos.y - d*sin(p.pos.a + M_PI_2);
 
-			  if(i!=centralTrajectoryIndex)
-				  p.v = original_speed * LANE_CHANGE_SPEED_FACTOR;
-			  else
-				  p.v = original_speed ;
+			if(i!=centralTrajectoryIndex)
+			{
+				p.v = original_speed * LANE_CHANGE_SPEED_FACTOR;
+			}
+			else
+			{
+				p.v = original_speed;
+			}
 
-			  rollInPaths.at(i).push_back(p);
+			rollInPaths.at(i).push_back(p);
 
-			  sampledPoints.push_back(p);
-		  }
-	  }
+			sampledPoints.push_back(p);
+		}
+	}
 
 	for(unsigned int i=0; i< nRollOuts+1 ; i++)
 	{
 		SmoothPath(rollInPaths.at(i), SmoothDataWeight, SmoothWeight, SmoothTolerance);
 	}
-
-//	for(unsigned int i=0; i< rollInPaths.size(); i++)
-//		CalcAngleAndCost(rollInPaths.at(i));
 }
 
 bool PlanningHelpers::FindInList(const std::vector<int>& list,const int& x)
@@ -2307,6 +2294,122 @@ void PlanningHelpers::GenerateRecommendedSpeed(vector<WayPoint>& path, const dou
 	}
 
 	SmoothSpeedProfiles(path, 0.4,0.3, 0.01);
+}
+
+double PlanningHelpers::GetACCVelocityModelBased(const double& dt, const double& CurrSpeed, const PlannerHNS::CAR_BASIC_INFO& vehicleInfo,
+		const PlannerHNS::ControllerParams& ctrlParams, const PlannerHNS::BehaviorState& CurrBehavior)
+{
+	double desiredVel = 0;
+
+	if(CurrBehavior.state == FORWARD_STATE || CurrBehavior.state == OBSTACLE_AVOIDANCE_STATE )
+	{
+		double acceleration_critical = vehicleInfo.max_acceleration * ctrlParams.accelPushRatio;
+
+		if(CurrBehavior.maxVelocity < CurrSpeed)
+		{
+			acceleration_critical = vehicleInfo.max_deceleration * ctrlParams.brakePushRatio;
+		}
+
+		double incr_vel = acceleration_critical * dt;
+
+		if(CurrSpeed < 1.0 && CurrBehavior.maxVelocity > 1.0)
+		{
+			incr_vel += 1.0;
+		}
+
+		desiredVel = incr_vel + CurrSpeed;
+
+		//std::cout << "Forward: max_velocity: " <<  CurrBehavior.maxVelocity << ", currSpeed: " << CurrSpeed << ", desiredVel: " << desiredVel << ", acceleration: " << acceleration_critical << std::endl;
+	}
+	else if(CurrBehavior.state == STOPPING_STATE || CurrBehavior.state == TRAFFIC_LIGHT_STOP_STATE || CurrBehavior.state == STOP_SIGN_STOP_STATE)
+	{
+		double deceleration_critical = vehicleInfo.max_deceleration;
+		double distance_to_stop = CurrBehavior.stopDistance ;
+		if(distance_to_stop != 0)
+		{
+			deceleration_critical = (-CurrSpeed*CurrSpeed)/(2.0*distance_to_stop);
+		}
+
+		deceleration_critical = deceleration_critical * ctrlParams.brakePushRatio;
+
+		desiredVel = (deceleration_critical * dt) + CurrSpeed;
+		if(CurrSpeed < 1.0)
+		{
+			desiredVel = 0;
+		}
+
+		//std::cout << "STOP: stop_distance: " <<  distance_to_stop << ", desiredVel: " << desiredVel << ", Deceleration: " << deceleration_critical << ", dt: " << dt << std::endl;
+	}
+	else if(CurrBehavior.state == FOLLOW_STATE)
+	{
+		double crash_d = CurrBehavior.followDistance;
+		double safe_d = CurrBehavior.stopDistance;
+		double min_follow_distance = ctrlParams.min_safe_follow_distance*2.0 + CurrSpeed;
+		double diff = crash_d - safe_d;
+		double target_a = 0;
+
+		/**
+		 * Following Conditions
+		 */
+		if(diff < ctrlParams.min_safe_follow_distance*2.0)
+		{
+			double brake_distance = crash_d - ctrlParams.min_safe_follow_distance*2.0;
+
+			if(brake_distance > 0)
+			{
+				target_a = (-CurrSpeed*CurrSpeed)/(2.0*brake_distance);
+			}
+			else
+			{
+				target_a = -9.8*4; //stop with -4G
+			}
+		}
+		else if(diff > (ctrlParams.min_safe_follow_distance*2.0 + CurrSpeed))
+		{
+			target_a = vehicleInfo.max_acceleration;
+		}
+
+		/**
+		 * When in a curve , should driver slower then followed vehicle
+		 */
+		if(CurrSpeed > CurrBehavior.maxVelocity && target_a > vehicleInfo.max_deceleration)
+		{
+
+			target_a = vehicleInfo.max_deceleration;
+		}
+
+		/**
+		 * Apply acceleration push factors
+		 */
+		if(target_a > 0)
+		{
+			target_a = target_a * ctrlParams.accelPushRatio;
+		}
+		else
+		{
+			target_a = target_a * ctrlParams.brakePushRatio;
+		}
+
+		desiredVel = (target_a * dt) + CurrSpeed;
+
+		if(CurrSpeed < 1.0 && CurrBehavior.maxVelocity > 1.0 && desiredVel > 0)
+		{
+			desiredVel += 1.0;
+		}
+
+		//std::cout << "Follow: safe_d: " <<  safe_d << ", follow_d: " << crash_d << ", diff: " << diff << ", accel-decel: " << target_a << ", desiredVel: " << desiredVel << std::endl;
+	}
+	else
+	{
+		desiredVel = 0;
+	}
+
+	if(desiredVel > CurrBehavior.maxVelocity)
+	{
+		desiredVel = CurrBehavior.maxVelocity;
+	}
+
+	return desiredVel;
 }
 
 WayPoint* PlanningHelpers::BuildPlanningSearchTreeV2(WayPoint* pStart,
@@ -3338,6 +3441,57 @@ double PlanningHelpers::GetDistanceFromPoseToEnd(const PlannerHNS::WayPoint& pos
 		 d += info.to_front_distance;
 
 	 return d;
+}
+
+double PlanningHelpers::CalculateLookAheadDistance(const double& steering_delay, const double& curr_velocity, const double& min_distance, double speed_factor, double delay_factor)
+{
+	// the bigger the steering delay the farther we want to look ahead, it will contribute by the following percentage
+	// assume that maximum steering delay is 3 seconds
+	double steering_delay_percentage = delay_factor * MAX_STEERING_ALLOWED_DELAY;
+	if(steering_delay < 3.0)
+	{
+		steering_delay_percentage = delay_factor * (steering_delay / MAX_STEERING_ALLOWED_DELAY);
+	}
+	
+	//only 25% of the current velocity is added to the minimum pursuit distance, the faster we driver the farther we want to look ahead
+	double total_percentage = steering_delay_percentage + speed_factor;
+	double d = min_distance + (total_percentage * fabs(curr_velocity));
+
+	if(d < min_distance)
+	{
+		d = min_distance;
+	}
+
+	return d;
+}
+
+void PlanningHelpers::EstimateFuturePosition(const PlannerHNS::WayPoint& currPose, const double& currSteering, const double& est_distance,
+		const double& est_resolution, const double& wheel_base, PlannerHNS::WayPoint& estimatedPose)
+{
+	int delta_distance = (est_distance/est_resolution) + 1;
+	estimatedPose = currPose;
+	for(unsigned int i = 0; i < delta_distance; i++)
+	{
+		PlanningHelpers::PredictMotionDistanceBased(estimatedPose.pos.x, estimatedPose.pos.y, estimatedPose.pos.a, currSteering, est_resolution, wheel_base);
+	}
+
+	//Keep same position, only estimate future heading angle (theta)
+	//estimatedPose.pos.x = currPose.pos.x;
+	//estimatedPose.pos.y = currPose.pos.y;
+}
+
+void PlanningHelpers::PredictMotionDistanceBased(double& x, double &y, double& heading, double steering, double distance, double wheelbase)
+{
+	x += distance *  cos(heading);
+	y += distance *  sin(heading);
+	heading = heading + ((distance * tan(steering))/(wheelbase));
+}
+
+void PlanningHelpers::PredictMotionTimeBased(double& x, double &y, double& heading, double steering, double velocity, double wheelbase, double time_elapsed)
+{
+	x += velocity * time_elapsed *  cos(heading);
+	y += velocity * time_elapsed *  sin(heading);
+	heading = heading + ((velocity*time_elapsed*tan(steering))  / (wheelbase) );
 }
 
 void PlanningHelpers::InitializeSafetyPolygon(const PlannerHNS::WayPoint& curr_state, const PlannerHNS::CAR_BASIC_INFO& car_info,
