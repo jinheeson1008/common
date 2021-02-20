@@ -130,7 +130,7 @@ double PlannerH::PlanUsingDPRandom(const WayPoint& start,
 	if(pLaneCell)
 		DeleteWaypoints(local_cell_to_delete);
 
-	double totalPlanningDistance = path.at(path.size()-1).cost;
+	double totalPlanningDistance = path.at(path.size()-1).distanceCost;
 	return totalPlanningDistance;
 }
 
@@ -280,7 +280,7 @@ double PlannerH::PlanUsingDP(const WayPoint& start,
 	if(pLaneCell && !all_cell_to_delete)
 		DeleteWaypoints(local_cell_to_delete);
 
-	double totalPlanningDistance = path.at(path.size()-1).cost;
+	double totalPlanningDistance = path.at(path.size()-1).distanceCost;
 	return totalPlanningDistance;
 }
 
@@ -325,7 +325,7 @@ double PlannerH::PredictPlanUsingDP(PlannerHNS::Lane* l, const WayPoint& start, 
 		std::vector<WayPoint> path;
 		PlanningHelpers::TraversePathTreeBackwards(pLaneCells.at(i), pStartWP, globalPath, path, tempCurrentForwardPathss);
 		if(path.size()>0)
-			totalPlanDistance+= path.at(path.size()-1).cost;
+			totalPlanDistance+= path.at(path.size()-1).distanceCost;
 
 		PlanningHelpers::FixPathDensity(path, 0.5);
 		PlanningHelpers::SmoothPath(path, 0.3 , 0.3,0.1);
@@ -461,7 +461,7 @@ double PlannerH::PredictPlanUsingDP(const WayPoint& startPose, WayPoint* closest
 		PlanningHelpers::TraversePathTreeBackwards(pLaneCells.at(i), closestWP, globalPath, path, tempCurrentForwardPathss);
 		if(path.size()>0)
 		{
-			totalPlanDistance+= path.at(path.size()-1).cost;
+			totalPlanDistance+= path.at(path.size()-1).distanceCost;
 			path.insert(path.begin(), startPose);
 			//path.at(0).pos.a = path.at(1).pos.a;;
 		}
@@ -592,7 +592,7 @@ void PlannerH::GenerateKinematicallyFeasibleTrajectory(const VehicleState& curr_
 					d_to_end = hypot(p.pos.y - curr_pose.pos.y, p.pos.x - curr_pose.pos.x);
 				}
 
-				if(d_to_end <= exit_distance || total_length >= path_in.back().cost)
+				if(d_to_end <= exit_distance || total_length >= path_in.back().distanceCost)
 				{
 					break;
 				}

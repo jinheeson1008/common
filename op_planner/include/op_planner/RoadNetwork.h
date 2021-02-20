@@ -414,7 +414,9 @@ public:
 	GPSPoint	pos;
 	Rotation 	rot;
 	double  	v;
-	double  	cost;
+	double 		cost;
+	double  	distanceCost;
+	double 		curvatureCost;
 	double  	timeCost;
 	double  	totalReward;
 	double  	collisionCost;
@@ -452,6 +454,8 @@ public:
 		id = 0;
 		v = 0;
 		cost = 0;
+		curvatureCost = 0;
+		distanceCost = 0;
 		laneId = -1;
 		pLane  = nullptr;
 		pLeft = nullptr;
@@ -488,6 +492,8 @@ public:
 		id = 0;
 		v = 0;
 		cost = 0;
+		curvatureCost = 0;
+		distanceCost = 0;
 		laneId = -1;
 		pLane  = nullptr;
 		pLeft = nullptr;

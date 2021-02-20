@@ -23,7 +23,7 @@ public:
 	int id;
 	int min_ang;
 	int max_ang;
-	WayPoint max_from_center;
+	PlannerHNS::WayPoint max_from_center;
 	bool bFirst;
 
 	QuarterView(const int& min_a, const int& max_a, const int& index)
@@ -57,7 +57,7 @@ public:
 			max_from_center = v;
 			bFirst = false;
 		}
-		else if(v.cost > max_from_center.cost)
+		else if(v.distanceCost > max_from_center.distanceCost)
 			max_from_center = v;
 
 		return true;

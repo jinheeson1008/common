@@ -80,7 +80,7 @@ TrajectoryCost TrajectoryDynamicCosts::DoOneStepStatic(const vector<vector<WayPo
 			p.pos = obj_list.at(io).contour.at(icon);
 			p.v = obj_list.at(io).center.v;
 			p.id = io;
-			p.cost = sqrt(obj_list.at(io).w*obj_list.at(io).w + obj_list.at(io).l*obj_list.at(io).l);
+			p.distanceCost = sqrt(obj_list.at(io).w*obj_list.at(io).w + obj_list.at(io).l*obj_list.at(io).l);
 			m_AllContourPoints.push_back(p);
 		}
 	}
@@ -204,7 +204,7 @@ void TrajectoryDynamicCosts::CalculateLateralAndLongitudinalCostsStatic(vector<T
 					longitudinalDist = -longitudinalDist;
 
 				double direct_distance = hypot(rel_info.perp_point.pos.y-contourPoints.at(icon).pos.y, rel_info.perp_point.pos.x-contourPoints.at(icon).pos.x);
-				if(contourPoints.at(icon).v < params.minSpeed && direct_distance > (m_LateralSkipDistance+contourPoints.at(icon).cost))
+				if(contourPoints.at(icon).v < params.minSpeed && direct_distance > (m_LateralSkipDistance+contourPoints.at(icon).distanceCost))
 				{
 					skip_id = contourPoints.at(icon).id;
 					continue;

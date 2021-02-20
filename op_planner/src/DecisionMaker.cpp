@@ -16,6 +16,7 @@ namespace PlannerHNS
 
 DecisionMaker::DecisionMaker()
 {
+	m_iSinceLastReplan = 0;
 	m_CurrGlobalId = -1;
 	m_iCurrentTotalPathId = 0;
 	//pLane = nullptr;
@@ -191,12 +192,17 @@ void DecisionMaker::InitBehaviorStates()
  {
 	 if(m_TotalPaths.size() == 0) return;
 
+	//Initialize internal decision making state variables
  	PreCalculatedConditions* pValues = m_pCurrentBehaviorState->GetCalcParams();
 
  	if(m_CarInfo.max_deceleration != 0)
+ 	{
  		pValues->minStoppingDistance = -pow(car_state.speed, 2)/(2.0*m_CarInfo.max_deceleration) + m_params.additionalBrakingDistance;
+ 	}
  	else
+ 	{
  		pValues->minStoppingDistance = m_params.horizonDistance;
+ 	}
 
  	pValues->stoppingDistances.clear();
  	pValues->stoppingDistances.push_back(m_params.horizonDistance);
@@ -206,7 +212,6 @@ void DecisionMaker::InitBehaviorStates()
  	pValues->currentTrafficLightID = -1;
  	pValues->bFullyBlock = false;
  	pValues->bFinalLocalTrajectory = false;
-
  	pValues->distanceToNext = bestTrajectory.closest_obj_distance;
  	pValues->velocityOfNext = bestTrajectory.closest_obj_velocity;
 
@@ -357,7 +362,7 @@ void DecisionMaker::InitBehaviorStates()
 			RelativeInfo curr_total_path_inf;
 			int dummy_index = 0;
 			PlanningHelpers::GetRelativeInfo(m_TotalPaths.at(i), state, curr_total_path_inf, dummy_index);
-			pValues->distanceToChangeLane = m_TotalPaths.at(i).back().cost - curr_total_path_inf.perp_point.cost;
+			pValues->distanceToChangeLane = m_TotalPaths.at(i).back().distanceCost - curr_total_path_inf.perp_point.distanceCost;
 			if((pValues->distanceToChangeLane < m_params.microPlanDistance*0.75) || (fabs(curr_total_path_inf.perp_distance) < 1.0 && m_iCurrentTotalPathId == i))
 			{
 				m_bRequestNewGlobalPlan = true;
@@ -405,25 +410,63 @@ void DecisionMaker::InitBehaviorStates()
 	 }
  }
 
- bool DecisionMaker::SelectSafeTrajectory()
+ bool DecisionMaker::TestForReplanningParams(const VehicleState& vehicleState)
  {
-	 bool bNewTrajectory = false;
-	 PlannerHNS::PreCalculatedConditions *preCalcPrams = m_pCurrentBehaviorState->GetCalcParams();
+	 m_iSinceLastReplan++;
 
-	 if(!preCalcPrams || m_LanesRollOuts.at(m_iCurrentTotalPathId).size() == 0) return bNewTrajectory;
+	PlannerHNS::PreCalculatedConditions *preCalcPrams = m_pCurrentBehaviorState->GetCalcParams();
+	if(!preCalcPrams || m_LanesRollOuts.at(m_iCurrentTotalPathId).size() == 0) return false;
 
 	int currIndex = PlannerHNS::PlanningHelpers::GetClosestNextPointIndexFast(m_Path, state);
 	int index_limit = m_Path.size()/2.0 + 1;
 
 	if((currIndex > index_limit
 			|| preCalcPrams->bRePlan
-			|| preCalcPrams->bNewGlobalPath) && !preCalcPrams->bFinalLocalTrajectory)
+			|| preCalcPrams->bNewGlobalPath) && !preCalcPrams->bFinalLocalTrajectory && m_iSinceLastReplan > m_params.nReliableCount)
+	{
+		m_iSinceLastReplan = 0;
+		return true;
+	}
+
+	double look_ahead_distance = PlannerHNS::PlanningHelpers::CalculateLookAheadDistance(m_ControlParams.SteeringDelay, vehicleState.speed, m_ControlParams.minPursuiteDistance);
+	RelativeInfo total_info;
+	PlanningHelpers::GetRelativeInfo(m_TotalPaths.at(m_iCurrentTotalPathId), state, total_info);
+	double min_ahead_curvature = PlannerHNS::PlanningHelpers::GetVelocityAhead(m_TotalPaths.at(m_iCurrentTotalPathId), total_info, total_info.iBack, look_ahead_distance);
+	bool bCommingCurve = false;
+
+	if(total_info.perp_point.curvatureCost >= CURVATURE_COST_LIMIT && min_ahead_curvature < CURVATURE_COST_LIMIT && total_info.perp_point.curvatureCost > min_ahead_curvature)
+	{
+		bCommingCurve = true;
+	}
+
+	if(bCommingCurve && m_iSinceLastReplan > m_params.nReliableCount)
+	{
+		m_iSinceLastReplan = 0;
+		return true;
+	}
+
+	return false;
+ }
+
+ bool DecisionMaker::SelectSafeTrajectory(const PlannerHNS::VehicleState& vehicleState)
+ {
+	 bool bNewTrajectory = false;
+	 PlannerHNS::PreCalculatedConditions *preCalcPrams = m_pCurrentBehaviorState->GetCalcParams();
+
+	 if(!preCalcPrams || m_LanesRollOuts.at(m_iCurrentTotalPathId).size() == 0) return bNewTrajectory;
+
+//	int currIndex = PlannerHNS::PlanningHelpers::GetClosestNextPointIndexFast(m_Path, state);
+//	int index_limit = m_Path.size()/2.0 + 1;
+//
+//	if((currIndex > index_limit
+//			|| preCalcPrams->bRePlan
+//			|| preCalcPrams->bNewGlobalPath) && !preCalcPrams->bFinalLocalTrajectory)
+	if(TestForReplanningParams(vehicleState))
 	{
 		//std::cout << "New Local Plan !! " << currIndex << ", "<< preCalcPrams->bRePlan << ", " << preCalcPrams->bNewGlobalPath  << ", " <<  m_TotalPath.at(0).size() << ", PrevLocal: " << m_Path.size();
 
 		m_Path = m_LanesRollOuts.at(m_iCurrentTotalPathId).at(preCalcPrams->iCurrSafeTrajectory);
 		//std::cout << ", NewLocal: " << m_Path.size() << std::endl;
-
 		preCalcPrams->bNewGlobalPath = false;
 		preCalcPrams->bRePlan = false;
 		bNewTrajectory = true;
@@ -635,35 +678,30 @@ void DecisionMaker::InitBehaviorStates()
 	 state = currPose;
 	 m_TotalPaths.clear();
 
-	if(m_prev_index.size() != m_TotalOriginalPaths.size())
-	{
-		m_prev_index.clear();
-		for(unsigned int i = 0; i < m_TotalOriginalPaths.size(); i++)
-		{
-			m_prev_index.push_back(0);
-		}
-
-	}
+//	if(m_prev_index.size() != m_TotalOriginalPaths.size())
+//	{
+//		m_prev_index.clear();
+//		for(unsigned int i = 0; i < m_TotalOriginalPaths.size(); i++)
+//		{
+//			m_prev_index.push_back(0);
+//		}
+//	}
 
 	for(unsigned int i = 0; i < m_TotalOriginalPaths.size(); i++)
 	{
 		t_centerTrajectorySmoothed.clear();
 		m_prev_index.at(i) = PlannerHNS::PlanningHelpers::ExtractPartFromPointToDistanceDirectionFast(m_TotalOriginalPaths.at(i), state, m_params.horizonDistance ,	m_params.pathDensity , t_centerTrajectorySmoothed, m_prev_index.at(i));
-
 		if(m_prev_index.at(i) > 0 ) m_prev_index.at(i) = m_prev_index.at(i) -1;
-
 		m_TotalPaths.push_back(t_centerTrajectorySmoothed);
 	}
 
-	if(m_TotalPaths.size()==0) return beh;
-
-	//UpdateCurrentLane(m_params.maxLaneSearchDistance);
+	if(m_TotalPaths.size() == 0) return beh;
 
 	CalculateImportantParameterForDecisionMaking(vehicleState, bEmergencyStop, trafficLight, tc);
 
 	beh = GenerateBehaviorState(vehicleState);
 
-	beh.bNewPlan = SelectSafeTrajectory();
+	beh.bNewPlan = SelectSafeTrajectory(vehicleState);
 
 	if(m_bUseInternalACC)
 	{

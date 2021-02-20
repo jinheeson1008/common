@@ -16,6 +16,8 @@
 namespace PlannerHNS
 {
 
+#define CURVATURE_COST_LIMIT 0.95 //min = 0 , max = 1.0
+
 class DecisionMaker
 {
 public:
@@ -29,6 +31,7 @@ public:
 	int m_CurrGlobalId;
 	std::vector<std::vector<std::vector<WayPoint> > > m_LanesRollOuts;
 	std::vector<int> m_prev_index;
+	int m_iSinceLastReplan;
 	//Lane* pLane;
 
 	BehaviorStateMachine* m_pCurrentBehaviorState;
@@ -78,12 +81,12 @@ public:
 protected:
 	bool GetNextTrafficLight(const int& prevTrafficLightId, const std::vector<TrafficLight>& trafficLights, TrafficLight& trafficL);
 	//void UpdateCurrentLane(const double& search_distance);
-	bool SelectSafeTrajectory();
+	bool SelectSafeTrajectory(const PlannerHNS::VehicleState& vehicleState);
 	BehaviorState GenerateBehaviorState(const VehicleState& vehicleState);
 	double UpdateVelocityDirectlyToTrajectory(const BehaviorState& beh, const VehicleState& CurrStatus, const double& dt);
 	double UpdateVelocityDirectlyToTrajectorySmooth(BehaviorState& beh, const VehicleState& CurrStatus, const double& dt);
 	bool ReachEndOfGlobalPath(const double& min_distance, const int& iGlobalPathIndex);
-
+	bool TestForReplanningParams(const VehicleState& vehicleState);
 
 
 	std::vector<PlannerHNS::WayPoint> t_centerTrajectorySmoothed;
