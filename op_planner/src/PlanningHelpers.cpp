@@ -103,6 +103,79 @@ bool PlanningHelpers::GetRelativeInfoRange(const std::vector<std::vector<WayPoin
 	return true;
 }
 
+bool PlanningHelpers::GetRelativeInfoDirection(const std::vector<WayPoint>& trajectory, const WayPoint& p, RelativeInfo& info, const int& prevIndex)
+{
+	if(trajectory.size() < 2) return false;
+
+	WayPoint p0, p1;
+	if(trajectory.size()==2)
+	{
+		p0 = trajectory.at(0);
+		p1 = WayPoint((trajectory.at(0).pos.x+trajectory.at(1).pos.x)/2.0,
+					  (trajectory.at(0).pos.y+trajectory.at(1).pos.y)/2.0,
+					  (trajectory.at(0).pos.z+trajectory.at(1).pos.z)/2.0, trajectory.at(0).pos.a);
+		info.iFront = 1;
+		info.iBack = 0;
+	}
+	else
+	{
+		info.iFront = GetClosestNextPointIndexDirectionFast(trajectory, p, prevIndex);
+
+		if(info.iFront > 0)
+			info.iBack = info.iFront -1;
+		else
+			info.iBack = 0;
+
+		if(info.iFront == 0)
+		{
+			p0 = trajectory.at(info.iFront);
+			p1 = trajectory.at(info.iFront+1);
+		}
+		else if(info.iFront > 0 && info.iFront < trajectory.size()-1)
+		{
+			p0 = trajectory.at(info.iFront-1);
+			p1 = trajectory.at(info.iFront);
+		}
+		else
+		{
+			p0 = trajectory.at(info.iFront-1);
+			p1 = WayPoint((p0.pos.x+trajectory.at(info.iFront).pos.x)/2.0, (p0.pos.y+trajectory.at(info.iFront).pos.y)/2.0, (p0.pos.z+trajectory.at(info.iFront).pos.z)/2.0, p0.pos.a);
+		}
+	}
+
+	WayPoint prevWP = p0;
+	Mat3 rotationMat(-p1.pos.a);
+	Mat3 translationMat(-p.pos.x, -p.pos.y);
+	Mat3 invRotationMat(p1.pos.a);
+	Mat3 invTranslationMat(p.pos.x, p.pos.y);
+
+	p0.pos = translationMat*p0.pos;
+	p0.pos = rotationMat*p0.pos;
+
+	p1.pos = translationMat*p1.pos;
+	p1.pos = rotationMat*p1.pos;
+
+	double m = (p1.pos.y-p0.pos.y)/(p1.pos.x-p0.pos.x);
+	info.perp_distance = p1.pos.y - m*p1.pos.x; // solve for x = 0
+
+	if(std::isnan(info.perp_distance) || std::isinf(info.perp_distance)) info.perp_distance = 0;
+
+	info.to_front_distance = fabs(p1.pos.x); // distance on the x axes
+
+
+	info.perp_point = p1;
+	info.perp_point.pos.x = 0; // on the same y axis of the car
+	info.perp_point.pos.y = info.perp_distance; //perp distance between the car and the trajectory
+
+	info.perp_point.pos = invRotationMat  * info.perp_point.pos;
+	info.perp_point.pos = invTranslationMat  * info.perp_point.pos;
+
+	info.from_back_distance = hypot(info.perp_point.pos.y - prevWP.pos.y, info.perp_point.pos.x - prevWP.pos.x);
+
+	info.angle_diff = UtilityHNS::UtilityH::AngleBetweenTwoAnglesPositive(p1.pos.a, p.pos.a)*RAD2DEG;
+
+	return true;
+}
 
 bool PlanningHelpers::GetRelativeInfo(const std::vector<WayPoint>& trajectory, const WayPoint& p, RelativeInfo& info, const int& prevIndex )
 {
@@ -276,6 +349,176 @@ bool PlanningHelpers::GetRelativeInfoLimited(const std::vector<WayPoint>& trajec
 	else
 	{
 		info.iFront = GetClosestNextPointIndexFast(trajectory, p, prevIndex);
+		if(info.iFront > 0)
+			info.iBack = info.iFront -1;
+		else
+			info.iBack = 0;
+
+		if(info.iFront == 0)
+		{
+			p0 = trajectory.at(info.iFront);
+			p1 = trajectory.at(info.iFront+1);
+		}
+		else if(info.iFront > 0 && info.iFront < trajectory.size()-1)
+		{
+			p0 = trajectory.at(info.iFront-1);
+			p1 = trajectory.at(info.iFront);
+		}
+		else
+		{
+			p0 = trajectory.at(info.iFront-1);
+			p1 = WayPoint((p0.pos.x+trajectory.at(info.iFront).pos.x)/2.0, (p0.pos.y+trajectory.at(info.iFront).pos.y)/2.0, (p0.pos.z+trajectory.at(info.iFront).pos.z)/2.0, p0.pos.a);
+		}
+
+		WayPoint prevWP = p0;
+		Mat3 rotationMat(-p1.pos.a);
+		Mat3 translationMat(-p.pos.x, -p.pos.y);
+		Mat3 invRotationMat(p1.pos.a);
+		Mat3 invTranslationMat(p.pos.x, p.pos.y);
+
+		p0.pos = translationMat*p0.pos;
+		p0.pos = rotationMat*p0.pos;
+
+		p1.pos = translationMat*p1.pos;
+		p1.pos = rotationMat*p1.pos;
+
+		double m = (p1.pos.y-p0.pos.y)/(p1.pos.x-p0.pos.x);
+		info.perp_distance = p1.pos.y - m*p1.pos.x; // solve for x = 0
+
+		if(std::isnan(info.perp_distance) || std::isinf(info.perp_distance)) info.perp_distance = 0;
+
+		info.to_front_distance = fabs(p1.pos.x); // distance on the x axes
+
+		info.perp_point = p1;
+		info.perp_point.pos.x = 0; // on the same y axis of the car
+		info.perp_point.pos.y = info.perp_distance; //perp distance between the car and the trajectory
+
+		info.perp_point.pos = invRotationMat  * info.perp_point.pos;
+		info.perp_point.pos = invTranslationMat  * info.perp_point.pos;
+
+		info.from_back_distance = hypot(info.perp_point.pos.y - prevWP.pos.y, info.perp_point.pos.x - prevWP.pos.x);
+
+		info.angle_diff = UtilityHNS::UtilityH::AngleBetweenTwoAnglesPositive(p1.pos.a, p.pos.a)*RAD2DEG;
+
+		info.bAfter = false;
+		info.bBefore = false;
+
+		if(info.iFront == 0)
+		{
+			info.bBefore = true;
+		}
+		else if(info.iFront == trajectory.size()-1)
+		{
+			int s = trajectory.size();
+			double angle_befor_last = UtilityHNS::UtilityH::FixNegativeAngle(atan2(trajectory.at(s-2).pos.y - trajectory.at(s-1).pos.y, trajectory.at(s-2).pos.x - trajectory.at(s-1).pos.x));
+			double angle_from_perp = UtilityHNS::UtilityH::FixNegativeAngle(atan2(info.perp_point.pos.y - trajectory.at(s-1).pos.y, info.perp_point.pos.x - trajectory.at(s-1).pos.x));
+			double diff_last_perp = UtilityHNS::UtilityH::AngleBetweenTwoAnglesPositive(angle_befor_last, angle_from_perp);
+			info.after_angle = diff_last_perp;
+			if(diff_last_perp > M_PI_2)
+			{
+				info.bAfter = true;
+			}
+
+		}
+	}
+
+	return true;
+}
+
+bool PlanningHelpers::GetRelativeInfoDirectionLimited(const std::vector<WayPoint>& trajectory, const WayPoint& p, RelativeInfo& info, const int& prevIndex )
+{
+	if(trajectory.size() < 2) return false;
+
+	WayPoint p0, p1;
+
+	if(trajectory.size()==2)
+	{
+		vector<WayPoint> _trajectory;
+		p0 = trajectory.at(0);
+		p1 = p0;
+		p1 = WayPoint((trajectory.at(0).pos.x+trajectory.at(1).pos.x)/2.0,
+					  (trajectory.at(0).pos.y+trajectory.at(1).pos.y)/2.0,
+					  (trajectory.at(0).pos.z+trajectory.at(1).pos.z)/2.0, trajectory.at(0).pos.a);
+		_trajectory.push_back(p0);
+		_trajectory.push_back(p1);
+		_trajectory.push_back(trajectory.at(1));
+
+		info.iFront = GetClosestNextPointIndexDirectionFast(_trajectory, p, prevIndex);
+		if(info.iFront > 0)
+			info.iBack = info.iFront -1;
+		else
+			info.iBack = 0;
+
+		if(info.iFront == 0)
+		{
+			p0 = _trajectory.at(info.iFront);
+			p1 = _trajectory.at(info.iFront+1);
+		}
+		else if(info.iFront > 0 && info.iFront < _trajectory.size()-1)
+		{
+			p0 = _trajectory.at(info.iFront-1);
+			p1 = _trajectory.at(info.iFront);
+		}
+		else
+		{
+			p0 = _trajectory.at(info.iFront-1);
+			p1 = WayPoint((p0.pos.x+_trajectory.at(info.iFront).pos.x)/2.0, (p0.pos.y+_trajectory.at(info.iFront).pos.y)/2.0, (p0.pos.z+_trajectory.at(info.iFront).pos.z)/2.0, p0.pos.a);
+		}
+
+		WayPoint prevWP = p0;
+		Mat3 rotationMat(-p1.pos.a);
+		Mat3 translationMat(-p.pos.x, -p.pos.y);
+		Mat3 invRotationMat(p1.pos.a);
+		Mat3 invTranslationMat(p.pos.x, p.pos.y);
+
+		p0.pos = translationMat*p0.pos;
+		p0.pos = rotationMat*p0.pos;
+
+		p1.pos = translationMat*p1.pos;
+		p1.pos = rotationMat*p1.pos;
+
+		double m = (p1.pos.y-p0.pos.y)/(p1.pos.x-p0.pos.x);
+		info.perp_distance = p1.pos.y - m*p1.pos.x; // solve for x = 0
+
+		if(std::isnan(info.perp_distance) || std::isinf(info.perp_distance)) info.perp_distance = 0;
+
+		info.to_front_distance = fabs(p1.pos.x); // distance on the x axes
+
+		info.perp_point = p1;
+		info.perp_point.pos.x = 0; // on the same y axis of the car
+		info.perp_point.pos.y = info.perp_distance; //perp distance between the car and the _trajectory
+
+		info.perp_point.pos = invRotationMat  * info.perp_point.pos;
+		info.perp_point.pos = invTranslationMat  * info.perp_point.pos;
+
+		info.from_back_distance = hypot(info.perp_point.pos.y - prevWP.pos.y, info.perp_point.pos.x - prevWP.pos.x);
+
+		info.angle_diff = UtilityHNS::UtilityH::AngleBetweenTwoAnglesPositive(p1.pos.a, p.pos.a)*RAD2DEG;
+
+		info.bAfter = false;
+		info.bBefore = false;
+
+		if(info.iFront == 0)
+		{
+			info.bBefore = true;
+		}
+		else if(info.iFront == _trajectory.size()-1)
+		{
+			int s = _trajectory.size();
+			double angle_befor_last = UtilityHNS::UtilityH::FixNegativeAngle(atan2(_trajectory.at(s-2).pos.y - _trajectory.at(s-1).pos.y, _trajectory.at(s-2).pos.x - _trajectory.at(s-1).pos.x));
+			double angle_from_perp = UtilityHNS::UtilityH::FixNegativeAngle(atan2(info.perp_point.pos.y - _trajectory.at(s-1).pos.y, info.perp_point.pos.x - _trajectory.at(s-1).pos.x));
+			double diff_last_perp = UtilityHNS::UtilityH::AngleBetweenTwoAnglesPositive(angle_befor_last, angle_from_perp);
+			info.after_angle = diff_last_perp;
+			if(diff_last_perp > M_PI_2)
+			{
+				info.bAfter = true;
+			}
+
+		}
+	}
+	else
+	{
+		info.iFront = GetClosestNextPointIndexDirectionFast(trajectory, p, prevIndex);
 		if(info.iFront > 0)
 			info.iBack = info.iFront -1;
 		else
@@ -711,7 +954,7 @@ int PlanningHelpers::GetClosestNextPointIndexFast(const vector<WayPoint>& trajec
 		return min_index;
 }
 
-int PlanningHelpers::GetClosestNextPointIndexDirectionFast(const vector<WayPoint>& trajectory, const WayPoint& p,const int& prevIndex )
+int PlanningHelpers::GetClosestNextPointIndexDirectionFast(const vector<WayPoint>& trajectory, const WayPoint& p,const int& prevIndex, const bool& debug)
 {
 	int size = (int)trajectory.size();
 
@@ -719,6 +962,7 @@ int PlanningHelpers::GetClosestNextPointIndexDirectionFast(const vector<WayPoint
 
 	double d = 0, minD = DBL_MAX;
 	int min_index  = prevIndex;
+	double min_angle = DBL_MAX;
 
 	for(unsigned int i=prevIndex; i< size; i++)
 	{
@@ -730,6 +974,7 @@ int PlanningHelpers::GetClosestNextPointIndexDirectionFast(const vector<WayPoint
 		{
 			min_index = i;
 			minD = d;
+			min_angle = angle_diff;
 		}
 	}
 
@@ -745,7 +990,14 @@ int PlanningHelpers::GetClosestNextPointIndexDirectionFast(const vector<WayPoint
 		double dot_pro = v_1.x*v_2.x + v_1.y*v_2.y;
 		double a = UtilityHNS::UtilityH::FixNegativeAngle(acos(dot_pro/(norm1*norm2)));
 		if(a <= M_PI_2)
+		{
 			min_index = min_index+1;
+		}
+	}
+
+	if(debug)
+	{
+		std::cout << std::endl << "  MinIndex: " << min_index << ", PrevIndex: " << prevIndex << ", MinDist: " << minD << ", MinAngle: " << min_angle << std::endl;
 	}
 
 	return min_index;
@@ -1744,10 +1996,14 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 	WayPoint p;
 
 	//Get Closest Index
+	double initial_roll_in_distance = 0;
+	int close_index = -1;
 	RelativeInfo info;
-	GetRelativeInfo(originalCenter, carPos, info);
+	GetRelativeInfoDirection(originalCenter, carPos, info);
+	close_index = info.iBack;
+	initial_roll_in_distance = info.perp_distance ; //GetPerpDistanceToTrajectorySimple(originalCenter, carPos, close_index);
+
 	double remaining_distance = 0;
-	int close_index = info.iBack;
 	for(unsigned int i=close_index; i< originalCenter.size()-1; i++)
 	{
 		if(i>0)
@@ -1761,8 +2017,6 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 	{
 		nRollOuts = 0;
 	}
-
-	double initial_roll_in_distance = info.perp_distance ; //GetPerpDistanceToTrajectorySimple(originalCenter, carPos, close_index);
 
 	vector<WayPoint> RollOutStratPath;
 	///***   Smoothing From Car Heading Section ***///
@@ -2025,6 +2279,7 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 	for(unsigned int i=0; i< nRollOuts+1 ; i++)
 	{
 		SmoothPath(rollInPaths.at(i), SmoothDataWeight, SmoothWeight, SmoothTolerance);
+		CalcAngleAndCost(rollInPaths.at(i));
 	}
 }
 
@@ -3455,7 +3710,7 @@ void PlanningHelpers::GetCubeAndCenterofTwoPoints(const PlannerHNS::WayPoint& p1
 double PlanningHelpers::GetDistanceFromPoseToEnd(const PlannerHNS::WayPoint& pose, const std::vector<WayPoint>& path)
 {
 	PlannerHNS::RelativeInfo info;
-	PlanningHelpers::GetRelativeInfoLimited(path, pose, info);
+	PlanningHelpers::GetRelativeInfoDirectionLimited(path, pose, info);
 
 	if(info.bAfter)
 		return -info.from_back_distance;

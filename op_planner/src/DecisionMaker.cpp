@@ -242,7 +242,7 @@ void DecisionMaker::InitBehaviorStates()
 	}
 
 	/**
-	 * ---------------------------------------------------------------------
+	 * Block End ---------------------------------------------------------------------
 	 */
 
 
@@ -276,14 +276,16 @@ void DecisionMaker::InitBehaviorStates()
  	{
  		pValues->iCurrSafeTrajectory = pValues->iCentralTrajectory;
  	}
- 	/**
- 	 * --------------------------------------------------------------------
- 	 */
 
-	pValues->bFullyBlock = bestTrajectory.bBlocked;
+ 	pValues->bFullyBlock = bestTrajectory.bBlocked;
 
- 	double critical_long_front_distance =  m_params.additionalBrakingDistance + m_params.verticalSafetyDistance;
+	/**
+	 * Block End ---------------------------------------------------------------------
+	 */
 
+	/**
+	 * Set reach goal state values
+	 */
  	pValues->distanceToGoal = PlannerHNS::PlanningHelpers::GetDistanceFromPoseToEnd(state, m_TotalPaths.at(pValues->iCurrSafeLane));
  	if((pValues->distanceToGoal < -m_params.goalDiscoveryDistance) || (pValues->distanceToGoal > m_params.horizonDistance))
  	{
@@ -292,7 +294,6 @@ void DecisionMaker::InitBehaviorStates()
 
  	pValues->stoppingDistances.push_back(pValues->distanceToGoal);
 
-	//if(ReachEndOfGlobalPath(pValues->minStoppingDistance + critical_long_front_distance, pValues->iCurrSafeLane)) //deprecated 27-August-2018
  	if(pValues->distanceToGoal < m_params.goalDiscoveryDistance)
  	{
  		pValues->currentGoalID = -1;
@@ -302,14 +303,20 @@ void DecisionMaker::InitBehaviorStates()
 		pValues->currentGoalID = 1;
 		pValues->prevGoalID = 1;
 	}
+	/**
+	 * Block End ---------------------------------------------------------------------
+	 */
 
 
-
+	/**
+	 * Set Traffic light and stop sign values
+	 */
  	int stopLineID = -1;
  	int stopSignID = -1;
  	int trafficLightID = -1;
  	double distanceToClosestStopLine = 0;
  	bool bGreenTrafficLight = true;
+ 	double critical_long_front_distance =  m_params.additionalBrakingDistance + m_params.verticalSafetyDistance;
 
   	distanceToClosestStopLine = PlanningHelpers::GetDistanceToClosestStopLineAndCheck(m_TotalPaths.at(pValues->iCurrSafeLane), state, m_params.giveUpDistance, stopLineID, stopSignID, trafficLightID) - critical_long_front_distance;
 
@@ -318,6 +325,7 @@ void DecisionMaker::InitBehaviorStates()
  		if(m_pCurrentBehaviorState->m_pParams->enableTrafficLightBehavior)
  		{
  			pValues->currentTrafficLightID = trafficLightID;
+ 			//Debug
  			//std::cout << "Detected Traffic Light: " << trafficLightID << std::endl;
  			for(unsigned int i=0; i< detectedLights.size(); i++)
  			{
@@ -330,21 +338,37 @@ void DecisionMaker::InitBehaviorStates()
  		{
  			pValues->currentStopSignID = stopSignID;
  			pValues->stoppingDistances.push_back(distanceToClosestStopLine);
+ 			//Debug
  			//std::cout << "LP => D: " << pValues->distanceToStop() << ", PrevSignID: " << pValues->prevTrafficLightID << ", CurrSignID: " << pValues->currentTrafficLightID << ", Green: " << bGreenTrafficLight << std::endl;
  		}
  	}
 
+ 	//Debug
  	//std::cout << "Distance To Closest: " << distanceToClosestStopLine << ", Stop LineID: " << stopLineID << ", Stop SignID: " << stopSignID << ", TFID: " << trafficLightID << std::endl;
 
  	pValues->bTrafficIsRed = !bGreenTrafficLight;
 
+	/**
+	 * Block End ---------------------------------------------------------------------
+	 */
+
+	/**
+	 * Decide, Emergency stop values
+	 */
  	if(bEmergencyStop)
 	{
 		pValues->bFullyBlock = true;
 		pValues->distanceToNext = 1;
 		pValues->velocityOfNext = 0;
 	}
+	/**
+	 * Block End ---------------------------------------------------------------------
+	 */
 
+
+	/**
+	 * Decide, Not to re-plan when reaching the final part of the global path
+	 */
  	if(m_Path.size() > 0 && m_TotalOriginalPaths.size() > 0)
 	{
 		double d_between_ends = hypot(m_TotalOriginalPaths.at(m_iCurrentTotalPathId).back().pos.y - m_Path.back().pos.y, m_TotalOriginalPaths.at(m_iCurrentTotalPathId).back().pos.x - m_Path.back().pos.x);
@@ -353,8 +377,13 @@ void DecisionMaker::InitBehaviorStates()
 			pValues->bFinalLocalTrajectory = true;
 		}
 	}
+	/**
+	 * Block End ---------------------------------------------------------------------
+	 */
 
-
+	/**
+	 * Decide, request new global plan, when lane change is not possible
+	 */
  	if(m_TotalPaths.size() > 1)
  	{
 		for(unsigned int i=0; i < m_TotalPaths.size(); i++)
@@ -369,12 +398,37 @@ void DecisionMaker::InitBehaviorStates()
 			}
 		}
  	}
+	/**
+	 * Block End ---------------------------------------------------------------------
+	 */
 
-// 	if(m_RollOuts.size() > 2)
-// 	{
-// 		std::cout << "From Decision Maker, RollIndex: " << bestTrajectory.index << ", SafeTraj: " << pValues->iCurrSafeTrajectory << ", PrevTraj: " <<pValues->iPrevSafeTrajectory << ", Blocked: " << bestTrajectory.bBlocked
-// 		<< ", dtoNext:" <<  pValues->distanceToNext << ", dtoAvoid: " << m_params.minDistanceToAvoid << std::endl;
-// 	}
+
+	/**
+	 * Decide, select new local trajectory just before the tight curve, set CURVATURE_COST_UPPER_LIMIT and CURVATURE_COST_LOWER_LIMIT to zero to disable this feature
+	 */
+ 	double curr_curve_cost = 0, min_curve_cost = 0;
+ 	CheckForCurveZone(car_state, curr_curve_cost, min_curve_cost);
+ 	if(curr_curve_cost >= CURVATURE_COST_UPPER_LIMIT && min_curve_cost < CURVATURE_COST_LOWER_LIMIT && pValues->bInsideCurveZone == false)
+	{
+ 		pValues->bInsideCurveZone = true;
+ 		pValues->bRePlan = true;
+ 		//Debug
+// 		std::cout << " ---------------------------------------------- " << std::endl;
+//		std::cout << "Selecting premature plan .. " << curr_curve_cost << ", min_curv_ahead: " <<  min_curve_cost << std::endl;
+//		std::cout << " ---------------------------------------------- " << std::endl;
+	}
+	else if(curr_curve_cost < CURVATURE_COST_LOWER_LIMIT && pValues->bInsideCurveZone == true)
+	{
+		pValues->bInsideCurveZone = false;
+		//Debug
+//		std::cout << " ---------------------------------------------- " << std::endl;
+//		std::cout << "Exit curve.. " << curr_curve_cost << ", min_curv_ahead: " <<  min_curve_cost << std::endl;
+//		std::cout << " ---------------------------------------------- " << std::endl;
+	}
+	/**
+	 * Block End ---------------------------------------------------------------------
+	 */
+
  }
 
  bool DecisionMaker::ReachEndOfGlobalPath(const double& min_distance, const int& iGlobalPathIndex)
@@ -410,13 +464,20 @@ void DecisionMaker::InitBehaviorStates()
 	 }
  }
 
+ void DecisionMaker::CheckForCurveZone(const VehicleState& vehicleState, double& curr_curve_cost, double& min_curve_cost)
+ {
+	double look_ahead_distance = PlannerHNS::PlanningHelpers::CalculateLookAheadDistance(m_ControlParams.SteeringDelay, vehicleState.speed, m_ControlParams.minPursuiteDistance) + m_CarInfo.length;
+	RelativeInfo total_info;
+	PlanningHelpers::GetRelativeInfo(m_TotalPaths.at(m_iCurrentTotalPathId), state, total_info);
+	curr_curve_cost = total_info.perp_point.curvatureCost;
+	min_curve_cost = PlannerHNS::PlanningHelpers::GetCurvatureCostAhead(m_TotalPaths.at(m_iCurrentTotalPathId), total_info, total_info.iBack, look_ahead_distance);
+ }
+
  bool DecisionMaker::TestForReplanningParams(const VehicleState& vehicleState)
  {
-	 m_iSinceLastReplan++;
 
 	PlannerHNS::PreCalculatedConditions *preCalcPrams = m_pCurrentBehaviorState->GetCalcParams();
 	if(!preCalcPrams || m_LanesRollOuts.at(m_iCurrentTotalPathId).size() == 0) return false;
-
 	int currIndex = PlannerHNS::PlanningHelpers::GetClosestNextPointIndexFast(m_Path, state);
 	int index_limit = m_Path.size()/2.0 + 1;
 
@@ -428,47 +489,32 @@ void DecisionMaker::InitBehaviorStates()
 		return true;
 	}
 
-	double look_ahead_distance = PlannerHNS::PlanningHelpers::CalculateLookAheadDistance(m_ControlParams.SteeringDelay, vehicleState.speed, m_ControlParams.minPursuiteDistance);
-	RelativeInfo total_info;
-	PlanningHelpers::GetRelativeInfo(m_TotalPaths.at(m_iCurrentTotalPathId), state, total_info);
-	double min_ahead_curvature = PlannerHNS::PlanningHelpers::GetVelocityAhead(m_TotalPaths.at(m_iCurrentTotalPathId), total_info, total_info.iBack, look_ahead_distance);
-	bool bCommingCurve = false;
-
-	if(total_info.perp_point.curvatureCost >= CURVATURE_COST_LIMIT && min_ahead_curvature < CURVATURE_COST_LIMIT && total_info.perp_point.curvatureCost > min_ahead_curvature)
-	{
-		bCommingCurve = true;
-	}
-
-	if(bCommingCurve && m_iSinceLastReplan > m_params.nReliableCount)
-	{
-		m_iSinceLastReplan = 0;
-		return true;
-	}
-
 	return false;
  }
 
  bool DecisionMaker::SelectSafeTrajectory(const PlannerHNS::VehicleState& vehicleState)
  {
+	 m_iSinceLastReplan++;
 	 bool bNewTrajectory = false;
 	 PlannerHNS::PreCalculatedConditions *preCalcPrams = m_pCurrentBehaviorState->GetCalcParams();
 
 	 if(!preCalcPrams || m_LanesRollOuts.at(m_iCurrentTotalPathId).size() == 0) return bNewTrajectory;
 
-//	int currIndex = PlannerHNS::PlanningHelpers::GetClosestNextPointIndexFast(m_Path, state);
-//	int index_limit = m_Path.size()/2.0 + 1;
-//
-//	if((currIndex > index_limit
-//			|| preCalcPrams->bRePlan
-//			|| preCalcPrams->bNewGlobalPath) && !preCalcPrams->bFinalLocalTrajectory)
-	if(TestForReplanningParams(vehicleState))
-	{
-		//std::cout << "New Local Plan !! " << currIndex << ", "<< preCalcPrams->bRePlan << ", " << preCalcPrams->bNewGlobalPath  << ", " <<  m_TotalPath.at(0).size() << ", PrevLocal: " << m_Path.size();
+	int currIndex = PlannerHNS::PlanningHelpers::GetClosestNextPointIndexFast(m_Path, state);
+	int index_limit = m_Path.size()/2.0 + 1;
 
+	if((currIndex > index_limit
+			|| preCalcPrams->bRePlan
+			|| preCalcPrams->bNewGlobalPath) && !preCalcPrams->bFinalLocalTrajectory && m_iSinceLastReplan > m_params.nReliableCount)
+	{
+		//Debug
+		//std::cout << "New Local Plan !! " << currIndex << ", "<< preCalcPrams->bRePlan << ", " << preCalcPrams->bNewGlobalPath  << ", " <<  m_TotalPath.at(0).size() << ", PrevLocal: " << m_Path.size();
 		m_Path = m_LanesRollOuts.at(m_iCurrentTotalPathId).at(preCalcPrams->iCurrSafeTrajectory);
+		//Debug
 		//std::cout << ", NewLocal: " << m_Path.size() << std::endl;
 		preCalcPrams->bNewGlobalPath = false;
 		preCalcPrams->bRePlan = false;
+		m_iSinceLastReplan = 0;
 		bNewTrajectory = true;
 	}
 
@@ -534,8 +580,6 @@ void DecisionMaker::InitBehaviorStates()
 	{
 		beh_with_max.maxVelocity = m_params.maxSpeed;
 	}
-
-	//VehicleState desired_state =  m_VelocityController.DoOneStep(dt, beh_with_max, CurrStatus);
 
 	double target_velocity = PlanningHelpers::GetACCVelocityModelBased(dt, CurrStatus.speed, m_CarInfo, m_ControlParams, beh_with_max);
 
@@ -678,15 +722,6 @@ void DecisionMaker::InitBehaviorStates()
 	 state = currPose;
 	 m_TotalPaths.clear();
 
-//	if(m_prev_index.size() != m_TotalOriginalPaths.size())
-//	{
-//		m_prev_index.clear();
-//		for(unsigned int i = 0; i < m_TotalOriginalPaths.size(); i++)
-//		{
-//			m_prev_index.push_back(0);
-//		}
-//	}
-
 	for(unsigned int i = 0; i < m_TotalOriginalPaths.size(); i++)
 	{
 		t_centerTrajectorySmoothed.clear();
@@ -712,6 +747,7 @@ void DecisionMaker::InitBehaviorStates()
 		beh.maxVelocity = UpdateVelocityDirectlyToTrajectory(beh, vehicleState, dt);
 	}
 
+	//Debug
 	//std::cout << "Evaluated Rollouts size: " << m_LanesRollOuts.size() << std::endl;
 	//std::cout << "Eval_i: " << tc.index << ", Curr_i: " <<  m_pCurrentBehaviorState->GetCalcParams()->iCurrSafeTrajectory << ", Prev_i: " << m_pCurrentBehaviorState->GetCalcParams()->iPrevSafeTrajectory << std::endl;
 

@@ -28,6 +28,7 @@ ROSHelpers::~ROSHelpers() {
 
 void ROSHelpers::getTransformFromTF(const std::string src_frame, const std::string dst_frame, tf::TransformListener& listener, tf::StampedTransform &transform)
 {
+	int counter = 0;
 	while (1)
 	{
 		try
@@ -38,8 +39,12 @@ void ROSHelpers::getTransformFromTF(const std::string src_frame, const std::stri
 		}
 		catch (tf::TransformException& ex)
 		{
-			ROS_ERROR("%s", ex.what());
+			if(counter > 2)
+			{
+				ROS_ERROR("%s", ex.what());
+			}
 			ros::Duration(1.0).sleep();
+			counter++;
 		}
 	}
 }

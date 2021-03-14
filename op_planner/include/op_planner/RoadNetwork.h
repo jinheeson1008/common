@@ -1165,6 +1165,7 @@ public:
 	std::vector<double> stoppingDistances;
 
 	double 				distanceToGoal;
+	bool 				bInsideCurveZone;
 
 
 	double distanceToStop()
@@ -1183,6 +1184,7 @@ public:
 
 	PreCalculatedConditions()
 	{
+		bInsideCurveZone = false;
 		currentGoalID = 0;
 		prevGoalID = -1;
 		currentVelocity	= 0;

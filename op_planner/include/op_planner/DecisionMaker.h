@@ -16,7 +16,8 @@
 namespace PlannerHNS
 {
 
-#define CURVATURE_COST_LIMIT 0.95 //min = 0 , max = 1.0
+#define CURVATURE_COST_UPPER_LIMIT 0.98 //min = 0 , max = 1.0
+#define CURVATURE_COST_LOWER_LIMIT 0.90 //min = 0 , max = 1.0
 
 class DecisionMaker
 {
@@ -87,6 +88,7 @@ protected:
 	double UpdateVelocityDirectlyToTrajectorySmooth(BehaviorState& beh, const VehicleState& CurrStatus, const double& dt);
 	bool ReachEndOfGlobalPath(const double& min_distance, const int& iGlobalPathIndex);
 	bool TestForReplanningParams(const VehicleState& vehicleState);
+	void CheckForCurveZone(const VehicleState& vehicleState, double& curr_curve_cost, double& min_curve_cost);
 
 
 	std::vector<PlannerHNS::WayPoint> t_centerTrajectorySmoothed;

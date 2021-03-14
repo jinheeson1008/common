@@ -150,13 +150,14 @@ double PlannerH::PlanUsingDP(const WayPoint& start,
 	{
 		GPSPoint sp = start.pos;
 		GPSPoint gp = goalPos.pos;
-		cout << endl << "Error: PlannerH -> Can't Find Global Waypoint Nodes in the Map for Start (" <<  sp.ToString() << ") and Goal (" << gp.ToString() << ")" << endl;
+		cout << endl << "Error: PlannerH -> Can't Find Global Waypoint Nodes in the Map, " << endl;
+		cout << "  Start: " <<  sp.ToString() << "  Goal: " << gp.ToString() << "" << endl;
 		return 0;
 	}
 
 	if(!pStart->pLane || !pGoal->pLane)
 	{
-		cout << endl << "Error: PlannerH -> Null Lane, Start (" << pStart->pLane << ") and Goal (" << pGoal->pLane << ")" << endl;
+		cout << endl << "Error: PlannerH -> Null Lane," << endl << "  Start Lane: " << pStart->pLane << ",  Goal Lane: " << pGoal->pLane << endl;
 		return 0;
 	}
 
@@ -609,6 +610,7 @@ void PlannerH::GenerateKinematicallyFeasibleTrajectory(const VehicleState& curr_
 		std::reverse(path_out.begin(), path_out.end());
 		path_out.front().gid = path_out.back().gid;
 	}
+
 	PlanningHelpers::CalcAngleAndCost(path_out);
 }
 
