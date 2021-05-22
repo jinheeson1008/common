@@ -14,6 +14,8 @@
 #include "op_utility/DataRW.h"
 #include "tinyxml.h"
 
+#define ACCEPT_USE_OF_DEPRECATED_PROJ_API_H
+
 namespace PlannerHNS {
 
 

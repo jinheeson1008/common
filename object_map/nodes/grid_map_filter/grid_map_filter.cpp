@@ -15,6 +15,7 @@
  ********************/
 
 #include "grid_map_filter.h"
+#include <opencv2/imgproc/imgproc_c.h>
 
 namespace object_map
 {
