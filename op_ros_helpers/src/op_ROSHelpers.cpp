@@ -28,6 +28,7 @@ ROSHelpers::~ROSHelpers() {
 
 void ROSHelpers::getTransformFromTF(const std::string src_frame, const std::string dst_frame, tf::TransformListener& listener, tf::StampedTransform &transform)
 {
+	int counter = 0;
 	while (1)
 	{
 		try
@@ -38,8 +39,12 @@ void ROSHelpers::getTransformFromTF(const std::string src_frame, const std::stri
 		}
 		catch (tf::TransformException& ex)
 		{
-			ROS_ERROR("%s", ex.what());
+			if(counter > 2)
+			{
+				ROS_ERROR("%s", ex.what());
+			}
 			ros::Duration(1.0).sleep();
+			counter++;
 		}
 	}
 }
@@ -994,23 +999,31 @@ void ROSHelpers::TrajectoriesToMarkers(const std::vector<std::vector<std::vector
 	}
 }
 
-void ROSHelpers::TrajectoryToMarkersWithCircles(const std::vector<PlannerHNS::WayPoint>& path, const double& r_path, const double& g_path, const double& b_path, const double& r_circle, const double& g_circle, const double& b_circle, const double& radius, visualization_msgs::MarkerArray& markerArray)
+void ROSHelpers::TrajectorySelectedToMarkers(const std::vector<PlannerHNS::WayPoint>& path, const double& r_path, const double& g_path,
+		const double& b_path, const double& r_circle, const double& g_circle, const double& b_circle, const double& radius, visualization_msgs::MarkerArray& markerArray, int skip)
 {
 	visualization_msgs::Marker path_part, circle_part;
 
 	int count = 0;
-	path_part = CreateGenMarker(0,0,0,0,r_path,g_path,b_path,0.1,count,"Path_Part", visualization_msgs::Marker::LINE_STRIP);
+	path_part = CreateGenMarker(0,0,0,0,r_path,g_path,b_path,1.5,count,"Path_Part", visualization_msgs::Marker::LINE_STRIP);
+	path_part.color.a = 0.75;
 	for (unsigned int i = 0; i < path.size(); i++)
 	{
 		  geometry_msgs::Point point;
 		  point.x = path.at(i).pos.x;
 		  point.y = path.at(i).pos.y;
 		  point.z = path.at(i).pos.z;
+
+
+		  std_msgs::ColorRGBA  color = path_part.color;
+		  color.b = 0;
+		  color.g = (path.at(i).curvatureCost-0.75)*3.0;
+		  color.r = 1.0 - ((path.at(i).curvatureCost-0.75)*3.0);
+
+		  path_part.colors.push_back(color);
 		  path_part.points.push_back(point);
 
-		  count++;
-		  CreateCircleMarker(path.at(i), radius, r_circle, g_circle, b_circle, count, "circle_part", circle_part);
-		  markerArray.markers.push_back(circle_part);
+		  i += skip;
 
 //		  std::ostringstream str_out;
 //		  str_out.precision(3);
@@ -1019,6 +1032,33 @@ void ROSHelpers::TrajectoryToMarkersWithCircles(const std::vector<PlannerHNS::Wa
 //			txt_mkr.text = str_out.str();
 //			markerArray.markers.push_back(txt_mkr);
 //			count++;
+	}
+
+
+	markerArray.markers.push_back(path_part);
+}
+
+void ROSHelpers::TrajectorySelectedToCircles(const std::vector<PlannerHNS::WayPoint>& path, const double& r_path, const double& g_path,
+		const double& b_path, const double& r_circle, const double& g_circle, const double& b_circle, const double& radius, visualization_msgs::MarkerArray& markerArray, int skip)
+{
+	visualization_msgs::Marker path_part, circle_part;
+
+	int count = 0;
+	std_msgs::ColorRGBA color;
+	color.r = 0;
+	color.g = 0;
+	color.b = 0;
+	color.a = 0.75;
+
+	for (unsigned int i = 0; i < path.size(); i++)
+	{
+		  color.b = 0;
+		  color.g = 256 - (path.at(i).curvatureCost*256.0);
+		  color.r = path.at(i).curvatureCost*256.0;
+		  count++;
+		  CreateCircleMarker(path.at(i), radius, color.r, color.g, color.b, count, "circle_part", circle_part);
+		  markerArray.markers.push_back(circle_part);
+		  i += skip;
 	}
 
 	markerArray.markers.push_back(path_part);

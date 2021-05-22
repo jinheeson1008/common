@@ -567,7 +567,7 @@ void TrajectoryEvaluator::calculateDistanceCosts(const PlanningParams& params, c
 			PlanningHelpers::GetRelativeInfoLimited(roll_outs.at(i), contour_points.at(j), info, prev_index);
 
 			double actual_lateral_distance = fabs(info.perp_distance) - 0.05; //add small distance so this never become zero
-			double actual_longitudinal_distance = info.from_back_distance + roll_outs.at(i).at(info.iBack).cost - 0.05; //add small distance so this never become zero
+			double actual_longitudinal_distance = info.from_back_distance + roll_outs.at(i).at(info.iBack).distanceCost - 0.05; //add small distance so this never become zero
 
 			bool bBefore = info.bBefore;
 			if(bBefore == true && actual_longitudinal_distance < g_longitudinal_safe_overtake_distance)
@@ -627,7 +627,7 @@ void TrajectoryEvaluator::calculateDistanceCosts(const PlanningParams& params, c
 			PlanningHelpers::GetRelativeInfoLimited(roll_outs.at(i), trajectory_points.at(j), info, prev_index);
 
 			double actual_lateral_distance = fabs(info.perp_distance) - 0.05; //add small distance so this never become zero
-			double actual_longitudinal_distance = info.from_back_distance + roll_outs.at(i).at(info.iBack).cost - 0.05; //add small distance so this never become zero
+			double actual_longitudinal_distance = info.from_back_distance + roll_outs.at(i).at(info.iBack).distanceCost - 0.05; //add small distance so this never become zero
 			double t_diff = fabs(info.perp_point.timeCost - trajectory_points.at(j).timeCost);
 			double a_diff = info.angle_diff;
 			double traj_prob = info.perp_point.collisionCost;

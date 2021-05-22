@@ -1365,7 +1365,7 @@ void VectorMapLoader::GenerateDtLaneAndFixLaneForVectorMap(UtilityHNS::AisanLane
 					dt_wp.DID = iDID++;
 					dt_wp.PID = pN->PID;
 					dt_wp.Dir = pL->points.at(ip).rot.z;
-					dt_wp.Dist = pL->points.at(ip).cost;
+					dt_wp.Dist = pL->points.at(ip).distanceCost;
 					dt_wp.Apara = 0;
 					dt_wp.LW = 0;
 					dt_wp.RW = 0;
