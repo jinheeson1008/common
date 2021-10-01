@@ -46,7 +46,7 @@ public:
 	 * @param fileName, .osm map format, lanelet2
 	 * @param map, OpenPlanner custom Road Network map format.
 	 */
-	void LoadMap(const std::string& fileName, PlannerHNS::RoadNetwork& map);
+	lanelet::LaneletMapPtr LoadMap(const std::string& fileName, PlannerHNS::RoadNetwork& map);
 
 private:
 	void FromLaneletToRoadNetwork(lanelet::LaneletMapPtr l2_map, PlannerHNS::RoadNetwork& map, lanelet::Projector* proj);
