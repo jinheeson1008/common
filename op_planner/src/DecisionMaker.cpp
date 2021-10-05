@@ -58,12 +58,19 @@ DecisionMaker::~DecisionMaker()
 	delete m_pStopSignStopState;
 }
 
+void DecisionMaker::UpdateParameters(const ControllerParams& ctrlParams, const PlanningParams& params, const CAR_BASIC_INFO& carInfo)
+{
+	m_CarInfo = carInfo;
+	m_ControlParams = ctrlParams;
+	m_params = params;
+}
+
 void DecisionMaker::Init(const ControllerParams& ctrlParams, const PlannerHNS::PlanningParams& params,const CAR_BASIC_INFO& carInfo)
  	{
  		m_CarInfo = carInfo;
  		m_ControlParams = ctrlParams;
  		m_params = params;
- 		m_original_params = params;
+ 		//m_original_params = params;
 
  		//m_VelocityController.Init(m_ControlParams, m_CarInfo, true);
 
@@ -253,12 +260,12 @@ void DecisionMaker::InitBehaviorStates()
 	if(m_LanesRollOuts.at(m_iCurrentTotalPathId).size() <= 1)
 	{
 		m_params.rollOutNumber = 0;
-		m_params.enableSwerving = false;
+//		m_params.enableSwerving = false;
 	}
 	else
 	{
 		m_params.rollOutNumber = m_LanesRollOuts.at(m_iCurrentTotalPathId).size() - 1;
-		m_params.enableSwerving = m_original_params.enableSwerving;
+	//	m_params.enableSwerving = m_original_params.enableSwerving;
 	}
 
  	pValues->iCentralTrajectory	= m_pCurrentBehaviorState->m_pParams->rollOutNumber/2;
@@ -626,6 +633,7 @@ void DecisionMaker::InitBehaviorStates()
 		beh_with_max.maxVelocity = m_params.maxSpeed;
 	}
 
+	//There are another function for ACC in op_acc.cpp and op_controller. maybe they are better, maybe they are not ! only time can tell.
 	double target_velocity = PlanningHelpers::GetACCVelocityModelBased(dt, CurrStatus.speed, m_CarInfo, m_ControlParams, beh_with_max);
 
 	for(unsigned int i =  0; i < m_Path.size(); i++)
@@ -740,7 +748,10 @@ void DecisionMaker::InitBehaviorStates()
 		m_Path.at(i).v = desiredVelocity;
 	}
 
-	return std::min({max_velocity, preCalcPrams->egoStoppingVelocity, preCalcPrams->egoFollowingVelocity});
+	//This line where Tartu University changes take effect, currently causes the vehicle to go backwards
+	//return std::min({max_velocity, preCalcPrams->egoStoppingVelocity, preCalcPrams->egoFollowingVelocity});
+	return max_velocity;
+
  }
 
  PlannerHNS::BehaviorState DecisionMaker::DoOneStep(

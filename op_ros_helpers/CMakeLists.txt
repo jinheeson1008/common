@@ -54,6 +54,7 @@ set(ROS_HELPERS_SRC
   src/op_ROSHelpers.cpp
   src/ROSMapHandler.cpp
   src/ROSVelocityHandler.cpp
+  src/op_ParamsHandler.cpp
 )
 
 ## Declare a cpp library

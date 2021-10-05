@@ -2598,16 +2598,16 @@ double PlanningHelpers::GetACCVelocityModelBased(const double& dt, const double&
 	{
 		double crash_d = CurrBehavior.followDistance;
 		double safe_d = CurrBehavior.stopDistance;
-		double min_follow_distance = ctrlParams.min_safe_follow_distance*2.0 + CurrSpeed;
+		double min_follow_distance = ctrlParams.min_safe_follow_distance + CurrSpeed;
 		double diff = crash_d - safe_d;
 		double target_a = 0;
 
 		/**
 		 * Following Conditions
 		 */
-		if(diff < ctrlParams.min_safe_follow_distance*2.0)
+		if(diff < ctrlParams.min_safe_follow_distance)
 		{
-			double brake_distance = crash_d - ctrlParams.min_safe_follow_distance*2.0;
+			double brake_distance = crash_d - ctrlParams.min_safe_follow_distance;
 
 			if(brake_distance > 0)
 			{
@@ -2618,7 +2618,7 @@ double PlanningHelpers::GetACCVelocityModelBased(const double& dt, const double&
 				target_a = -9.8*4; //stop with -4G
 			}
 		}
-		else if(diff > (ctrlParams.min_safe_follow_distance*2.0 + CurrSpeed))
+		else if(diff > (ctrlParams.min_safe_follow_distance + CurrSpeed))
 		{
 			target_a = vehicleInfo.max_acceleration;
 		}
@@ -2661,6 +2661,11 @@ double PlanningHelpers::GetACCVelocityModelBased(const double& dt, const double&
 	if(desiredVel > CurrBehavior.maxVelocity)
 	{
 		desiredVel = CurrBehavior.maxVelocity;
+	}
+
+	if(desiredVel < 0)
+	{
+		desiredVel = 0;
 	}
 
 	return desiredVel;
