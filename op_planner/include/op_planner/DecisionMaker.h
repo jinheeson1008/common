@@ -66,6 +66,7 @@ public:
 	virtual ~DecisionMaker();
 	void Init(const ControllerParams& ctrlParams, const PlanningParams& params, const CAR_BASIC_INFO& carInfo);
 	void UpdateAvoidanceParams(bool enable_swerve, int roll_out_numbers);
+	void UpdateParameters(const ControllerParams& ctrlParams, const PlanningParams& params, const CAR_BASIC_INFO& carInfo);
 	void CalculateImportantParameterForDecisionMaking(const VehicleState& car_state,
 			const bool& bEmergencyStop, const std::vector<TrafficLight>& detectedLights,
 			const TrajectoryCost& bestTrajectory);
@@ -95,7 +96,7 @@ protected:
 	std::vector<std::vector<WayPoint> > m_TotalOriginalPaths;
 	std::vector<std::vector<WayPoint> > m_TotalPaths;
 	PlannerHNS::PlanningParams m_params;
-	PlannerHNS::PlanningParams m_original_params;
+	//PlannerHNS::PlanningParams m_original_params;
 	//ACC m_VelocityController;
 
 

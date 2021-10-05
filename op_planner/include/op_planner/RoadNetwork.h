@@ -199,10 +199,31 @@ public:
   virtual ~RECTANGLE(){}
 };
 
-class PolygonShape
-{
+class PolygonShape {
 public:
-	std::vector<GPSPoint> points;
+  std::vector<GPSPoint> points;
+
+  /**
+   * PNPOLY - Point Inclusion in Polygon Test
+   * https://wrf.ecse.rpi.edu//Research/Short_Notes/pnpoly.html
+   * @param polygon
+   * @param p Point to test
+   * @return int
+   */
+  inline int PointInsidePolygonV2(const PolygonShape &polygon,
+                                const GPSPoint &p) {
+    int i, j, c = 0;
+    for (i = 0, j = static_cast<int>(polygon.points.size()) - 1;
+         i < polygon.points.size(); j = i++) {
+      if (((polygon.points[i].y > p.y) != (polygon.points[j].y > p.y)) &&
+          (p.x < (polygon.points[j].x - polygon.points[i].x) *
+                         (p.y - polygon.points[i].y) /
+                         (polygon.points[j].y - polygon.points[i].y) +
+                     polygon.points[i].x))
+        c = !c;
+    }
+    return c;
+  }
 
 	inline int PointInsidePolygon(const PolygonShape& polygon,const GPSPoint& p)
 	{
