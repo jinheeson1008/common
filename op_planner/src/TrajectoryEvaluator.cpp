@@ -600,7 +600,7 @@ void TrajectoryEvaluator::calculateDistanceCosts(const PlanningParams& params, c
 
 			if(actual_lateral_distance < g_lateral_skip_value && !info.bAfter && !bBefore)
 			{
-				if(safety_border_.PointInsidePolygon(safety_border_, contour_points.at(j).pos) == true)
+				if(safety_border_.PointInsidePolygonV2(safety_border_, contour_points.at(j).pos) == true)
 				{
 					trajectory_costs.at(i).bBlocked = true;
 				}
