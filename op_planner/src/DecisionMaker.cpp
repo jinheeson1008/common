@@ -631,7 +631,7 @@ void DecisionMaker::InitBehaviorStates()
 
 		desiredVelocity = deceleration_critical * dt + CurrStatus.speed;
 
-		desiredVelocity = 0; //for CARLA
+		//desiredVelocity = 0; //for CARLA
 
 		//std::cout << "Stopping : V: " << CurrStatus.speed << ", A: " << deceleration_critical << ", dt: " << dt << std::endl;
 		//std::cout << "Stopping (beh, brake): (" << beh.stopDistance << ", " << preCalcPrams->minStoppingDistance << ") , desiredPID=" << desiredVelocity << ", To Goal: " << preCalcPrams->distanceToGoal <<  std::endl;
@@ -661,7 +661,7 @@ void DecisionMaker::InitBehaviorStates()
 			desiredVelocity = CurrStatus.speed;
 
 
-		desiredVelocity = 0; // for CARLA
+		//desiredVelocity = 0; // for CARLA
 
 		//std::cout << "Following V: " << CurrStatus.speed << ", Desired V: " << beh.followVelocity << ", A: " << deceleration_critical << ", d_to_stop: " << distance_to_stop << ", sudden_stop_d" << sudden_stop_distance << std::endl;
 		//std::cout << "Desired Vel: " << desiredVelocity << std::endl;

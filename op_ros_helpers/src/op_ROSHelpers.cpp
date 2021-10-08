@@ -103,6 +103,7 @@ visualization_msgs::Marker ROSHelpers::CreateGenMarker(const double& x, const do
 	mkr.header.stamp = ros::Time();
 	mkr.ns = ns;
 	mkr.type = type;
+	mkr.lifetime = ros::Duration(0.1); // make old path disappear
 	mkr.action = visualization_msgs::Marker::ADD;
 	if(type != visualization_msgs::Marker::LINE_LIST && type != visualization_msgs::Marker::LINE_STRIP && type != visualization_msgs::Marker::TEXT_VIEW_FACING)
 	{

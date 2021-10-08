@@ -225,7 +225,7 @@ public:
     return c;
   }
 
-	inline int PointInsidePolygon(const PolygonShape& polygon,const GPSPoint& p)
+	inline int PointInsidePolygonOld(const PolygonShape& polygon,const GPSPoint& p)
 	{
 		int counter = 0;
 		  int i;
