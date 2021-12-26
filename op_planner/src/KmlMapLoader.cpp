@@ -704,30 +704,31 @@ std::vector<Lane> KmlMapLoader::GetLanesList(TiXmlElement* pElem)
 			num_ids = GetIDsFromPrefix(tfID, "Type", "Change");
 			if(num_ids.size() > 0)
 			{
-				if(num_ids.at(0) == 1)
-				{
-					ll.type = MERGE_LANE;
-				}
-				else if(num_ids.at(0) == 2)
-				{
-					ll.type = EXIT_LANE;
-				}
-				else if(num_ids.at(0) == 3)
-				{
-					ll.type = BUS_LANE;
-				}
-				else if(num_ids.at(0) == 4)
-				{
-					ll.type = BUS_STOP_LANE;
-				}
-				else if(num_ids.at(0) == 5)
-				{
-					ll.type = EMERGENCY_LANE;
-				}
-				else
-				{
-					ll.type = NORMAL_LANE;
-				}
+				ll.type = PlannerHNS::LaneTypesStr.GetEnum(num_ids.at(0));
+//				if(num_ids.at(0) == 1)
+//				{
+//					ll.type = MERGE_LANE;
+//				}
+//				else if(num_ids.at(0) == 2)
+//				{
+//					ll.type = EXIT_LANE;
+//				}
+//				else if(num_ids.at(0) == 3)
+//				{
+//					ll.type = BUS_LANE;
+//				}
+//				else if(num_ids.at(0) == 4)
+//				{
+//					ll.type = BUS_STOP_LANE;
+//				}
+//				else if(num_ids.at(0) == 5)
+//				{
+//					ll.type = EMERGENCY_LANE;
+//				}
+//				else
+//				{
+//					ll.type = NORMAL_LANE;
+//				}
 			}
 
 			num_ids = GetIDsFromPrefix(tfID, "Change", "");
