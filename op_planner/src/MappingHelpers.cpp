@@ -2638,4 +2638,26 @@ void MappingHelpers::SplitLane(int lane_id, int point_index, RoadNetwork& map, P
 	}
 }
 
+void MappingHelpers::InsertPointToEndOfPathWithAngleThreshold(const WayPoint& p, std::vector<WayPoint>& path, double max_angle)
+{
+	if(path.size() < 2)
+	{
+		path.push_back(p);
+	}
+	else
+	{
+		WayPoint p1, p2;
+		p2 = path.at(path.size() - 1);
+		p1 = path.at(path.size() - 2);
+
+		double before_angle = atan2(p2.pos.y - p1.pos.y, p2.pos.x - p1.pos.x);
+		double after_angle = atan2(p.pos.y - p2.pos.y, p.pos.x - p2.pos.x);
+		double angle_diff = UtilityHNS::UtilityH::AngleBetweenTwoAnglesPositive(after_angle, before_angle);
+		if(angle_diff < max_angle)
+		{
+			path.push_back(p);
+		}
+	}
+}
+
 } /* namespace PlannerHNS */

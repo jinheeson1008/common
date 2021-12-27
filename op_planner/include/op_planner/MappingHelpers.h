@@ -183,6 +183,7 @@ public:
 	 */
 	static void ShiftStopLinesToMatchTrafficLights(RoadNetwork& map);
 
+	static void InsertPointToEndOfPathWithAngleThreshold(const WayPoint& p, std::vector<WayPoint>& path, double max_angle = M_PI_2);
 
 	/**
 	 * @brief Reading supporting file which contains projection string and map origin. it should have the same name as the fileName + ".proj.dat"
