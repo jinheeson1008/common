@@ -217,6 +217,7 @@ void DecisionMaker::InitBehaviorStates()
  	pValues->currentVelocity = car_state.speed;
  	pValues->bTrafficIsRed = false;
  	pValues->currentTrafficLightID = -1;
+ 	pValues->currentStopSignID = -1;
  	pValues->bFullyBlock = false;
  	pValues->bFinalLocalTrajectory = false;
  	pValues->distanceToNext = bestTrajectory.closest_obj_distance;

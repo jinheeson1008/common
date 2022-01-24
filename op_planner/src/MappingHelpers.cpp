@@ -314,6 +314,51 @@ WayPoint* MappingHelpers::GetClosestBackWaypointFromMap(const WayPoint& pos, Roa
 		return &pLane->points.at(closest_index);
 }
 
+WayPoint* MappingHelpers::GetClosestWaypointFromMapUsingDistanceOnly(const WayPoint& pos, RoadNetwork& map, const double& distance)
+{
+	for(unsigned int j=0; j< map.roadSegments.size(); j ++)
+	{
+		for(unsigned int k=0; k< map.roadSegments.at(j).Lanes.size(); k ++)
+		{
+			Lane* pL = &map.roadSegments.at(j).Lanes.at(k);
+			int index = PlanningHelpers::GetClosestNextPointIndexFast(pL->points, pos);
+
+			if(index < 0 || index >= pL->points.size()) continue;
+
+			double d = hypot(pL->points.at(index).pos.y - pos.pos.y, pL->points.at(index).pos.x - pos.pos.x);
+			if(d <= distance)
+			{
+				return &pL->points.at(index);
+			}			
+		}
+	}
+
+	return nullptr;
+}
+
+std::vector<WayPoint*> MappingHelpers::GetClosestWaypointsFromMapUsingDistanceOnly(const WayPoint& pos, RoadNetwork& map, const double& distance)
+{
+	std::vector<WayPoint*> waypoint_list;
+	for(unsigned int j=0; j< map.roadSegments.size(); j ++)
+	{
+		for(unsigned int k=0; k< map.roadSegments.at(j).Lanes.size(); k ++)
+		{
+			Lane* pL = &map.roadSegments.at(j).Lanes.at(k);
+			int index = PlanningHelpers::GetClosestNextPointIndexFast(pL->points, pos);
+
+			if(index < 0 || index >= pL->points.size()) continue;
+
+			double d = hypot(pL->points.at(index).pos.y - pos.pos.y, pL->points.at(index).pos.x - pos.pos.x);
+			if(d <= distance)
+			{
+				waypoint_list.push_back(&pL->points.at(index));
+			}
+		}
+	}
+
+	return waypoint_list;
+}
+
 std::vector<Lane*> MappingHelpers::GetClosestLanesFast(const WayPoint& center, RoadNetwork& map, const double& distance)
 {
 	vector<Lane*> lanesList;
@@ -1916,6 +1961,22 @@ void MappingHelpers::InsertUniqueTrafficSign(std::vector<PlannerHNS::TrafficSign
 	}
 
 	traffic_signs.push_back(ts);
+}
+
+void MappingHelpers::GetClosestStopLines(const PlannerHNS::RoadNetwork& map, const WayPoint& p, const double& search_radius, std::vector<PlannerHNS::StopLine>& stop_lines)
+{
+	stop_lines.clear();
+	for(auto sl: map.stopLines)
+	{
+		if(sl.points.size() > 0)
+		{
+			double d = hypot(sl.points.at(0).pos.y - p.pos.y, sl.points.at(0).pos.x - p.pos.x);
+			if(d <= search_radius)
+			{
+				stop_lines.push_back(sl);
+			}
+		}
+	}
 }
 
 void MappingHelpers::TrimPath(std::vector<PlannerHNS::WayPoint>& points, double trim_angle)

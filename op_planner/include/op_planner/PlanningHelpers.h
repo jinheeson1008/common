@@ -215,6 +215,8 @@ public:
 
 	static double GetDistanceToClosestStopLineAndCheck(const std::vector<WayPoint>& path, const WayPoint& p, const double& giveUpDistance, int& stopLineID,int& stopSignID, int& trafficLightID, const int& prevIndex = 0);
 
+	static double GetDistanceToClosestStopLineAndCheckV2(const std::vector<WayPoint>& path, const WayPoint& p, const std::vector<StopLine>& slines, int& stopLineID,int& stopSignID, std::vector<int>& trafficLightIDs);
+
 	static bool GetThreePointsInfo(const WayPoint& p0, const WayPoint& p1, const WayPoint& p2, WayPoint& perp_p, double& long_d, double lat_d);
 
 	static void WritePathToFile(const std::string& fileName, const std::vector<WayPoint>& path);
@@ -241,6 +243,12 @@ public:
 
 	static void TestQuadraticSpline(const std::vector<WayPoint>& center_line, std::vector<WayPoint>& path);
 
+	static bool CheckFrontLane(PlannerHNS::WayPoint* pWP1, PlannerHNS::WayPoint* pWP2, int search_level);
+	static bool CheckBackLane(PlannerHNS::WayPoint* pWP1, PlannerHNS::WayPoint* pWP2, int search_level);
+	static bool CheckRightLane(PlannerHNS::WayPoint* pWP1, PlannerHNS::WayPoint* pWP2);
+	static bool CheckLeftLane(PlannerHNS::WayPoint* pWP1, PlannerHNS::WayPoint* pWP2);
+	static void FilterWaypoints(std::vector<PlannerHNS::WayPoint*>& wp_list, PlannerHNS::WayPoint* pPrevWP);
+
 	static double frunge ( double x );
 
 	static double fprunge ( double x );
@@ -248,6 +256,21 @@ public:
 	static double fpprunge ( double x );
 
 };
+
+static PlannerHNS::EnumString<TRAFFIC_LIGHT_TYPE> TRAFFIC_LIGHT_TYPE_STR(UNKNOWN_LIGHT,
+		{
+				{UNKNOWN_LIGHT, "Unknown"},
+				{RED_LIGHT, "Red"},
+				{GREEN_LIGHT, "Green"},
+				{YELLOW_LIGHT, "Yellow"},
+				{CROSS_GREEN, "Cross Green"},
+				{CROSS_RED, "Cross Red"},
+				{LEFT_GREEN, "Left Green"},
+				{FORWARD_GREEN, "Forward Green"},
+				{RIGHT_GREEN, "Right Green"},
+				{FLASH_YELLOW, "Flash Yellow"},
+				{FLASH_RED, "Flash Red"},
+		});
 
 } /* namespace PlannerHNS */
 

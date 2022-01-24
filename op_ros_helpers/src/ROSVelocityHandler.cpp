@@ -80,10 +80,15 @@ void VelocityHandler::callbackGetRobotOdom(const nav_msgs::OdometryConstPtr& msg
 
 	m_pVehicleState->speed = msg->twist.twist.linear.x;
 	m_pCurrentPose->v = m_pVehicleState->speed ;
-	if(msg->twist.twist.linear.x != 0)
+		if(msg->twist.twist.linear.z >= 1 && msg->twist.twist.angular.x >= 1) // special flags send with Odometry message which means steering is not angular velocity, it is direct steering angle in degrees.
+	{
+		m_pVehicleState->steer = msg->twist.twist.angular.z;
+		//std::cout << "Receive Odometry in opwaypointfollower, Speed: " << m_CurrVehicleStatus.speed <<", Steer: " << m_CurrVehicleStatus.steer << std::endl;
+	}
+	else if(msg->twist.twist.linear.x != 0)
 	{
 		m_pVehicleState->steer = atan(m_CarInfo.wheel_base * msg->twist.twist.angular.z/msg->twist.twist.linear.x);
-	}
+	}	
 }
 
 void VelocityHandler::callbackGetVehicleStatus(const autoware_msgs::VehicleStatusConstPtr & msg)
