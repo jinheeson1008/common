@@ -245,7 +245,6 @@ class LocalizationPathReader : public SimpleReaderBase
 public:
 	struct LocalizationWayPoint
 	{
-		double t;
 		double x;
 		double y;
 		double z;
@@ -258,6 +257,26 @@ public:
 
 	bool ReadNextLine(LocalizationWayPoint& data);
 	int ReadAllData(std::vector<LocalizationWayPoint>& data_list);
+	int ReadAllData();
+};
+
+class TimeStampedPathReader : public SimpleReaderBase
+{
+public:
+	struct TimePoint
+	{
+		double t;
+		double x;
+		double y;
+		double z;
+		double a;
+	};
+
+	TimeStampedPathReader(const std::string& fileName, const char& separator) : SimpleReaderBase(fileName, 1, "", separator){}
+	virtual ~TimeStampedPathReader(){}
+
+	bool ReadNextLine(TimePoint& data);
+	int ReadAllData(std::vector<TimePoint>& data_list);
 	int ReadAllData();
 };
 

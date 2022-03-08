@@ -57,7 +57,8 @@ public:
 	static Lane* GetClosestLaneFromMap(const WayPoint& pos, RoadNetwork& map, const double& distance = 5.0, const bool& bDirectionBased = true);
 	static WayPoint* GetClosestWaypointFromMap(const WayPoint& pos, RoadNetwork& map, const bool& bDirectionBased = true);
 	static std::vector<Lane*> GetClosestLanesFast(const WayPoint& pos, RoadNetwork& map, const double& distance = 10.0);
-
+	static WayPoint* GetClosestWaypointFromMapUsingDistanceOnly(const WayPoint& pos, RoadNetwork& map, const double& distance = 1.0);
+	static std::vector<WayPoint*> GetClosestWaypointsFromMapUsingDistanceOnly(const WayPoint& pos, RoadNetwork& map, const double& distance = 1.0);
 	static std::vector<WayPoint*> GetClosestWaypointsListFromMap(const WayPoint& center, RoadNetwork& map, const double& distance = 2.0, const bool& bDirectionBased = true);
 
 	static WayPoint* GetClosestBackWaypointFromMap(const WayPoint& pos, RoadNetwork& map);
@@ -142,6 +143,8 @@ public:
 
 	static void GetMapMaxIds(PlannerHNS::RoadNetwork& map);
 
+	static void GetClosestStopLines(const PlannerHNS::RoadNetwork& map, const WayPoint& p, const double& search_radius, std::vector<PlannerHNS::StopLine>& stop_lines);
+
 	static bool IsPointExist(const WayPoint& p, const std::vector<PlannerHNS::WayPoint>& points);
 
 	static void InsertUniqueStopLine(std::vector<PlannerHNS::StopLine>& stop_lines, const PlannerHNS::StopLine& sl);
@@ -183,6 +186,7 @@ public:
 	 */
 	static void ShiftStopLinesToMatchTrafficLights(RoadNetwork& map);
 
+	static void InsertPointToEndOfPathWithAngleThreshold(const WayPoint& p, std::vector<WayPoint>& path, double max_angle = M_PI_2);
 
 	/**
 	 * @brief Reading supporting file which contains projection string and map origin. it should have the same name as the fileName + ".proj.dat"

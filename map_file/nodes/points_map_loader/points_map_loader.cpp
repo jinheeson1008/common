@@ -470,6 +470,14 @@ void request_lookahead_download(const autoware_msgs::LaneArray& msg)
   }
 }
 
+void print_usage()
+{
+	ROS_ERROR_STREAM("Usage:");
+	ROS_ERROR_STREAM("rosrun map_file points_map_loader noupdate [PCD]...");
+	ROS_ERROR_STREAM("rosrun map_file points_map_loader {1x1|3x3|5x5|7x7|9x9} AREALIST [PCD]...");
+	ROS_ERROR_STREAM("rosrun map_file points_map_loader {1x1|3x3|5x5|7x7|9x9} download");
+}
+
 }  // namespace
 
 int main(int argc, char** argv)
@@ -479,138 +487,235 @@ int main(int argc, char** argv)
   ros::NodeHandle nh;
   ros::NodeHandle pnh("~");
 
-  // Get parameters
-  std::string area;
-  pnh.param<std::string>("area", area, "noupdate");
-
-  std::string mode;
-  pnh.param<std::string>("mode", mode, "");
-
-  std::vector<std::string> pcd_paths;
-  pnh.getParam("pcd_paths", pcd_paths);
-
-  std::string arealist_path;
-  pnh.param<std::string>("arealist_path", arealist_path, "");
-
-  // Search all files in pcd_paths
-  std::vector<std::string> pcd_file_paths;
-  for (const std::string& pcd_path : pcd_paths)
+  if (argc >= 3) // to work similar to release 1.13 , it causes a problem with CARLA launch script to handle both 1.13 and 1.15
   {
-    // Search all files in each path in pcd_paths
-    boost::filesystem::path path(pcd_path);
-    if (boost::filesystem::is_regular_file(path))
-    {
-      // If file
-      pcd_file_paths.push_back(pcd_path);
+    std::string area(argv[1]);
+    if (area == "noupdate")
+      margin = -1;
+    else if (area == "1x1")
+      margin = 0;
+    else if (area == "3x3")
+      margin = MARGIN_UNIT * 1;
+    else if (area == "5x5")
+      margin = MARGIN_UNIT * 2;
+    else if (area == "7x7")
+      margin = MARGIN_UNIT * 3;
+    else if (area == "9x9")
+      margin = MARGIN_UNIT * 4;
+    else {
+      print_usage();
+      return EXIT_FAILURE;
     }
-    else if (boost::filesystem::is_directory(path))
-    {
-      // If directory
-      for (const boost::filesystem::path& entry :
-           boost::make_iterator_range(boost::filesystem::recursive_directory_iterator(path), {}))
-      {
-        if (boost::filesystem::is_regular_file(entry))
-        {
-          pcd_file_paths.push_back(entry.generic_string());
+
+    std::string arealist_path;
+    std::vector<std::string> pcd_paths;
+    if (margin < 0) {
+      can_download = false;
+      for (int i = 2; i < argc; ++i) {
+        std::string path(argv[i]);
+        pcd_paths.push_back(path);
+      }
+    } else {
+      std::string mode(argv[2]);
+      if (mode == "download") {
+        can_download = true;
+        std::string host_name;
+        nh.param<std::string>("points_map_loader/host_name", host_name, HTTP_HOSTNAME);
+        int port;
+        nh.param<int>("points_map_loader/port", port, HTTP_PORT);
+        std::string user;
+        nh.param<std::string>("points_map_loader/user", user, HTTP_USER);
+        std::string password;
+        nh.param<std::string>("points_map_loader/password", password, HTTP_PASSWORD);
+        gf = GetFile(host_name, port, user, password);
+      } else {
+        can_download = false;
+        arealist_path += argv[2];
+        for (int i = 3; i < argc; ++i) {
+          std::string path(argv[i]);
+          pcd_paths.push_back(path);
         }
       }
     }
-  }
 
-  if (area == "noupdate")
-    margin = -1;
-  else if (area == "1x1")
-    margin = 0;
-  else if (area == "3x3")
-    margin = MARGIN_UNIT * 1;
-  else if (area == "5x5")
-    margin = MARGIN_UNIT * 2;
-  else if (area == "7x7")
-    margin = MARGIN_UNIT * 3;
-  else if (area == "9x9")
-    margin = MARGIN_UNIT * 4;
-  else
-  {
-    ROS_ERROR("[points_map_loader] parameter area is not set.");
-    return EXIT_FAILURE;
-  }
+    pcd_pub = nh.advertise<sensor_msgs::PointCloud2>("points_map", 1, true);
+    stat_pub = nh.advertise<std_msgs::Bool>("pmap_stat", 1, true);
 
-  if (margin < 0)
-  {
-    can_download = false;
-  }
-  else
-  {
-    if (mode == "download")
-    {
-      can_download = true;
-      std::string host_name;
-      pnh.param<std::string>("host_name", host_name, HTTP_HOSTNAME);
-      int port;
-      pnh.param<int>("port", port, HTTP_PORT);
-      std::string user;
-      pnh.param<std::string>("user", user, HTTP_USER);
-      std::string password;
-      pnh.param<std::string>("password", password, HTTP_PASSWORD);
-      gf = GetFile(host_name, port, user, password);
+    stat_msg.data = false;
+    stat_pub.publish(stat_msg);
+
+    ros::Subscriber gnss_sub;
+    ros::Subscriber current_sub;
+    ros::Subscriber initial_sub;
+    ros::Subscriber waypoints_sub;
+    if (margin < 0) {
+      int err = 0;
+      publish_pcd(create_pcd(pcd_paths, &err), &err);
+    } else {
+      nh.param<int>("points_map_loader/update_rate", update_rate, DEFAULT_UPDATE_RATE);
+      fallback_rate = update_rate * 2; // XXX better way?
+
+      gnss_sub = nh.subscribe("gnss_pose", 1000, publish_gnss_pcd);
+      current_sub = nh.subscribe("current_pose", 1000, publish_current_pcd);
+      initial_sub = nh.subscribe("initialpose", 1, publish_dragged_pcd);
+
+      if (can_download) {
+        waypoints_sub = nh.subscribe("traffic_waypoints_array", 1, request_lookahead_download);
+        try {
+          std::thread downloader(download_map);
+          downloader.detach();
+        } catch (std::exception &ex) {
+          ROS_ERROR_STREAM("failed to create thread from " << ex.what());
+        }
+      } else {
+        AreaList areas = read_arealist(arealist_path);
+        for (const Area& area : areas) {
+          for (const std::string& path : pcd_paths) {
+            if (path == area.path)
+              cache_arealist(area, downloaded_areas);
+          }
+        }
+      }
+
+      gnss_time = current_time = ros::Time::now();
     }
+
+  }
+  else
+  {
+    // Get parameters
+    std::string area;
+    pnh.param<std::string>("area", area, "noupdate");
+
+    std::string mode;
+    pnh.param<std::string>("mode", mode, "");
+
+    std::vector<std::string> pcd_paths;
+    pnh.getParam("pcd_paths", pcd_paths);
+
+    std::string arealist_path;
+    pnh.param<std::string>("arealist_path", arealist_path, "");
+
+    // Search all files in pcd_paths
+    std::vector<std::string> pcd_file_paths;
+    for (const std::string& pcd_path : pcd_paths)
+    {
+      // Search all files in each path in pcd_paths
+      boost::filesystem::path path(pcd_path);
+      if (boost::filesystem::is_regular_file(path))
+      {
+        // If file
+        pcd_file_paths.push_back(pcd_path);
+      }
+      else if (boost::filesystem::is_directory(path))
+      {
+        // If directory
+        for (const boost::filesystem::path& entry :
+            boost::make_iterator_range(boost::filesystem::recursive_directory_iterator(path), {}))
+        {
+          if (boost::filesystem::is_regular_file(entry))
+          {
+            pcd_file_paths.push_back(entry.generic_string());
+          }
+        }
+      }
+    }
+
+    if (area == "noupdate")
+      margin = -1;
+    else if (area == "1x1")
+      margin = 0;
+    else if (area == "3x3")
+      margin = MARGIN_UNIT * 1;
+    else if (area == "5x5")
+      margin = MARGIN_UNIT * 2;
+    else if (area == "7x7")
+      margin = MARGIN_UNIT * 3;
+    else if (area == "9x9")
+      margin = MARGIN_UNIT * 4;
     else
+    {
+      ROS_ERROR("[points_map_loader] parameter area is not set.");
+      return EXIT_FAILURE;
+    }
+
+    if (margin < 0)
     {
       can_download = false;
     }
-  }
-
-  pcd_pub = nh.advertise<sensor_msgs::PointCloud2>("points_map", 1, true);
-  stat_pub = nh.advertise<std_msgs::Bool>("pmap_stat", 1, true);
-
-  stat_msg.data = false;
-  stat_pub.publish(stat_msg);
-
-  ros::Subscriber gnss_sub;
-  ros::Subscriber current_sub;
-  ros::Subscriber initial_sub;
-  ros::Subscriber waypoints_sub;
-  if (margin < 0)
-  {
-    int err = 0;
-    publish_pcd(create_pcd(pcd_file_paths, &err), &err);
-  }
-  else
-  {
-    pnh.param<int>("update_rate", update_rate, DEFAULT_UPDATE_RATE);
-    fallback_rate = update_rate * 2;  // XXX better way?
-
-    gnss_sub = nh.subscribe("gnss_pose", 1000, publish_gnss_pcd);
-    current_sub = nh.subscribe("current_pose", 1000, publish_current_pcd);
-    initial_sub = nh.subscribe("initialpose", 1, publish_dragged_pcd);
-
-    if (can_download)
+    else
     {
-      waypoints_sub = nh.subscribe("traffic_waypoints_array", 1, request_lookahead_download);
-      try
+      if (mode == "download")
       {
-        std::thread downloader(download_map);
-        downloader.detach();
+        can_download = true;
+        std::string host_name;
+        pnh.param<std::string>("host_name", host_name, HTTP_HOSTNAME);
+        int port;
+        pnh.param<int>("port", port, HTTP_PORT);
+        std::string user;
+        pnh.param<std::string>("user", user, HTTP_USER);
+        std::string password;
+        pnh.param<std::string>("password", password, HTTP_PASSWORD);
+        gf = GetFile(host_name, port, user, password);
       }
-      catch (std::exception& ex)
+      else
       {
-        ROS_ERROR_STREAM("failed to create thread from " << ex.what());
+        can_download = false;
       }
+    }
+
+    pcd_pub = nh.advertise<sensor_msgs::PointCloud2>("points_map", 1, true);
+    stat_pub = nh.advertise<std_msgs::Bool>("pmap_stat", 1, true);
+
+    stat_msg.data = false;
+    stat_pub.publish(stat_msg);
+
+    ros::Subscriber gnss_sub;
+    ros::Subscriber current_sub;
+    ros::Subscriber initial_sub;
+    ros::Subscriber waypoints_sub;
+    if (margin < 0)
+    {
+      int err = 0;
+      publish_pcd(create_pcd(pcd_file_paths, &err), &err);
     }
     else
     {
-      AreaList areas = read_arealist(arealist_path);
-      for (const Area& area : areas)
+      pnh.param<int>("update_rate", update_rate, DEFAULT_UPDATE_RATE);
+      fallback_rate = update_rate * 2;  // XXX better way?
+
+      gnss_sub = nh.subscribe("gnss_pose", 1000, publish_gnss_pcd);
+      current_sub = nh.subscribe("current_pose", 1000, publish_current_pcd);
+      initial_sub = nh.subscribe("initialpose", 1, publish_dragged_pcd);
+
+      if (can_download)
       {
-        for (const std::string& path : pcd_file_paths)
+        waypoints_sub = nh.subscribe("traffic_waypoints_array", 1, request_lookahead_download);
+        try
         {
-          if (path == area.path)
-            cache_arealist(area, downloaded_areas);
+          std::thread downloader(download_map);
+          downloader.detach();
+        }
+        catch (std::exception& ex)
+        {
+          ROS_ERROR_STREAM("failed to create thread from " << ex.what());
         }
       }
-    }
+      else
+      {
+        AreaList areas = read_arealist(arealist_path);
+        for (const Area& area : areas)
+        {
+          for (const std::string& path : pcd_file_paths)
+          {
+            if (path == area.path)
+              cache_arealist(area, downloaded_areas);
+          }
+        }
+      }
 
-    gnss_time = current_time = ros::Time::now();
+      gnss_time = current_time = ros::Time::now();
+    }
   }
 
   ros::spin();

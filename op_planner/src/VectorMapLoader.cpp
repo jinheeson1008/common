@@ -59,7 +59,7 @@ void VectorMapLoader::ConstructRoadNetworkFromROSMessage(UtilityHNS::MapRaw& map
 	}
 
 	std::cout << std::endl << " >> Extracting Lanes ... " << std::endl;
-	CreateLanes(mapRaw.pLanes, mapRaw.pPoints, mapRaw.pNodes , roadLanes);
+	CreateLanes(mapRaw.pLanes, mapRaw.pPoints, mapRaw.pNodes , mapRaw.pCenterLines, roadLanes);
 
 	std::cout << " >> Fix Waypoints errors ... " << std::endl;
 	MappingHelpers::FixTwoPointsLanes(roadLanes);
@@ -167,7 +167,7 @@ void VectorMapLoader::ConstructRoadNetworkFromROSMessage(UtilityHNS::MapRaw& map
 }
 
 void VectorMapLoader::CreateLanes(UtilityHNS::AisanLanesFileReader* pLaneData, UtilityHNS::AisanPointsFileReader* pPointsData,
-				UtilityHNS::AisanNodesFileReader* pNodesData, std::vector<PlannerHNS::Lane>& out_lanes)
+				UtilityHNS::AisanNodesFileReader* pNodesData, UtilityHNS::AisanCenterLinesFileReader* pCenterLineData, std::vector<PlannerHNS::Lane>& out_lanes)
 {
 
 	out_lanes.clear();
@@ -176,7 +176,7 @@ void VectorMapLoader::CreateLanes(UtilityHNS::AisanLanesFileReader* pLaneData, U
 	for(unsigned int l =0; l < start_lines.size(); l++)
 	{
 		Lane _lane;
-		GetLanePoints(pLaneData, pPointsData, pNodesData, start_lines.at(l), _lane);
+		GetLanePoints(pLaneData, pPointsData, pNodesData, pCenterLineData, start_lines.at(l), _lane);
 		out_lanes.push_back(_lane);
 	}
 }
@@ -225,7 +225,8 @@ bool VectorMapLoader::IsEndLanePoint(UtilityHNS::AisanLanesFileReader* pLaneData
 
 void VectorMapLoader::GetLanePoints(UtilityHNS::AisanLanesFileReader* pLaneData,
 			UtilityHNS::AisanPointsFileReader* pPointsData,
-			UtilityHNS::AisanNodesFileReader* pNodesData, int lnID,
+			UtilityHNS::AisanNodesFileReader* pNodesData,
+			UtilityHNS::AisanCenterLinesFileReader* pCenterLineData, int lnID,
 			PlannerHNS::Lane& out_lane)
 {
 	int next_lnid = lnID;
@@ -269,6 +270,14 @@ void VectorMapLoader::GetLanePoints(UtilityHNS::AisanLanesFileReader* pLaneData,
 		{
 			WayPoint wp1;
 			GetPointFromDataList(pPointsData, pNodesData->GetDataRowById(pL->BNID)->PID, wp1);
+			if(pCenterLineData != nullptr)
+			{
+				UtilityHNS::AisanCenterLinesFileReader::AisanCenterLine* dtlane1 = pCenterLineData->GetDataRowById(pL->DID);
+				if(dtlane1 != nullptr)
+				{
+					wp1.width = dtlane1->RW + dtlane1->LW;
+				}
+			}
 			wp1.v = pL->RefVel == 0 ? DEFAULT_REF_VELOCITY : pL->RefVel;
 			wp1.id = pL->BNID;
 			wp1.originalMapID = pL->LnID;
@@ -320,6 +329,14 @@ void VectorMapLoader::GetLanePoints(UtilityHNS::AisanLanesFileReader* pLaneData,
 
 			WayPoint wp2;
 			GetPointFromDataList(pPointsData, pNodesData->GetDataRowById(pL->FNID)->PID, wp2);
+			if(pCenterLineData != nullptr)
+			{
+				UtilityHNS::AisanCenterLinesFileReader::AisanCenterLine* dtlane2 = pCenterLineData->GetDataRowById(pL->DID);
+				if(dtlane2 != nullptr)
+				{
+					wp2.width = dtlane2->RW + dtlane2->LW;
+				}
+			}
 			wp2.v = pL->RefVel == 0 ? DEFAULT_REF_VELOCITY : pL->RefVel;
 			wp2.id = pL->FNID;
 			wp2.originalMapID = pL->LnID;
@@ -385,6 +402,14 @@ void VectorMapLoader::GetLanePoints(UtilityHNS::AisanLanesFileReader* pLaneData,
 			}
 
 			GetPointFromDataList(pPointsData, pTempNode->PID, wp);
+			if(pCenterLineData != nullptr)
+			{
+				UtilityHNS::AisanCenterLinesFileReader::AisanCenterLine* dtlane = pCenterLineData->GetDataRowById(pL->DID);
+				if(dtlane != nullptr)
+				{
+					wp.width = dtlane->RW + dtlane->LW;
+				}
+			}
 			wp.v = pL->RefVel == 0 ? DEFAULT_REF_VELOCITY : pL->RefVel;
 			wp.id = pL->FNID;
 
@@ -1148,6 +1173,7 @@ bool VectorMapLoader::GetWayPoint(const int& id, const int& laneID,const double&
 			wp.pos.dir = pDT->Dir;
 			wp.pos.a = pDT->Dir;
 			wp.iOriginalIndex = wp.id;
+			wp.width = pDT->LW + pDT->RW;
 			way_point = wp;
 			return true;
 		}
@@ -1338,7 +1364,7 @@ void VectorMapLoader::GenerateDtLaneAndFixLaneForVectorMap(UtilityHNS::AisanLane
 	int iDID = 0;
 
 	std::vector<Lane> roadLanes;
-	CreateLanes(pLaneData, pPointsData, pNodesData, roadLanes);
+	CreateLanes(pLaneData, pPointsData, pNodesData, nullptr, roadLanes);
 	MappingHelpers::FixTwoPointsLanes(roadLanes);
 	MappingHelpers::FixRedundantPointsLanes(roadLanes);
 
@@ -1367,8 +1393,8 @@ void VectorMapLoader::GenerateDtLaneAndFixLaneForVectorMap(UtilityHNS::AisanLane
 					dt_wp.Dir = pL->points.at(ip).rot.z;
 					dt_wp.Dist = pL->points.at(ip).distanceCost;
 					dt_wp.Apara = 0;
-					dt_wp.LW = 0;
-					dt_wp.RW = 0;
+					dt_wp.LW = pL->points.at(ip).width/2.0;
+					dt_wp.RW = pL->points.at(ip).width/2.0;
 					dt_wp.cant = 0;
 					dt_wp.r = pL->points.at(ip).rot.w;
 					dt_wp.slope = pL->points.at(ip).rot.y;
