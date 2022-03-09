@@ -27,6 +27,23 @@ UtilityH::UtilityH()
 {
 }
 
+ //return 0 if equal, -1 if a < b , 1 if a > b
+ int UtilityH::CompareDouble(const double& a, const double& b)
+ {
+	 if (fabs(a - b) < 1e-9)
+	 {
+		 return 0;
+	 }
+	 else if(a < b)
+	 {
+		 return -1;
+	 }
+	 else
+	 {
+		 return 1;
+	 }
+ }
+
  std::string UtilityH::GetHomeDirectory()
  {
 	struct passwd *pw = getpwuid(getuid());

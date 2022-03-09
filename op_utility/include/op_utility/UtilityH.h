@@ -32,6 +32,7 @@ public:
 	virtual ~UtilityH(); 
 
 
+	static int CompareDouble(const double& a, const double& b);
 	static double FixNegativeAngle(const double& a);
 	static double SplitPositiveAngle(const double& a);
 	static double InverseAngle(const double& a);

@@ -1683,6 +1683,7 @@ void ROSHelpers::ConvertFromAutowareCloudClusterObstaclesToPlannerH(const Planne
 	PlannerHNS::GPSPoint relative_point;
 	PlannerHNS::GPSPoint avg_center;
 	PolygonGenerator polyGen(n_poly_quarters);
+	ConvexHull hullGen;
 	PlannerHNS::DetectedObject obj;
 
 	for(unsigned int i =0; i < clusters.clusters.size(); i++)
@@ -1705,7 +1706,8 @@ void ROSHelpers::ConvertFromAutowareCloudClusterObstaclesToPlannerH(const Planne
 		pcl::fromROSMsg(clusters.clusters.at(i).cloud, point_cloud);
 
 
-		obj.contour = polyGen.EstimateClusterPolygon(point_cloud ,obj.center.pos,avg_center, poly_resolution);
+//		obj.contour = polyGen.EstimateClusterPolygon(point_cloud ,obj.center.pos,avg_center, poly_resolution);
+		obj.contour = hullGen.EstimateClusterHull(point_cloud ,obj.center.pos, poly_resolution);
 
 		obj.distance_to_center = hypot(obj.center.pos.y-currState.pos.y, obj.center.pos.x-currState.pos.x);
 
