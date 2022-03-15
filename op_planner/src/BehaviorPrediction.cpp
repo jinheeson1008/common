@@ -174,11 +174,22 @@ void BehaviorPrediction::PredictCurrentTrajectory(RoadNetwork& map, ObjParticles
 	PlannerH planner;
 
 	CalPredictionTimeForObject(pCarPart, m_MinPredictionDistance);
-	pCarPart->obj.pClosestWaypoints = MappingHelpers::GetClosestWaypointsListFromMap(pCarPart->obj.center, map, m_LaneDetectionDistance, pCarPart->obj.bDirection);
+//	This code should be enabled if the tracking node can calculate the moving obstacles' orientation correctly 
+//	pCarPart->obj.pClosestWaypoints = MappingHelpers::GetClosestWaypointsListFromMap(pCarPart->obj.center, map, m_LaneDetectionDistance, pCarPart->obj.bDirection);
+//	if(!(pCarPart->obj.bDirection && pCarPart->obj.bVelocity) && pCarPart->obj.pClosestWaypoints.size()>0)
+//	{
+//		pCarPart->obj.center.pos.a = pCarPart->obj.pClosestWaypoints.at(0)->pos.a;
+//	}
 
-	if(!(pCarPart->obj.bDirection && pCarPart->obj.bVelocity) && pCarPart->obj.pClosestWaypoints.size()>0)
+	pCarPart->obj.pClosestWaypoints = MappingHelpers::GetClosestWaypointsListFromMap(pCarPart->obj.center, map, m_LaneDetectionDistance, false);
+	if(pCarPart->obj.pClosestWaypoints.size()>0)
 	{
 		pCarPart->obj.center.pos.a = pCarPart->obj.pClosestWaypoints.at(0)->pos.a;
+		pCarPart->obj.bDirection = true;
+	}
+	else
+	{
+		pCarPart->obj.bDirection = false;
 	}
 
 	planner.PredictTrajectoriesUsingDP(pCarPart->obj.center, pCarPart->obj.pClosestWaypoints, pCarPart->m_PredictionDistance, pCarPart->obj.predTrajectories, m_bGenerateBranches, pCarPart->obj.bDirection, PREDICTED_PATH_DENSITY);

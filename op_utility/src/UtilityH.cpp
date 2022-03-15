@@ -27,6 +27,23 @@ UtilityH::UtilityH()
 {
 }
 
+ //return 0 if equal, -1 if a < b , 1 if a > b
+ int UtilityH::CompareDouble(const double& a, const double& b)
+ {
+	 if (fabs(a - b) < 1e-9)
+	 {
+		 return 0;
+	 }
+	 else if(a < b)
+	 {
+		 return -1;
+	 }
+	 else
+	 {
+		 return 1;
+	 }
+ }
+
  std::string UtilityH::GetHomeDirectory()
  {
 	struct passwd *pw = getpwuid(getuid());
@@ -221,6 +238,42 @@ time_t UtilityH::GetLongTime(const struct timespec& srcT)
 	time_t dstT;
 	dstT = srcT.tv_sec * 1000000000 + srcT.tv_nsec;
 	return dstT;
+}
+
+void UtilityH::GetFileNameInFolder(const std::string& path, const std::string& extention, std::vector<std::string>& out_list)
+{
+	out_list.clear();
+	DIR *dir;
+	struct dirent *ent;
+	if ((dir = opendir (path.c_str())) != NULL)
+	{
+	  while ((ent = readdir (dir)) != NULL)
+	  {
+		string str(ent->d_name);
+		std::string file_extention;
+		int index_last = str.find_last_of(".");
+		if(index_last > 0)
+		{
+			file_extention = str.substr(index_last, str.size());
+		}
+		std::string ext = extention;
+		for(auto& c : ext)
+		{
+			c = std::toupper(c);
+		}
+
+		for(auto& c : file_extention)
+		{
+			c = std::toupper(c);
+		}
+
+		if(file_extention.compare(ext) == 0)
+		{
+			out_list.push_back(path+str);
+		}
+	  }
+	  closedir (dir);
+	}
 }
 
 PIDController::PIDController()

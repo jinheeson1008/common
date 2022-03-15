@@ -56,11 +56,11 @@ private:
 	void ConstructRoadNetworkFromROSMessage(UtilityHNS::MapRaw& mapRaw, const PlannerHNS::WayPoint& origin, PlannerHNS::RoadNetwork& map);
 	void ConstructRoadNetworkFromROSMessageVer0(UtilityHNS::MapRaw& mapRaw, const PlannerHNS::WayPoint& origin, PlannerHNS::RoadNetwork& map);
 	void CreateLanes(UtilityHNS::AisanLanesFileReader* pLaneData, UtilityHNS::AisanPointsFileReader* pPointsData,
-			UtilityHNS::AisanNodesFileReader* pNodesData, std::vector<PlannerHNS::Lane>& out_lanes);
+			UtilityHNS::AisanNodesFileReader* pNodesData, UtilityHNS::AisanCenterLinesFileReader* pCenterLineData, std::vector<PlannerHNS::Lane>& out_lanes);
 	void ConnectLanes(UtilityHNS::AisanLanesFileReader* pLaneData, std::vector<PlannerHNS::Lane>& lanes);
 	void GetLanesStartPoints(UtilityHNS::AisanLanesFileReader* pLaneData, std::vector<int>& m_LanesStartIds);
 	void GetLanePoints(UtilityHNS::AisanLanesFileReader* pLaneData, UtilityHNS::AisanPointsFileReader* pPointsData,
-				UtilityHNS::AisanNodesFileReader* pNodesData, int lnID, PlannerHNS::Lane& out_lane);
+				UtilityHNS::AisanNodesFileReader* pNodesData, UtilityHNS::AisanCenterLinesFileReader* pCenterLineData, int lnID, PlannerHNS::Lane& out_lane);
 	bool IsStartLanePoint(UtilityHNS::AisanLanesFileReader* pLaneData, UtilityHNS::AisanLanesFileReader::AisanLane* pL);
 	bool IsEndLanePoint(UtilityHNS::AisanLanesFileReader* pLaneData, UtilityHNS::AisanLanesFileReader::AisanLane* pL);
 	bool GetPointFromDataList(UtilityHNS::AisanPointsFileReader* pPointsData,const int& pid, WayPoint& out_wp);

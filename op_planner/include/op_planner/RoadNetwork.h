@@ -96,7 +96,33 @@ enum BOUNDARY_TYPE {NORMAL_ROAD_BOUNDARY, INTERSECTION_BOUNDARY, CROSSING_BOUNDA
 
 enum MARKING_TYPE {UNKNOWN_MARK, TEXT_MARK, AF_MARK, AL_MARK, AR_MARK, AFL_MARK, AFR_MARK, ALR_MARK, UTURN_MARK, NOUTURN_MARK, POLYGON_MARK};
 
-enum LaneType{NORMAL_LANE, MERGE_LANE, EXIT_LANE, BUS_LANE, BUS_STOP_LANE, EMERGENCY_LANE};
+enum LaneType{
+	NONE_LANE, //not defined
+	NORMAL_LANE, //driving lane
+	SHOULDER_LANE,
+	BIKING_LANE,
+	STOP_LANE,
+	BUS_LANE,
+	BUS_STOP_LANE,
+	SIDEWALK_LANE,
+	BORDER_LANE,
+	RESTRICTED_LANE,
+	PARKING_LANE,
+	BIDIRECTIONAL_LANE,
+	MEDIAN_LANE,
+	SPECIAL1_LANE,
+	SPECIAL2_LANE,
+	SPECIAL3_LANE,
+	ROADWORKS_LANE,
+	TRAM_LANE,
+	RAIL_LANE,
+	ENTRY_LANE,
+	EXIT_LANE,
+	OFFRAMP_LANE,
+	ONRAMP_LANE,
+	PLANE_LANE,
+	EMERGENCY_LANE
+};
 
 enum CustomBehaviorType{CUSTOM_AVOIDANCE_DISABLED = 0, CUSTOM_AVOIDANCE_ENABLED = 1};
 
@@ -112,6 +138,7 @@ class Lane;
 class TrafficLight;
 class RoadSegment;
 class Boundary;
+class Line;
 
 
 class ObjTimeStamp
@@ -199,12 +226,33 @@ public:
   virtual ~RECTANGLE(){}
 };
 
-class PolygonShape
-{
+class PolygonShape {
 public:
-	std::vector<GPSPoint> points;
+  std::vector<GPSPoint> points;
 
-	inline int PointInsidePolygon(const PolygonShape& polygon,const GPSPoint& p)
+  /**
+   * PNPOLY - Point Inclusion in Polygon Test
+   * https://wrf.ecse.rpi.edu//Research/Short_Notes/pnpoly.html
+   * @param polygon
+   * @param p Point to test
+   * @return int
+   */
+  inline int PointInsidePolygonV2(const PolygonShape &polygon,
+                                const GPSPoint &p) {
+    int i, j, c = 0;
+    for (i = 0, j = static_cast<int>(polygon.points.size()) - 1;
+         i < polygon.points.size(); j = i++) {
+      if (((polygon.points[i].y > p.y) != (polygon.points[j].y > p.y)) &&
+          (p.x < (polygon.points[j].x - polygon.points[i].x) *
+                         (p.y - polygon.points[i].y) /
+                         (polygon.points[j].y - polygon.points[i].y) +
+                     polygon.points[i].x))
+        c = !c;
+    }
+    return c;
+  }
+
+	inline int PointInsidePolygonOld(const PolygonShape& polygon,const GPSPoint& p)
 	{
 		int counter = 0;
 		  int i;
@@ -559,14 +607,14 @@ public:
 	BOUNDARY_TYPE type;
 	std::vector<WayPoint> points;
 	WayPoint center;
-	RoadSegment* pSegment;
+	RoadSegment* pRoad;
 
 	Boundary()
 	{
 		type = NORMAL_ROAD_BOUNDARY;
 		id    = 0;
 		roadId =0;
-		pSegment = nullptr;
+		pRoad = nullptr;
 	}
 };
 
@@ -580,6 +628,7 @@ public:
 	double width;
 	std::vector<WayPoint> points;
 	Lane* pLane;
+	RoadSegment * pRoad;
 
 	Curb()
 	{
@@ -588,7 +637,8 @@ public:
 		id    = 0;
 		laneId =0;
 		roadId =0;
-		pLane = 0;
+		pLane = nullptr;
+		pRoad = nullptr;
 	}
 };
 
@@ -600,14 +650,14 @@ public:
 	int boundaryId;
 	std::vector<WayPoint> points; // the crossing boundary
 	std::vector<int> markings;
-	RoadSegment* pSegment;
+	RoadSegment* pRoad;
 
 	Crossing()
 	{
 		boundaryId = 0;
 		id    = 0;
 		roadId =0;
-		pSegment = nullptr;
+		pRoad = nullptr;
 	}
 };
 
@@ -624,14 +674,17 @@ public:
 	Lane* pLane;
 	int linkID;
 
+	RoadSegment * pRoad;
+
 	StopLine()
 	{
 		id    = 0;
 		laneId =0;
 		roadId =0;
-		pLane = 0;
+		pLane = nullptr;
 		stopSignID = -1;
 		linkID = 0;
+		pRoad = nullptr;
 	}
 };
 
@@ -643,13 +696,15 @@ public:
 	int roadId;
 	std::vector<WayPoint> points;
 	Lane* pLane;
+	RoadSegment * pRoad;
 
 	WaitingLine()
 	{
 		id    = 0;
 		laneId =0;
 		roadId =0;
-		pLane = 0;
+		pLane = nullptr;
+		pRoad = nullptr;
 	}
 };
 
@@ -675,6 +730,7 @@ public:
 
 	std::vector<Lane*> pLanes;
 	Lane* pLane;
+	RoadSegment * pRoad;
 
 	std::vector<PlannerHNS::WayPoint> points; // sign shape, for future use 
 
@@ -688,9 +744,10 @@ public:
 		value		= 0;
 		fromValue	= 0;
 		toValue		= 0;
-		pLane 		= 0;
+		pLane 		= nullptr;
 		horizontal_angle = 0;
 		vertical_angle = 0;
+		pRoad = nullptr;
 	}
 };
 
@@ -709,6 +766,8 @@ public:
 	double horizontal_angle;
 	double vertical_angle;
 
+	RoadSegment * pRoad;
+
 	TrafficLight()
 	{
 		groupID = 0;
@@ -719,6 +778,7 @@ public:
 		lightType	= GREEN_LIGHT;
 		linkID 		= 0;
 		stopLineID  = 0;
+		pRoad = nullptr;
 	}
 
 	bool CheckLane(const int& laneId)
@@ -745,6 +805,8 @@ public:
 	Lane* pLane;
 	double width;
 
+	RoadSegment * pRoad;
+
 	Marking()
 	{
 		id = 0;
@@ -754,35 +816,8 @@ public:
 		mark_color = MARK_COLOR_WHITE;
 		pLane = nullptr;
 		width = 0;
+		pRoad = nullptr;
 	}
-};
-
-class RoadSegment
-{
-public:
-	int id;
-
-	SEGMENT_TYPE 	roadType;
-	Boundary	boundary;
-	Crossing	start_crossing;
-	Crossing	finish_crossing;
-	double 		avgWidth;
-	std::vector<int> fromIds;
-	std::vector<int> toIds;
-	std::vector<Lane> Lanes;
-
-
-	std::vector<RoadSegment*> fromLanes;
-	std::vector<RoadSegment*> toLanes;
-
-	RoadSegment()
-	{
-		id = 0;
-		avgWidth = 0;
-		roadType = NORMAL_ROAD_SEG;
-	}
-
-
 };
 
 class Lane
@@ -791,6 +826,9 @@ public:
 	int id;
 	int roadId;
 	int areaId;
+	int leftLaneId;
+	int rightLaneId;
+	int oppositeLaneId;
 	int fromAreaId;
 	int toAreaId;
 	std::vector<int> fromIds;
@@ -799,6 +837,7 @@ public:
 	double speed;
 	double length;
 	LaneType type;
+	int junctionId;
 	double width;
 	int lane_change;
 	std::vector<WayPoint> points;
@@ -810,27 +849,84 @@ public:
 	std::vector<Lane*> toLanes;
 	Lane* pLeftLane;
 	Lane* pRightLane;
+	Lane* pOpposite;
 
 	RoadSegment * pRoad;
 
 	Lane()
 	{
 		lane_change = 0;
-		id 		= 0;
-		num		= 0;
-		speed 	= 0;
-		length 	= 0;
-		type 	= NORMAL_LANE;
-		width 	= 0;
-		pLeftLane = 0;
-		pRightLane = 0;
-		pRoad	= 0;
+		id = 0;
+		num	= 1; // zero is for the central lane
+		speed = 0;
+		length = 0;
+		type = NORMAL_LANE;
+		junctionId = -1;
+		width = 0;
+		pLeftLane = nullptr;
+		pRightLane = nullptr;
+		pOpposite = nullptr;
+		pRoad = nullptr;
 		roadId = 0;
 		areaId = 0;
+		leftLaneId = 0;
+		rightLaneId = 0;
+		oppositeLaneId = 0;
 		fromAreaId = 0;
 		toAreaId = 0;
 	}
 
+};
+
+class RoadSegment
+{
+public:
+	int id;
+	int junctionID; // -1 for non juntion roads (normal roads)
+	SEGMENT_TYPE roadType;
+	Boundary boundary;
+	std::vector<int> fromIds;
+	std::vector<int> toIds;
+
+	std::vector<RoadSegment*> fromRoads;
+	std::vector<RoadSegment*> toRoads;
+
+	std::vector<Lane> Lanes;
+	std::vector<TrafficLight> trafficLights;
+	std::vector<StopLine> stopLines;
+	std::vector<Curb> curbs;
+	std::vector<Boundary> boundaries;
+	std::vector<Crossing> crossings;
+	std::vector<Marking> markings;
+	std::vector<TrafficSign> signs;
+	std::vector<Line> lines;
+
+	std::vector<WayPoint> referenceLine; // use in the OpenDRIVE conversion
+
+	RoadSegment()
+	{
+		id = -1;
+		junctionID = -1;
+		roadType = NORMAL_ROAD_SEG;
+	}
+
+	Lane* GetLaneByNum(int num)
+	{
+		for(auto& l: Lanes) {
+			if(l.num == num) return &l;
+		}
+		return nullptr;
+	}
+
+	Lane* GetLaneById(int _id)
+	{
+		if(_id <= 0) return nullptr;
+
+		for(auto& l: Lanes) {
+			if(l.id == _id) return &l;
+		}
+		return nullptr;
+	}
 };
 
 class Line
@@ -849,6 +945,8 @@ public:
 	std::vector<Lane*> left_lanes;
 	std::vector<Lane*> right_lanes;
 
+	RoadSegment * pRoad;
+
 	Line()
 	{
 		id = 0;
@@ -857,6 +955,65 @@ public:
 		color = MARK_COLOR_WHITE;
 		type = GENERAL_LINE;
 		original_type = 0;
+		pRoad = nullptr;
+	}
+};
+
+class Connection
+{
+public:
+	int id = -1;
+	int incommingRoadId = -1;
+	int connectingRoadId = -1;
+	bool bConnectedFromStart = true;
+	std::vector<std::pair<int, int> > lane_links; //first(from), second(to)
+
+};
+
+class Junction
+{
+public:
+	int id = -1;
+	std::vector<Connection> connections;
+
+	Connection* FindConnection(int connectingRoadId, int incommingRoadId)
+	{
+		if(connectingRoadId > 0)
+		{
+			for(auto& conn: connections)
+			{
+				if(conn.connectingRoadId == connectingRoadId)
+				{
+					return &conn;
+				}
+			}
+		}
+
+		if(incommingRoadId > 0)
+		{
+			for(auto& conn: connections)
+			{
+				if(conn.incommingRoadId == incommingRoadId)
+				{
+					return &conn;
+				}
+			}
+		}
+
+		return nullptr;
+	}
+
+	Connection* GetConnection(int connectingRoadId, int incommingRoadId)
+	{
+		if(connectingRoadId <= 0 || incommingRoadId <=0) return nullptr;
+		for(auto& conn: connections)
+		{
+			if(conn.connectingRoadId == connectingRoadId && conn.incommingRoadId == incommingRoadId)
+			{
+				return &conn;
+			}
+		}
+		return nullptr;
 	}
 };
 
@@ -872,7 +1029,9 @@ public:
 	std::vector<Marking> markings;
 	std::vector<TrafficSign> signs;
 	std::vector<Line> lines;
+	std::vector<Junction> junctions;
 
+	bool bLeftHand;
 	std::string str_proj;
 	WayPoint origin;
 	MAP_TARGET_PROJECTION proj;
@@ -880,6 +1039,7 @@ public:
 	RoadNetwork()
 	{
 		proj = UTM_PROJ;
+		bLeftHand = false;
 	}
 
 	void Clear()
@@ -893,16 +1053,18 @@ public:
 		markings.clear();
 		signs.clear();
 		lines.clear();
-		RoadNetwork::g_max_point_id = 0;
-		RoadNetwork::g_max_lane_id = 0;
-		RoadNetwork::g_max_line_id = 0;
-		RoadNetwork::g_max_stop_line_id = 0;
-		RoadNetwork::g_max_traffic_light_id = 0;
-		RoadNetwork::g_max_traffic_sign_id = 0;
-		RoadNetwork::g_max_boundary_area_id = 0;
-		RoadNetwork::g_max_marking_id = 0;
-		RoadNetwork::g_max_curb_id = 0;
-		RoadNetwork::g_max_crossing_id = 0;
+		RoadNetwork::g_max_point_id = 1;
+		RoadNetwork::g_max_lane_id = 1;
+		RoadNetwork::g_max_line_id = 1;
+		RoadNetwork::g_max_stop_line_id = 1;
+		RoadNetwork::g_max_traffic_light_id = 1;
+		RoadNetwork::g_max_traffic_sign_id = 1;
+		RoadNetwork::g_max_boundary_area_id = 1;
+		RoadNetwork::g_max_marking_id = 1;
+		RoadNetwork::g_max_curb_id = 1;
+		RoadNetwork::g_max_crossing_id = 1;
+		RoadNetwork::g_max_road_id = 1;
+		RoadNetwork::g_max_junction_id = 1;
 	}
 
 	static int g_max_point_id;
@@ -915,6 +1077,60 @@ public:
 	static int g_max_marking_id;
 	static int g_max_curb_id;
 	static int g_max_crossing_id;
+	static int g_max_road_id;
+	static int g_max_junction_id;
+
+	Lane* GetLaneById(int laneId)
+	{
+		if(laneId <= 0) return nullptr;
+
+		for(auto& seg: roadSegments)
+		{
+			for(auto& l: seg.Lanes) {
+				if(l.id == laneId) return &l;
+			}
+		}
+		return nullptr;
+	}
+
+	RoadSegment* GetSegmentById(int roadId)
+	{
+		if(roadId <= 0) return nullptr;
+
+		for(auto& seg: roadSegments) {
+			if(seg.id == roadId) return &seg;
+		}
+
+		return nullptr;
+	}
+
+	RoadSegment* GetSegmentByLaneId(int laneId)
+	{
+		if(laneId <= 0) return nullptr;
+
+		for(auto& seg: roadSegments) {
+			for(auto& l: seg.Lanes) {
+				if(l.id == laneId) return &seg;
+			}
+		}
+
+		return nullptr;
+	}
+
+	Junction* FindJunction(int connectingRoadId, int incommingRoadId)
+	{
+		for(auto& junc: junctions)
+		{
+			Connection* pConn = junc.FindConnection(connectingRoadId, incommingRoadId);
+
+			if(pConn != nullptr)
+			{
+				return &junc;
+			}
+		}
+
+		return nullptr;
+	}
 };
 
 class VehicleState : public ObjTimeStamp
@@ -1580,6 +1796,34 @@ public:
 
 };
 
+static EnumString<LaneType> LaneTypesStr(NORMAL_LANE,
+{
+		{NONE_LANE, "none"},
+		{NORMAL_LANE, "driving"},
+		{SHOULDER_LANE, "shoulder"},
+		{BIKING_LANE, "biking"},
+		{STOP_LANE, "stop"},
+		{BUS_LANE, "bus"},
+		{BUS_STOP_LANE, "busStop"},
+		{SIDEWALK_LANE, "sidewalk"},
+		{BORDER_LANE, "border"},
+		{RESTRICTED_LANE, "restricted"},
+		{PARKING_LANE, "parking"},
+		{BIDIRECTIONAL_LANE, "bidirectional"},
+		{MEDIAN_LANE, "median"},
+		{SPECIAL1_LANE, "special1"},
+		{SPECIAL2_LANE, "special2"},
+		{SPECIAL3_LANE, "special3"},
+		{ROADWORKS_LANE, "roadworks"},
+		{TRAM_LANE, "tram"},
+		{RAIL_LANE, "rail"},
+		{ENTRY_LANE, "entry"},
+		{EXIT_LANE, "exit"},
+		{OFFRAMP_LANE, "offramp"},
+		{ONRAMP_LANE, "onramp"},
+		{PLANE_LANE, "plane"},
+		{EMERGENCY_LANE, "emergency"}
+});
 
 }
 

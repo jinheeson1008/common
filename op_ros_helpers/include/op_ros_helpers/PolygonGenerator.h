@@ -89,6 +89,20 @@ public:
 	std::vector<GPSPoint> EstimateClusterPolygon(const pcl::PointCloud<pcl::PointXYZ>& cluster, const GPSPoint& original_centroid, GPSPoint& new_centroid, const double& polygon_resolution = 1.0);
 };
 
+class ConvexHull
+{
+public:
+	ConvexHull();
+	std::vector<GPSPoint> EstimateClusterHull(const pcl::PointCloud<pcl::PointXYZ>& cluster, const GPSPoint& original_centroid, const double& polygon_resolution = 0.5);
+
+private:
+	std::vector<GPSPoint> m_ConvexHull;
+	std::vector<WayPoint> m_PointsList;
+	WayPoint m_StartPoint;
+
+	void FixResolution(double polygon_resolution);
+};
+
 } /* namespace PlannerXNS */
 
 #endif /* OP_POLYGONGENERATOR_H_ */

@@ -324,7 +324,8 @@ void MotionControl::CalculateVelocityDesired(const double& dt, const PlannerHNS:
 	else if(CurrBehavior.state == FOLLOW_STATE) // maintain
 	{
 		distance_d = CurrBehavior.followDistance;
-		safe_d = m_Params.min_safe_follow_distance;
+		safe_d = m_Params.min_safe_follow_distance + (CurrBehavior.stopDistance/2.0) + CurrStatus.speed;
+
 
 		if(distance_d > safe_d) // maintain distance
 		{

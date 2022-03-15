@@ -17,7 +17,9 @@ find_package(catkin REQUIRED COMPONENTS
   op_simu
   libwaypoint_follower
   autoware_msgs
+  autoware_can_msgs
   vector_map_msgs
+  lanelet2_extension
 )
 
 catkin_package(
@@ -26,6 +28,7 @@ catkin_package(
   CATKIN_DEPENDS
   geometry_msgs
   autoware_msgs
+  autoware_can_msgs
   map_file
   pcl_conversions
   pcl_ros
@@ -49,6 +52,9 @@ include_directories(
 set(ROS_HELPERS_SRC
   src/PolygonGenerator.cpp
   src/op_ROSHelpers.cpp
+  src/ROSMapHandler.cpp
+  src/ROSVelocityHandler.cpp
+  src/op_ParamsHandler.cpp
 )
 
 ## Declare a cpp library

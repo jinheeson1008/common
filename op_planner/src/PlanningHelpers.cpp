@@ -1310,6 +1310,83 @@ double PlanningHelpers::GetDistanceToClosestStopLineAndCheck(const std::vector<W
 	return -1;
 }
 
+double PlanningHelpers::GetDistanceToClosestStopLineAndCheckV2(const std::vector<WayPoint>& path, const WayPoint& p, const std::vector<StopLine>& slines, int& stopLineID, int& stopSignID, std::vector<int>& trafficLightIDs)
+{
+	stopSignID = stopLineID = -1;
+
+	RelativeInfo info;
+	GetRelativeInfo(path, p, info);
+
+//	std::vector<int> uni_lane_ids;
+//
+//	for(auto& p: path)
+//	{
+//		if(std::find(uni_lane_ids.begin(), uni_lane_ids.end(), p.laneId) == uni_lane_ids.end())
+//		{
+//			uni_lane_ids.push_back(p.laneId);
+//		}
+//	}
+//
+//	std::cout << std::endl;
+//	for(auto& ulid: uni_lane_ids)
+//	{
+//		std::cout << ulid << ", ";
+//	}
+//	std::cout << std::endl;
+
+
+	double min_distance = DBL_MAX;
+
+	for(const auto& sl: slines)
+	{
+		//validate stop line
+		if(sl.points.size() == 0) continue;
+
+		//file stop line according to global path lanes
+		bool bFound = false;
+		for(auto& p: path)
+		{
+			if((std::find(sl.laneIds.begin(), sl.laneIds.end(), p.laneId) != sl.laneIds.end()) || p.laneId == sl.laneId)
+			{
+				bFound = true;
+				break;
+			}
+		}
+
+		if(bFound == false) continue;
+
+		WayPoint avg_p;
+		for(const auto& p: sl.points)
+		{
+			avg_p.pos.x += p.pos.x;
+			avg_p.pos.y += p.pos.y;
+			avg_p.pos.z += p.pos.z;
+		}
+
+		avg_p.pos.x = avg_p.pos.x / (double)sl.points.size();
+		avg_p.pos.y = avg_p.pos.y / (double)sl.points.size();
+		avg_p.pos.z = avg_p.pos.z / (double)sl.points.size();
+
+		RelativeInfo stop_info;
+		GetRelativeInfo(path, avg_p, stop_info);
+
+		// stop line center shouldn't be more than 10 meters away from the center path
+		if(fabs(stop_info.perp_distance) > 5) continue;
+
+		double d = GetExactDistanceOnTrajectory(path, info, stop_info);
+
+		if(d > 0 && d < min_distance)
+		{
+			min_distance = d;
+			stopLineID = sl.id;
+			stopSignID = sl.stopSignID;
+			trafficLightIDs = sl.lightIds;
+		}
+	}
+
+	return min_distance;
+}
+
 void PlanningHelpers::CreateManualBranchFromTwoPoints(WayPoint& p1,WayPoint& p2 , const double& distance, const DIRECTION_TYPE& direction, std::vector<WayPoint>& path)
 {
 	WayPoint endWP, midWP;
@@ -1996,13 +2073,10 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 	WayPoint p;
 
 	//Get Closest Index
-	double initial_roll_in_distance = 0;
 	int close_index = -1;
 	RelativeInfo info;
 	GetRelativeInfoDirection(originalCenter, carPos, info);
 	close_index = info.iBack;
-	initial_roll_in_distance = info.perp_distance ; //GetPerpDistanceToTrajectorySimple(originalCenter, carPos, close_index);
-
 	double remaining_distance = 0;
 	for(unsigned int i=close_index; i< originalCenter.size()-1; i++)
 	{
@@ -2017,6 +2091,8 @@ void PlanningHelpers::CalculateRollInTrajectories(const WayPoint& carPos, const 
 	{
 		nRollOuts = 0;
 	}
+
+	double initial_roll_in_distance = info.perp_distance ; //GetPerpDistanceToTrajectorySimple(originalCenter, carPos, close_index);
 
 	vector<WayPoint> RollOutStratPath;
 	///***   Smoothing From Car Heading Section ***///
@@ -2598,16 +2674,16 @@ double PlanningHelpers::GetACCVelocityModelBased(const double& dt, const double&
 	{
 		double crash_d = CurrBehavior.followDistance;
 		double safe_d = CurrBehavior.stopDistance;
-		double min_follow_distance = ctrlParams.min_safe_follow_distance*2.0 + CurrSpeed;
+		double min_follow_distance = ctrlParams.min_safe_follow_distance + CurrSpeed;
 		double diff = crash_d - safe_d;
 		double target_a = 0;
 
 		/**
 		 * Following Conditions
 		 */
-		if(diff < ctrlParams.min_safe_follow_distance*2.0)
+		if(diff < ctrlParams.min_safe_follow_distance)
 		{
-			double brake_distance = crash_d - ctrlParams.min_safe_follow_distance*2.0;
+			double brake_distance = crash_d - ctrlParams.min_safe_follow_distance;
 
 			if(brake_distance > 0)
 			{
@@ -2618,7 +2694,7 @@ double PlanningHelpers::GetACCVelocityModelBased(const double& dt, const double&
 				target_a = -9.8*4; //stop with -4G
 			}
 		}
-		else if(diff > (ctrlParams.min_safe_follow_distance*2.0 + CurrSpeed))
+		else if(diff > (ctrlParams.min_safe_follow_distance + CurrSpeed))
 		{
 			target_a = vehicleInfo.max_acceleration;
 		}
@@ -2661,6 +2737,11 @@ double PlanningHelpers::GetACCVelocityModelBased(const double& dt, const double&
 	if(desiredVel > CurrBehavior.maxVelocity)
 	{
 		desiredVel = CurrBehavior.maxVelocity;
+	}
+
+	if(desiredVel < 0)
+	{
+		desiredVel = 0;
 	}
 
 	return desiredVel;
@@ -3914,6 +3995,172 @@ int PlanningHelpers::PointInsidePolygon(const std::vector<WayPoint>& points,cons
 		return 1;
 	}
 }
+
+bool PlanningHelpers::CheckFrontLane(PlannerHNS::WayPoint* pWP1, PlannerHNS::WayPoint* pWP2, int search_level)
+{
+	std::vector<PlannerHNS::Lane*> pLanes;
+	pLanes.push_back(pWP1->pLane);
+	int level_count = 0;
+	while(level_count < search_level && pLanes.size() > 0)
+	{
+		std::vector<PlannerHNS::Lane*> pNextLevel;
+		for(auto& pL: pLanes)
+		{
+			if(pWP2->pLane == pL)
+			{
+				return true;
+			}
+
+			pNextLevel.insert(pNextLevel.end(), pL->toLanes.begin(), pL->toLanes.end());
+		}
+
+		pLanes = pNextLevel;
+
+		level_count++;
+	}
+
+	return false;
+}
+
+bool PlanningHelpers::CheckBackLane(PlannerHNS::WayPoint* pWP1, PlannerHNS::WayPoint* pWP2, int search_level)
+{
+	std::vector<PlannerHNS::Lane*> pLanes;
+	pLanes.push_back(pWP1->pLane);
+	int level_count = 0;
+	while(level_count < search_level && pLanes.size() > 0)
+	{
+		for(auto& pL: pLanes)
+		{
+			if(pWP2->pLane == pL)
+			{
+				return true;
+			}
+
+			pLanes.insert(pLanes.end(), pL->fromLanes.begin(), pL->fromLanes.end());
+		}
+		level_count++;
+	}
+
+	return false;
+}
+
+bool PlanningHelpers::CheckRightLane(PlannerHNS::WayPoint* pWP1, PlannerHNS::WayPoint* pWP2)
+{
+	PlannerHNS::WayPoint* p2 = nullptr;
+	PlannerHNS::Lane* pRL = nullptr;
+
+	if(pWP2->pRight != nullptr)
+	{
+		p2 = pWP2->pRight;
+		pRL = p2->pLane;
+	}
+
+	while(pRL != nullptr)
+	{
+		if(pWP1->pLane == pRL)
+		{
+			return true;
+		}
+
+		if(p2->pRight != nullptr)
+		{
+			p2 = p2->pRight;
+			pRL = p2->pLane;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	return false;
+}
+
+bool PlanningHelpers::CheckLeftLane(PlannerHNS::WayPoint* pWP1, PlannerHNS::WayPoint* pWP2)
+{
+	PlannerHNS::WayPoint* p2 = nullptr;
+	PlannerHNS::Lane* pLL = nullptr;
+
+	if(pWP2->pLeft != nullptr)
+	{
+		p2 = pWP2->pLeft;
+		pLL = p2->pLane;
+	}
+
+	while(pLL != nullptr)
+	{
+		if(pWP1->pLane == pLL)
+		{
+			return true;
+		}
+
+		if(p2->pLeft != nullptr)
+		{
+			p2 = p2->pLeft;
+			pLL = p2->pLane;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	return false;
+}
+
+void PlanningHelpers::FilterWaypoints(std::vector<PlannerHNS::WayPoint*>& wp_list, PlannerHNS::WayPoint* pPrevWP)
+{
+	//Only insert waypoint from differnt lanes
+	std::vector<PlannerHNS::WayPoint*> p_wp_filtered;
+	while(wp_list.size() > 0)
+	{
+		bool bFound = false;
+		for(auto& p_p: p_wp_filtered)
+		{
+			if(p_p->pLane == wp_list.at(0)->pLane)
+			{
+				bFound = true;
+				break;
+			}
+		}
+
+		if(bFound == false)
+		{
+			p_wp_filtered.push_back(wp_list.at(0));
+		}
+
+		wp_list.erase(wp_list.begin()+0);
+	}
+
+	if(pPrevWP == nullptr)
+	{
+		wp_list = p_wp_filtered;
+		return;
+	}
+
+	wp_list.clear();
+	//Check each two points
+	PlannerHNS::WayPoint* pWP1 = pPrevWP;
+
+	while(p_wp_filtered.size() > 0)
+	{
+		PlannerHNS::WayPoint*  pWP2 = p_wp_filtered.at(0);
+		p_wp_filtered.erase(p_wp_filtered.begin()+0);
+
+		if(CheckLeftLane(pWP2, pWP1) || CheckRightLane(pWP2, pWP1) || CheckFrontLane(pWP1, pWP2, 4))
+		{
+			wp_list.push_back(pWP2);
+			return;
+		}
+		else if(p_wp_filtered.size() == 0) // if only one waypoint left ! just use it
+		{
+			wp_list.push_back(pWP2);
+			return;
+		}
+	}
+
+}
+
 
 double PlanningHelpers::frunge ( double x )
 {

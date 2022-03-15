@@ -34,10 +34,10 @@ void Lanelet2MapLoader::LoadMap(const autoware_lanelet2_msgs::MapBin& msg, Plann
 	}
 }
 
-void Lanelet2MapLoader::LoadMap(const std::string& fileName, PlannerHNS::RoadNetwork& map)
+lanelet::LaneletMapPtr Lanelet2MapLoader::LoadMap(const std::string& fileName, PlannerHNS::RoadNetwork& map)
 {
 	PlannerHNS::MappingHelpers::LoadProjectionData(fileName, map);
-	lanelet::LaneletMapPtr l2_map;
+	lanelet::LaneletMapPtr l2_map = nullptr;
 	lanelet::ErrorMessages errors;
 	lanelet::Projector* p_proj = nullptr;
 
@@ -81,7 +81,7 @@ void Lanelet2MapLoader::LoadMap(const std::string& fileName, PlannerHNS::RoadNet
 	catch(std::exception& e)
 	{
 		std::cout << "Failed to Load map file: " << fileName << ", Error: " << e.what() << std::endl;
-		return;
+		return nullptr;
 	}
 
 	if(errors.size() > 0)
@@ -91,11 +91,13 @@ void Lanelet2MapLoader::LoadMap(const std::string& fileName, PlannerHNS::RoadNet
 			std::cout << "Lanelet Error: " << error <<std::endl;
 		}
 		std::cout << "Failed to Load map file: " << fileName << std::endl;
-		return;
+		return nullptr;
 	}
 
 	if(p_proj != nullptr)
 		delete p_proj;
+
+	return l2_map;
 }
 
 void Lanelet2MapLoader::CreateLane(lanelet::routing::RoutingGraphUPtr& routingGraph, lanelet::traffic_rules::TrafficRulesPtr& traffic, lanelet::ConstLanelet& lanelet_obj, PlannerHNS::Lane& l, PlannerHNS::RoadNetwork& map, lanelet::Projector* proj)

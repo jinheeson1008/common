@@ -36,20 +36,29 @@ TrajectoryCost TrajectoryEvaluator::doOneStep(const std::vector<std::vector<WayP
                                               const int& prev_curr_index,
 											  const bool& b_keep_curr)
 {
-
-//  timespec _t;
-//  UtilityHNS::UtilityH::GetTickCount(_t);
-
-//	if(g_enable_debug == true)
-//	{
-//		std::cout << "Received paths: " <<  roll_outs.size() << ", Points: " << total_paths.size() << std::endl;
-//	}
-
 	PlanningParams params = original_params;
 
 	if(roll_outs.size() == 1)
 	{
 		params.rollOutNumber = 0;
+	}
+
+	if(roll_outs.size() != (params.rollOutNumber+1))
+	{
+		params.rollOutNumber = roll_outs.size() - 1;
+	}
+
+	TrajectoryCost best_trajectory;
+	best_trajectory.bBlocked = true;
+	best_trajectory.closest_obj_distance = params.horizonDistance;
+	best_trajectory.closest_obj_velocity = 0;
+	best_trajectory.index = params.rollOutNumber / 2;
+	best_trajectory.lane_index = 0;
+
+	if(roll_outs.size() == 0)
+	{
+		std::cout << " ### Zero generated rollouts, But They should = " << params.rollOutNumber + 1 << std::endl;
+		return best_trajectory;
 	}
 
 	double critical_lateral_distance = car_info.width / 2.0 + params.horizontalSafetyDistancel;
@@ -84,7 +93,7 @@ TrajectoryCost TrajectoryEvaluator::doOneStep(const std::vector<std::vector<WayP
 
   normalizeCosts(eval_params_, trajectory_costs_);
 
-  TrajectoryCost best_trajectory = findBestTrajectory(params, prev_curr_index, b_keep_curr, trajectory_costs_);
+  best_trajectory = findBestTrajectory(params, prev_curr_index, b_keep_curr, trajectory_costs_);
 //	cout << "------------------------------------------------------------- " << endl;
 
 //  double dt = UtilityHNS::UtilityH::GetTimeDiffNow(_t);
@@ -591,7 +600,7 @@ void TrajectoryEvaluator::calculateDistanceCosts(const PlanningParams& params, c
 
 			if(actual_lateral_distance < g_lateral_skip_value && !info.bAfter && !bBefore)
 			{
-				if(safety_border_.PointInsidePolygon(safety_border_, contour_points.at(j).pos) == true)
+				if(safety_border_.PointInsidePolygonV2(safety_border_, contour_points.at(j).pos) == true)
 				{
 					trajectory_costs.at(i).bBlocked = true;
 				}

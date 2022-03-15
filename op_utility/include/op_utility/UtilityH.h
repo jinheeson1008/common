@@ -12,6 +12,7 @@
 #include <math.h>
 #include <vector>
 #include <tinyxml.h>
+#include "dirent.h"
 
 
 namespace UtilityHNS
@@ -31,6 +32,7 @@ public:
 	virtual ~UtilityH(); 
 
 
+	static int CompareDouble(const double& a, const double& b);
 	static double FixNegativeAngle(const double& a);
 	static double SplitPositiveAngle(const double& a);
 	static double InverseAngle(const double& a);
@@ -49,6 +51,7 @@ public:
 	static double GetMomentumScaleFactor(const double& v);
 	static timespec GetTimeSpec(const time_t& srcT);
 	static time_t GetLongTime(const struct timespec& srcT);
+	static void GetFileNameInFolder(const std::string& path, const std::string& extention, std::vector<std::string>& out_list);
 };
 
 class PIDController

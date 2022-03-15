@@ -225,7 +225,7 @@ void TrajectoryCosts::CalculateLateralAndLongitudinalCosts(vector<TrajectoryCost
 
 					longitudinalDist = longitudinalDist - critical_long_front_distance;
 
-					if(m_SafetyBorder.PointInsidePolygon(m_SafetyBorder, contourPoints.at(icon).pos) == true)
+					if(m_SafetyBorder.PointInsidePolygonV2(m_SafetyBorder, contourPoints.at(icon).pos) == true)
 						trajectoryCosts.at(iCostIndex).bBlocked = true;
 
 					if(lateralDist <= critical_lateral_distance
