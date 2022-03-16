@@ -17,7 +17,7 @@
 #include <boost/math/tools/rational.hpp>
 #include <iostream>
 
-//#define ACCEPT_USE_OF_DEPRECATED_PROJ_API_H
+#define ACCEPT_USE_OF_DEPRECATED_PROJ_API_H
 #include <proj_api.h>
 
 namespace opendrive {
